@@ -40,6 +40,8 @@ Prefer the console executable on Windows. Do not scan arbitrary drives, download
 
 ## Run headless checks
 
+Before an import, determine whether this checkout is already open in an editor. Prefer its live MCP diagnostics rather than a concurrent headless editor. For this project, tools/check.ps1 performs the full cold-start import/startup batch; do not run it again after documentation-only edits.
+
 Use one of these modes:
 
 ```powershell
@@ -56,7 +58,7 @@ Use one of these modes:
 Start with read-only discovery and request additional access only immediately before the command that needs it. Explain the exact path or capability and why it is required.
 
 - Project import and script execution may write `<project>/.godot/` and Godot user data such as `%APPDATA%\Godot`.
-- Persisting a toolchain path or changing `PATH` writes outside the project and requires a separate explicit user request.
+- The bundled toolchain file is inside this project; change it only within an authorized environment-configuration task. Changing global `PATH` or files outside the project requires separate scope. Existing authorization is sufficient; do not add a redundant confirmation step.
 - Downloads, plugin installation, and remote documentation access use the network and are separate from local Godot execution.
 
 Prefer narrowly scoped approval for the selected Godot console executable with `--headless`. Never request Full access as a convenience, change Codex permission settings, or bypass an approval. If access is denied or the first elevated attempt fails because of permissions, stop that operation and report the exact blocker; do not cycle through privileged workarounds.

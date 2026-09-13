@@ -3,7 +3,7 @@
 ## Scope and priorities
 - Build an indie-scale 3D voxel survival and building game. Complete small playable loops before expanding systems.
 - Use simple, direct implementations and feature-oriented folders. Avoid speculative frameworks and premature optimization.
-- The current project is an environment scaffold. Camera perspective, voxel representation, world limits, multiplayer, and progression are not yet product decisions.
+- Treat the current README and implemented features as the source of project status. Camera perspective, voxel representation, world limits, multiplayer, and progression require explicit design decisions; update these rules as decisions are approved.
 - Do not import GodotParty activities, its SDK, party-game rules, player limits, or networking assumptions.
 
 ## Editing and permissions
@@ -16,12 +16,12 @@
 - For a live editor workflow read .agents/skills/godot-mcp-toolkit/SKILL.md. For an explicitly requested MCP extension read .agents/skills/mcp-extension-creator/SKILL.md.
 - Set GODOT_MCP_PROJECT_PATH to this checkout before starting the MCP client. Verify project_get_settings reports application/config/name = ASTRAEON before any mutation; verify the connected path when available.
 - Prefer structured MCP tools for scenes, nodes, resources, input, settings, and scripts when connected to the correct editor.
-- Cold-start bootstrapping without a verified live editor may use filesystem edits followed by a full headless import.
+- When no verified live MCP editor is available, authorized filesystem edits are allowed with validation appropriate to the change; cold-start engine/plugin bootstrapping requires a full import. Do not launch a second editor or import against a checkout already open in an editor; prefer its MCP diagnostics.
 - After external edits with an editor connected, call targeted editor_refresh and editor_wait_for_idle before relying on editor state.
 - Use typed script/scene/resource deletion tools to keep UID companions consistent. Never delete generated caches as routine repair.
 - Discover only needed MCP groups and reset them after the task.
-- Repository rules override generic companion-skill advice about class_name and references.
-- Third-party code under addons/ and copied skills is exempt from project-authored style rules.
+- Repository rules override generic companion-skill advice. Maintain project-specific adaptations in .agents/skills/; preserve the upstream copies under addons/godot_mcp_toolkit/CompanionSkills/.
+- Vendored third-party code is exempt from project-authored style rules. New project-authored extensions, including those under addons/, follow explicit typing and naming rules.
 
 ## GDScript and scenes
 - Default to GDScript. Never use :=. Explicitly type variables, arguments, return values, signals, arrays, and dictionaries where supported.
@@ -30,7 +30,7 @@
 - Use snake_case for files, functions, variables, resources, and signals; PascalCase for nodes, enums, and class_name; UPPER_SNAKE_CASE for constants.
 - Register class_name only for shared components, custom resources, and reusable data types.
 - Prefer composition. Use @export for configurable resources and replaceable node references; validate required references at startup.
-- Use %UniqueNode for stable private scene nodes. Keep scenes, scripts, and dedicated resources together.
+- Use %UniqueNode for stable private scene nodes. Use preload() for existing static dependencies without cycles and load() for runtime-selected paths; prefer @export for configurable resources. Keep scenes, scripts, and dedicated resources together.
 - Static definitions belong in custom Resources; mutable runtime state must not modify shared resource templates.
 - Add autoloads only when a real cross-scene service requires them; no speculative managers.
 - Explain module boundaries and non-obvious decisions. Document public or complex APIs with ##.

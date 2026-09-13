@@ -4,13 +4,9 @@ description: >
   Best practices for building Godot 4.x games through the Godot MCP Toolkit.
   Covers tool selection, workflow patterns, error recovery, and token efficiency
   for MCP-connected agents.
-when_to_use: >
-  When the conversation involves building, editing, or testing a Godot project
-  through MCP tools such as game_start, scene_create, node_set_property,
-  discover_tools, script_write, or any godot-mcp-toolkit tool.
 ---
 
-You are assisting with a Godot 4.x project through the Godot MCP Toolkit.
+This is the Astraeon project adaptation of the Godot MCP Toolkit workflow. Follow root AGENTS.md for product scope, typing, dependencies, and validation. Before mutations verify the MCP target is this checkout and application/config/name is ASTRAEON.
 Follow these patterns to work efficiently, avoid common pitfalls, and
 minimise wasted tool calls.
 
@@ -128,8 +124,7 @@ node_set_property({
 When `batch` is present, top-level `property`/`value` are ignored.
 
 **Autoload setup.** Use `autoload_manage` to register autoloads — not
-`project_set_setting` (which rejects `autoload/*` keys and redirects). Register as
-early as possible so other scripts can reference them by `class_name`. After
+`project_set_setting` (which rejects `autoload/*` keys and redirects). Register a singleton only when an actual cross-scene service needs it. Autoload names are directly accessible; do not add a conflicting `class_name`. After
 registering, call `editor_refresh` (`editor_advanced` group) to flush the editor
 cache: console errors that reference autoload singletons (e.g. "identifier not
 found") are usually stale cache — don't re-register or rewrite scripts until
@@ -184,8 +179,7 @@ group).
 
 ### Script writing patterns
 
-- Always add `class_name` — enables script-to-script references without
-  `load()`/`preload()`.
+- Add `class_name` only for shared components, custom resources, reusable data types, or extension types required by toolkit discovery. Keep scene-local scripts unregistered.
 - `@export` for properties visible in the inspector and via
   `runtime_get_node_state`.
 - Declare signals with typed parameters: `signal health_changed(new_hp: int)`.
@@ -193,10 +187,7 @@ group).
 - **Prefer `script_edit` for changes to an existing script** — a surgical
   `old_string` -> `new_string` swap that keeps undo history and returns inline
   diagnostics. Use `script_write` for new files.
-- **Use `script_write` / `script_edit` for EVERY script file** — including scratch
-  drafts, experiments, and throwaway managers, never a native file-write tool. The
-  MCP tools compile-check the code and register it with the running editor; a raw
-  filesystem write does neither, so it is never the better choice in a live project.
+- Prefer `script_write` / `script_edit` for scripts when connected to the verified editor. Without a live connection, authorized filesystem edits use the validation route in AGENTS.md. Refresh changed paths and wait for idle before relying on live editor state.
 
 **Placeholder art.** Use Godot primitives (ColorRect, Polygon2D, simple shapes)
 for placeholder visuals. For quick placeholder assets, `texture_generate` /
@@ -312,9 +303,7 @@ output instead.
 
 ## 6. Key constraints
 
-**Never edit .tscn files directly.** Always use the MCP scene tools
-(`scene_create`, `scene_create_node`, `node_set_property`). Direct `.tscn` edits
-bypass the editor's scene tree and cause silent data loss.
+**Scene edits.** Prefer MCP scene tools with a verified live editor. Cold-start filesystem editing is supported by AGENTS.md with appropriate import validation. Avoid overwriting unsaved editor scenes.
 
 **Root node path.** The root node is always path `"."` — not the node name.
 Children are relative.
@@ -342,13 +331,9 @@ hot-reload, so this doesn't apply.
 editing `.mcp.json`, reconnect the MCP client — the tool list is decided at
 connect time, and a reconnect respawns the server with the fresh env.
 
-**GDScript pattern — prefer load() over preload().** Use `class_name` on every
-script for script-to-script references (no preload/load needed). Use `load()` for
-PackedScene instantiation and resource references — it evaluates at runtime and
-tolerates creation order. Never use `preload()` in generated code unless the
-target already exists and there are no circular dependencies.
+**GDScript dependencies.** Use `@export` for configurable resources; use `preload()` for existing static dependencies without cycles and `load()` for runtime-selected paths. Register `class_name` only where AGENTS.md calls for it. Explicitly type project-authored GDScript; do not use `:=`.
 
-**GDScript pattern — use %UniqueName for node references.** Mark
+**GDScript node references.** Prefer `@export` for replaceable references and cross-scene dependencies; validate required references at startup. Use `%UniqueName` for stable private nodes in the same scene. Mark
 frequently-referenced nodes with `unique_name: true` (via `scene_create_node`, or
 by setting `unique_name_in_owner` with `node_set_property`). Reference them as
 `@onready var label: Label = %ScoreLabel` — this survives reparenting. Use

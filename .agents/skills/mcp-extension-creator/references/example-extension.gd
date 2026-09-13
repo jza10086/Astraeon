@@ -18,7 +18,7 @@ extends MCPToolkitExtension
 ## Registers this extension's commands with the live [param registry].
 ## [param server] is the MCP server node (unused here). Called once at load.
 func register(registry: MCPToolkitCommandRegistry, server: Node) -> void:
-	var opts := MCPToolkitExtensionOptions.new("Write a markdown note to a res:// path") \
+	var opts: MCPToolkitExtensionOptions = MCPToolkitExtensionOptions.new("Write a markdown note to a res:// path") \
 		.mark_scene_independent() \
 		.guard_project_path("file_path") \
 		.with_input_schema({
@@ -47,7 +47,7 @@ func _write(params: Dictionary) -> Dictionary:
 	var file_path: String = params["file_path"]
 	var content: String = params["content"]
 
-	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return MCPToolkitError.fail("WRITE_FAILED",
 			"could not open %s for writing" % file_path,

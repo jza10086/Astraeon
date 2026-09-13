@@ -9,6 +9,8 @@ GDScript examples unless the user explicitly asks for C#. When the user asks you
 build an extension, open with a one-line offer of guided design (see "Guided
 authoring mode"), then build it — the full guided flow is opt-in and never blocks.
 
+Project adaptation: follow Astraeon AGENTS.md. Project-authored extensions use explicit GDScript types, including extensions under addons/. Keep toolkit-required extension class registration. The upstream examples in other references describe API mechanics; adapt their typing before use. This skill applies to adding MCP tools, not ordinary voxel gameplay.
+
 ## Quick start — a complete working extension
 
 Paste this, rename the class, save it under `addons/<your_extension>/`, and
@@ -23,7 +25,7 @@ extends MCPToolkitExtension
 ## Writes a markdown note to a res:// path.
 
 func register(registry: MCPToolkitCommandRegistry, server: Node) -> void:
-    var opts := MCPToolkitExtensionOptions.new("Write a markdown note to a res:// path") \
+    var opts: MCPToolkitExtensionOptions = MCPToolkitExtensionOptions.new("Write a markdown note to a res:// path") \
         .mark_scene_independent() \
         .guard_project_path("file_path") \
         .with_input_schema({"type": "object",
@@ -38,7 +40,7 @@ func _write(params: Dictionary) -> Dictionary:
         return missing
     var file_path: String = params["file_path"]
     var content: String = params["content"]
-    var file := FileAccess.open(file_path, FileAccess.WRITE)
+    var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
     if file == null:
         return MCPToolkitError.fail("WRITE_FAILED", "could not write " + file_path)
     file.store_string(content)
@@ -69,7 +71,7 @@ extends MCPToolkitExtension
 ## <One-line brief of what this extension adds.>
 
 func register(registry: MCPToolkitCommandRegistry, server: Node) -> void:
-    var opts := MCPToolkitExtensionOptions.new("<What this tool does>") \
+    var opts: MCPToolkitExtensionOptions = MCPToolkitExtensionOptions.new("<What this tool does>") \
         .mark_read_only() \
         .with_input_schema({"type": "object", "properties": {}})  # see the crib below
     registry.add("<namespace>.<action>", _handler, opts)
@@ -162,7 +164,7 @@ guard imperatively with `FileGuard.resolve_safe`:
 
 ```gdscript
 const FileGuard = preload("res://addons/godot_mcp_toolkit/security/file_guard.gd")
-var guard := FileGuard.resolve_safe(params.get("file_path", ""))
+var guard: Dictionary = FileGuard.resolve_safe(params.get("file_path", ""))
 if guard["error"] != null:  # returns {error, reason} on a rejected path
     return MCPToolkitError.fail("PATH_DENIED", str(guard["reason"]))
 ```
