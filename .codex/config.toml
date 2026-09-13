@@ -1,0 +1,25 @@
+[mcp_servers.godot-mcp-toolkit]
+command = "cmd"
+args = ["/c", "godot-mcp-server"]
+startup_timeout_sec = 20
+tool_timeout_sec = 120
+required = false
+
+
+[mcp_servers.godot-mcp-toolkit.env]
+GODOT_MCP_CONFIG_VERSION = "1"
+GODOT_MCP_PROJECT_PATH = "F:/GodotProjects/Astraeon"
+
+# Keep potentially verbose structured reads bounded. Prefer targeted scene,
+# console, and diagnostic queries before raising these limits.
+[mcp_servers.godot-mcp-toolkit.tools.scene_get_tree]
+output_token_limit = 6000
+
+[mcp_servers.godot-mcp-toolkit.tools.editor_get_console]
+output_token_limit = 8000
+
+[mcp_servers.godot-mcp-toolkit.tools.debugger_get_log]
+output_token_limit = 8000
+
+[mcp_servers.godot-mcp-toolkit.tools.lsp_project_diagnostics]
+output_token_limit = 12000

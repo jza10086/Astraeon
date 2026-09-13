@@ -1,0 +1,7 @@
+interface:
+  display_name: "Godot Project Tooling"
+  short_description: "Resolve Godot toolchains and run safe project checks"
+  default_prompt: "Use $godot-project-tooling to validate this Godot project with the intended engine version."
+
+policy:
+  allow_implicit_invocation: true

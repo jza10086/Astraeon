@@ -1,0 +1,2 @@
+# Normalize files that Git classifies as text to LF.
+* text=auto eol=lf

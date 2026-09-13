@@ -1,0 +1,71 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.055, 0.08, 0.12, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.75, 0.9, 1)
+ambient_light_energy = 0.65
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="Material_ground"]
+albedo_color = Color(0.22, 0.34, 0.3, 1)
+roughness = 1.0
+
+[sub_resource type="BoxMesh" id="Mesh_ground"]
+material = SubResource("Material_ground")
+size = Vector3(12, 0.5, 12)
+
+[sub_resource type="BoxShape3D" id="Shape_ground"]
+size = Vector3(12, 0.5, 12)
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -30, 0)
+shadow_enabled = true
+
+[node name="PrototypeGround" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="PrototypeGround"]
+mesh = SubResource("Mesh_ground")
+
+[node name="Collision" type="CollisionShape3D" parent="PrototypeGround"]
+shape = SubResource("Shape_ground")
+
+[node name="PreviewCamera" type="Camera3D" parent="."]
+position = Vector3(10, 9, 12)
+rotation_degrees = Vector3(-30, 40, 0)
+current = true
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+
+[node name="Layout" type="MarginContainer" parent="Overlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 32
+
+[node name="Content" type="VBoxContainer" parent="Overlay/Layout"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Overlay/Layout/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "ASTRAEON"
+
+[node name="Subtitle" type="Label" parent="Overlay/Layout/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Voxel survival & building"
