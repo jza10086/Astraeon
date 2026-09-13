@@ -1,0 +1,27 @@
+{
+  "repository": "https://github.com/javiergcim/MakeUpUltraFast",
+  "commit": "68d2cc033c285f2c424d73e5202d765c57095e7f",
+  "commit_date": "2026-09-12T06:36:31Z",
+  "stars": 256,
+  "default_branch": "master",
+  "archive_sha256": "375a70527dbcfb40c141dc0a8ee9301bc86967b196422053504237949a55240e",
+  "archive_bytes": 450978,
+  "version": "9.5e",
+  "license": "LGPL-3.0",
+  "scope": "Reference only; not a runtime dependency; no source port performed",
+  "reviewed_paths": [
+    "README.md",
+    "ForDevelopers.EN.md",
+    "LICENSE",
+    "shaders/shaders.properties",
+    "shaders/lib/config.glsl",
+    "shaders/src/light_vertex.glsl",
+    "shaders/lib/bloom.glsl",
+    "shaders/lib/ao.glsl",
+    "shaders/lib/water.glsl",
+    "shaders/common/composite_fragment.glsl",
+    "shaders/common/composite1_fragment.glsl",
+    "shaders/common/composite2_fragment.glsl",
+    "shaders/common/final_fragment.glsl"
+  ]
+}
