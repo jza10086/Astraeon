@@ -37,3 +37,6 @@ Windows事件日志显示故障模块ntdll.dll，异常代码0xc0000005（访问
 先定位并修复原生清理/退出异常，再运行 `python tools/run_voxel_suite.py --run`。
 单独复现可用 `python tools/run_voxel_suite.py --run --smoke-only --driver d3d12` 或 `--driver vulkan`。
 本次遵守异常停止约定，没有忽略退出码强行采集正式矩阵，没有修改主项目渲染设置或引擎安装。
+
+## 后续定位结果
+同日已将直接故障定位到本机Duet WinTab 1.1.4.4 DLL的进程退出清理路径：无插件Godot工程以及仅加载该DLL的Python进程都可复现。详见 [退出崩溃诊断](godot_exit_crash_diagnosis_20260913.md)。尚未修复系统驱动，正式性能矩阵仍未运行。
