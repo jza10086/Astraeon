@@ -1,0 +1,199 @@
+--- a/terrain/fixed_lod/voxel_terrain.h
++++ b/terrain/fixed_lod/voxel_terrain.h
+@@ -94,6 +94,9 @@
+ 	bool is_area_edit_notification_enabled() const;
+ 
+ 	void set_automatic_loading_enabled(bool enable);
++	// Astraeon: configure before adding viewers; 16-voxel mesh/data blocks only.
++	void set_horizontal_circular_loading(bool enabled);
++	bool get_horizontal_circular_loading() const { return _horizontal_circular_loading; }
+ 	bool is_automatic_loading_enabled() const;
+ 
+ 	void set_material_override(Ref<Material> material);
+@@ -209,7 +212,8 @@
+ 			const ViewerID viewer_id,
+ 			const Box3i prev_data_box,
+ 			const Box3i new_data_box,
+-			const bool can_load_blocks
++			const bool can_load_blocks,
++			const bool notify_generator = true
+ 	);
+ 	// void process_received_data_blocks();
+ 	void process_meshing();
+@@ -294,6 +298,8 @@
+ 			Vector3i local_position_voxels;
+ 			Box3i data_box; // In block coordinates
+ 			Box3i mesh_box;
++			Vector3i circular_center;
++			int circular_radius = 0;
+ 			int horizontal_view_distance_voxels = 0;
+ 			int vertical_view_distance_voxels = 0;
+ 			bool requires_collisions = false;
+@@ -304,6 +310,7 @@
+ 		State prev_state;
+ 	};
+ 
++	void process_circular_viewer(const PairedViewer &viewer, bool can_load_blocks);
+ 	StdVector<PairedViewer> _paired_viewers;
+ 
+ 	// Voxel storage. Using a shared_ptr so threaded tasks can use it safely.
+@@ -362,6 +369,7 @@
+ 	bool _area_edit_notification_enabled = false;
+ 	// If enabled, VoxelViewers will cause blocks to automatically load around them.
+ 	bool _automatic_loading_enabled = true;
++	bool _horizontal_circular_loading = false;
+ 	bool _generator_use_gpu = false;
+ 
+ 	Ref<Material> _material_override;
+--- a/terrain/fixed_lod/voxel_terrain.cpp
++++ b/terrain/fixed_lod/voxel_terrain.cpp
+@@ -190,6 +190,7 @@
+ }
+ 
+ void VoxelTerrain::set_mesh_block_size(unsigned int mesh_block_size) {
++	ERR_FAIL_COND_MSG(_horizontal_circular_loading && mesh_block_size != 16, "Circular loading requires 16-voxel mesh blocks.");
+ 	mesh_block_size = math::clamp(mesh_block_size, get_data_block_size(), constants::MAX_BLOCK_SIZE);
+ 
+ 	unsigned int po2;
+@@ -394,6 +395,12 @@
+ 
+ bool VoxelTerrain::is_area_edit_notification_enabled() const {
+ 	return _area_edit_notification_enabled;
++}
++
++void VoxelTerrain::set_horizontal_circular_loading(bool enabled) {
++	ERR_FAIL_COND_MSG(!_paired_viewers.empty(), "Configure circular loading before adding viewers.");
++	ERR_FAIL_COND_MSG(get_mesh_block_size() != 16 || get_data_block_size() != 16, "Circular loading requires 16-voxel blocks.");
++	_horizontal_circular_loading = enabled;
+ }
+ 
+ void VoxelTerrain::set_automatic_loading_enabled(bool enable) {
+@@ -1357,6 +1364,8 @@
+ 
+ 				const int data_block_size = self.get_data_block_size();
+ 				const int mesh_block_size = self.get_mesh_block_size();
++				state.circular_center = math::floordiv(state.local_position_voxels, mesh_block_size);
++				state.circular_radius = math::ceildiv(state.horizontal_view_distance_voxels, mesh_block_size);
+ 
+ 				int view_distance_data_blocks_h;
+ 				int view_distance_data_blocks_v;
+@@ -1425,6 +1434,10 @@
+ 
+ 		for (size_t i = 0; i < _paired_viewers.size(); ++i) {
+ 			const PairedViewer &viewer = _paired_viewers[i];
++			if (_horizontal_circular_loading) {
++				process_circular_viewer(viewer, can_load_blocks);
++				continue;
++			}
+ 
+ 			{
+ 				const Box3i &new_data_box = viewer.state.data_box;
+@@ -1521,11 +1534,88 @@
+ 	_stats.time_request_blocks_to_load = profiling_clock.restart();
+ }
+ 
++
++// Disjoint one-Z-row boxes keep the upstream refcount, generation, saving and mesh pipeline.
++// Doubled block-center distances avoid floating point boundary differences. Data rows are
++// the exact one-block Chebyshev dilation of the mesh disk, providing all 26 mesh neighbors.
++static Box3i circular_row(Box3i box, Vector3i center, int radius, int padding, int z) {
++    if (box.size.x <= 0 || box.size.y <= 0 || box.size.z <= 0 ||
++            z < box.position.z || z >= box.position.z + box.size.z) return Box3i();
++    const int dz = math::max(math::abs(2 * (z - center.z) + 1) - 2 * padding, 1);
++    const int64_t rr = int64_t(2 * radius) * (2 * radius);
++    int first = box.position.x + box.size.x;
++    int last = box.position.x - 1;
++    for (int x = box.position.x; x < box.position.x + box.size.x; ++x) {
++        const int dx = math::max(math::abs(2 * (x - center.x) + 1) - 2 * padding, 1);
++        if (int64_t(dx) * dx + int64_t(dz) * dz <= rr) {
++            first = math::min(first, x);
++            last = x;
++        }
++    }
++    if (last < first) return Box3i();
++    return Box3i(Vector3i(first, box.position.y, z), Vector3i(last - first + 1, box.size.y, 1));
++}
++
++void VoxelTerrain::process_circular_viewer(const PairedViewer &viewer, bool can_load_blocks) {
++    const PairedViewer::State &old_state = viewer.prev_state;
++    const PairedViewer::State &new_state = viewer.state;
++    const bool flags_changed = old_state.requires_meshes != new_state.requires_meshes ||
++            old_state.requires_collisions != new_state.requires_collisions;
++    if (old_state.data_box == new_state.data_box && old_state.mesh_box == new_state.mesh_box &&
++            old_state.circular_center == new_state.circular_center &&
++            old_state.circular_radius == new_state.circular_radius && !flags_changed) return;
++    if (old_state.data_box != new_state.data_box) {
++        Ref<VoxelGenerator> generator = get_generator();
++        if (generator.is_valid()) generator->process_viewer_diff(viewer.id, new_state.data_box, old_state.data_box);
++    }
++    // Iterate old and new spans separately on teleport, avoiding work proportional to travel distance.
++    auto each_row = [](Box3i previous, Box3i next, auto callback) {
++        for (int z = previous.position.z; z < previous.position.z + previous.size.z; ++z) callback(z);
++        for (int z = next.position.z; z < next.position.z + next.size.z; ++z) {
++            if (z < previous.position.z || z >= previous.position.z + previous.size.z) callback(z);
++        }
++    };
++    each_row(old_state.data_box, new_state.data_box, [&](int z) {
++        const int old_padding = (old_state.requires_meshes || old_state.requires_collisions) ? 1 : 0;
++        const int new_padding = (new_state.requires_meshes || new_state.requires_collisions) ? 1 : 0;
++        const Box3i previous = circular_row(old_state.data_box, old_state.circular_center, old_state.circular_radius, old_padding, z);
++        const Box3i next = circular_row(new_state.data_box, new_state.circular_center, new_state.circular_radius, new_padding, z);
++        if (previous != next) process_viewer_data_box_change(viewer.id, previous, next, can_load_blocks, false);
++    });
++    each_row(old_state.mesh_box, new_state.mesh_box, [&](int z) {
++        const Box3i previous = circular_row(old_state.mesh_box, old_state.circular_center, old_state.circular_radius, 0, z);
++        const Box3i next = circular_row(new_state.mesh_box, new_state.circular_center, new_state.circular_radius, 0, z);
++        if (previous != next) {
++            previous.difference(next, [&](Box3i box) {
++                box.for_each_cell([&](Vector3i pos) {
++                    unview_mesh_block(pos, old_state.requires_meshes, old_state.requires_collisions);
++                });
++            });
++            next.difference(previous, [&](Box3i box) {
++                box.for_each_cell([&](Vector3i pos) {
++                    view_mesh_block(pos, new_state.requires_meshes, new_state.requires_collisions);
++                });
++            });
++        }
++        if (flags_changed) previous.clipped(next).for_each_cell([&](Vector3i pos) {
++            if (old_state.requires_meshes != new_state.requires_meshes) {
++                if (new_state.requires_meshes) view_mesh_block(pos, true, false);
++                else unview_mesh_block(pos, true, false);
++            }
++            if (old_state.requires_collisions != new_state.requires_collisions) {
++                if (new_state.requires_collisions) view_mesh_block(pos, false, true);
++                else unview_mesh_block(pos, false, true);
++            }
++        });
++    });
++}
++
+ void VoxelTerrain::process_viewer_data_box_change(
+ 		const ViewerID viewer_id,
+ 		const Box3i prev_data_box,
+ 		const Box3i new_data_box,
+-		const bool can_load_blocks
++		const bool can_load_blocks,
++		const bool notify_generator
+ ) {
+ 	ZN_PROFILE_SCOPE();
+ 	ZN_ASSERT_RETURN(prev_data_box != new_data_box);
+@@ -1534,7 +1624,7 @@
+ 	static thread_local StdVector<Vector3i> tls_found_blocks_positions;
+ 
+ 	Ref<VoxelGenerator> generator = get_generator();
+-	if (generator.is_valid()) {
++	if (notify_generator && generator.is_valid()) {
+ 		generator->process_viewer_diff(viewer_id, new_data_box, prev_data_box);
+ 	}
+ 
+@@ -2457,6 +2547,9 @@
+ 	ClassDB::bind_method(D_METHOD("save_modified_blocks"), &Self::_b_save_modified_blocks);
+ 	ClassDB::bind_method(D_METHOD("save_block", "position"), &Self::_b_save_block);
+ 
++	ClassDB::bind_method(D_METHOD("set_horizontal_circular_loading", "enabled"), &Self::set_horizontal_circular_loading);
++	ClassDB::bind_method(D_METHOD("get_horizontal_circular_loading"), &Self::get_horizontal_circular_loading);
++	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "horizontal_circular_loading"), "set_horizontal_circular_loading", "get_horizontal_circular_loading");
+ 	ClassDB::bind_method(D_METHOD("set_automatic_loading_enabled", "enable"), &Self::set_automatic_loading_enabled);
+ 	ClassDB::bind_method(D_METHOD("is_automatic_loading_enabled"), &Self::is_automatic_loading_enabled);
+ 

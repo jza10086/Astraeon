@@ -38,6 +38,8 @@ def analyse(folder, job):
     result = metrics(rows)
     valid = bool(rows) and all(ms > 0 for _, ms in rows) and all(rows[i][0] > rows[i-1][0] for i in range(1, len(rows)))
     valid &= meta['render_size'] == '(1920, 1080)' and meta['height'] == 512 and meta['distance'] == 256
+    valid &= meta.get('horizontal_shape') == 'circle' and meta.get('vertical_distance') == 256
+    valid &= 'astraeon-circle-v1' in meta.get('voxel_git_hash', '')
     valid &= summary['status'] == 'completed'
     if job['case'] == 'streaming':
         valid &= abs(summary['distance_m'] / rows[-1][0] - job['speed']) < .01
@@ -96,7 +98,7 @@ def analyse(folder, job):
 
 def report(out, state):
     lines = ['# 本机体素基准结果', '', f"状态：{state['status']}。累计运行 {state.get('elapsed_s', 0)/60:.1f} 分钟。", '',
-             '256 体素视距；Y=-128～383，共512层；固定1920×1080渲染目标；原生图形进程串行运行。', '',
+             '水平圆形256体素（16区块）半径；独立垂直半径256；Y=-128～383，共512层；固定1920×1080渲染目标；原生图形进程串行运行。', '',
              '| 项目 | 轮次 | 平均FPS | P95 ms | P99 ms | 最长帧 ms | 有效 | 达标 |',
              '|---|---:|---:|---:|---:|---:|---|---|']
     for run in state['runs']:
@@ -109,7 +111,7 @@ def report(out, state):
               '- 每轮单独判定；运行完成和性能达标分开记录。失败或异常退出不计为通过。',
               '- 使用受控高度图和上游树木生成，无洞穴、玩家逻辑、生物、流体tick、网络及存档。',
               '- 固定1080p SubViewport缩放显示在系统窗口中，包含合成开销；截图读回在采样外。',
-              '- 512层是世界边界；Viewer仍按立方体加载并裁剪到边界，不保证每个水平位置加载完整512层。',
+              '- 512层是世界边界；水平圆形半径与独立垂直范围裁剪到边界，不保证每个水平位置加载完整512层。',
               '- 24体素离地飞行路径避免穿入地形和树冠，按路径弧长维持3D合速度，不是物理角色地面验收。',
               '- 编辑完成延迟为队列排空、两个进程帧和物理tick以及表面射线校验的保守上界，并非直接GPU网格更新时间。',
               '- 近处网格与地面碰撞每秒检查；不覆盖每一帧和整个远景，人工可见缺口验收仍单列。',
@@ -134,7 +136,7 @@ def main():
     started = time.monotonic()
     deadline = started + min(1800, args.deadline_epoch - time.time()) if args.deadline_epoch else started + 1800
     state = dict(status='running', started=datetime.now().isoformat(), budget_seconds=1800, runs=[], engine=engine,
-                 hashes={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__), PROJECT / 'astraeon_benchmark/benchmark.gd', PROJECT / 'astraeon_benchmark/benchmark_generator.gd']})
+                 hashes={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__), PROJECT / 'astraeon_benchmark/benchmark.gd', PROJECT / 'astraeon_benchmark/benchmark_generator.gd', ROOT / 'tools/voxel_patches/horizontal_circle.patch', PROJECT / 'addons/zylann.voxel/bin/libvoxel.windows.editor.x86_64.dll']})
     print(f'SUITE_OUTPUT {out}', flush=True)
     def checkpoint():
         state['elapsed_s'] = time.monotonic() - started
@@ -192,7 +194,7 @@ def main():
             job_out.mkdir()
             command = [engine, '--path', str(PROJECT), '--resolution', '1280x720', '--windowed', '--rendering-driver', args.driver,
                        'res://astraeon_benchmark/benchmark.tscn', '--', '--run-benchmark', f'--case={job["case"]}',
-                       '--distance=256', f'--profile={job["profile"]}', f'--seconds={job["seconds"]}', '--warmup=3',
+                       '--distance=256', '--vertical-distance=256', f'--profile={job["profile"]}', f'--seconds={job["seconds"]}', '--warmup=3',
                        f'--speed={job["speed"]}', '--seed=20260913', f'--cap={job.get("cap",0)}', f'--output={job_out}']
             record['command'] = command
             try:

@@ -12,5 +12,15 @@
       "sha256": "600737572a5e25541ba6f503e842a3717ba19afafa5474510a6ceff995a1d2d8",
       "bytes": 54457774
     }
+  },
+  "astraeon_circular_build": {
+    "source": "75d3c6d996ed2331c80edcd8c3ebc947afc0f041",
+    "godot_cpp": "b4ce22a76b56bb5f734a5161d6105eb4b8d1021d",
+    "patch_sha256": "a1d4870b88935b21ac641bfd69983b213e7e675bd3604f7cb332a33676861480",
+    "binary_sha256": "3bb75caac91ed201d53179216410193e1d66150cf0cd6cde24c0363227527234",
+    "build": "windows editor x86_64; dev_build=no; use_static_cpp=yes; voxel_tests=no; SCons 4.10.1; MSVC auto-detected",
+    "patch": "tools/voxel_patches/horizontal_circle.patch",
+    "restore_command": "python tools/build_voxel_circular.py --install",
+    "patch_hash_format": "UTF-8 with LF line endings"
   }
 }

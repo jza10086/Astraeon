@@ -37,6 +37,7 @@
 
 ## Voxel and survival boundaries
 - Current intended direction is Minecraft-like block terrain generation, mining, and building. Keep authoritative voxel data separate from derived render meshes and collision shapes.
+- A chunk is a horizontal 16x16-voxel column; a section is 16x16x16 voxels. Use horizontal circular streaming with an independent vertical range. See docs/voxel_chunks.md for coordinates and boundary rules.
 - Plan chunk coordinates and local voxel coordinates explicitly; include negative coordinates in future coordinate tests.
 - Avoid one Node per voxel for production terrain. Choose chunk sizing, meshing, streaming, and threading based on a measured prototype.
 - Background work must not mutate the active scene tree. Commit scene/resource changes on the main thread.

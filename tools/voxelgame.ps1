@@ -4,6 +4,7 @@ param(
     [switch]$Run,
     [ValidateSet('initial_load','stationary','streaming','editing')][string]$Case = 'stationary',
     [ValidateSet(64,128,192,256,384,512)][int]$Distance = 256,
+    [ValidateRange(16,512)][int]$VerticalDistance = 256,
     [ValidateRange(1,120)][int]$Seconds = 90,
     [ValidateRange(1,30)][int]$Warmup = 3,
     [int]$Seed = 20260913,
@@ -43,7 +44,7 @@ if ($Mode -eq 'Import') {
     $arguments += 'res://blocky_game/main.tscn'
 } else {
     $arguments += @('--resolution','1280x720','--windowed','res://astraeon_benchmark/benchmark.tscn','--',
-        '--run-benchmark',"--case=$Case","--distance=$Distance","--seconds=$Seconds",
+        '--run-benchmark',"--case=$Case","--distance=$Distance","--vertical-distance=$VerticalDistance","--seconds=$Seconds",
         "--warmup=$Warmup","--seed=$Seed","--profile=$Profile","--speed=$Speed","--cap=$Cap","--output=$logDir")
 }
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'

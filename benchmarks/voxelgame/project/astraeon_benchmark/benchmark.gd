@@ -3,6 +3,7 @@ extends Node3D
 const Generator: Script = preload("res://astraeon_benchmark/benchmark_generator.gd")
 @export_enum("initial_load", "stationary", "streaming", "editing", "smoke") var scenario: String = "stationary"
 @export var view_distance: int = 256
+@export var vertical_distance: int = 256
 @export var world_seed: int = 20260913
 @export var warmup_seconds: float = 3.0
 @export var sample_seconds: float = 45.0
@@ -60,6 +61,7 @@ func _ready() -> void:
 		if arg == "--run-benchmark":
 			_run = true
 		elif arg.begins_with("--case="): scenario = arg.get_slice("=", 1)
+		elif arg.begins_with("--vertical-distance="): vertical_distance = arg.get_slice("=", 1).to_int()
 		elif arg.begins_with("--distance="): view_distance = arg.get_slice("=", 1).to_int()
 		elif arg.begins_with("--seconds="): sample_seconds = arg.get_slice("=", 1).to_float()
 		elif arg.begins_with("--warmup="): warmup_seconds = arg.get_slice("=", 1).to_float()
@@ -72,7 +74,7 @@ func _ready() -> void:
 			push_error("Unknown argument: " + arg)
 			get_tree().quit(2)
 			return
-	if scenario not in ["initial_load", "stationary", "streaming", "editing", "smoke"] or profile not in ["plain", "forest", "mountain", "mixed"] or view_distance < 32 or view_distance > 512 or sample_seconds < 1 or sample_seconds > 120 or movement_speed <= 0 or warmup_seconds < 1 or warmup_seconds > 30 or fps_cap < 0:
+	if scenario not in ["initial_load", "stationary", "streaming", "editing", "smoke"] or profile not in ["plain", "forest", "mountain", "mixed"] or vertical_distance < 16 or vertical_distance > 512 or vertical_distance % 16 != 0 or view_distance % 16 != 0 or view_distance < 32 or view_distance > 512 or sample_seconds < 1 or sample_seconds > 120 or movement_speed <= 0 or warmup_seconds < 1 or warmup_seconds > 30 or fps_cap < 0:
 		push_error("Invalid benchmark configuration")
 		get_tree().quit(2)
 		return
@@ -124,8 +126,13 @@ func _start_run() -> void:
 	_terrain.bounds = AABB(Vector3(-1048576, -128, -1048576), Vector3(2097152, 512, 2097152))
 	_terrain.generator = _generator
 	_terrain.mesher = load("res://blocky_game/blocks/mesher.tres") as VoxelMesherBlocky
-	_terrain.max_view_distance = view_distance
+	_terrain.max_view_distance = maxi(view_distance, vertical_distance)
 	_terrain.mesh_block_size = 16
+	if not _terrain.has_method("set_horizontal_circular_loading"):
+		push_error("Circular loading native patch missing; run tools/build_voxel_circular.py --install")
+		get_tree().quit(2)
+		return
+	_terrain.set("horizontal_circular_loading", true)
 	_terrain.generate_collisions = generate_collisions
 	_terrain.block_loaded.connect(func(_p: Vector3i) -> void: _loaded += 1)
 	_terrain.block_unloaded.connect(func(_p: Vector3i) -> void: _unloaded += 1)
@@ -144,6 +151,7 @@ func _start_run() -> void:
 		_camera.look_at(Vector3(4, 142, 4))
 	_viewer = VoxelViewer.new()
 	_viewer.view_distance = view_distance
+	_viewer.view_distance_vertical_ratio = float(vertical_distance) / float(view_distance)
 	_viewer.requires_collisions = generate_collisions
 	_camera.add_child(_viewer)
 	var light: DirectionalLight3D = DirectionalLight3D.new()
@@ -160,18 +168,18 @@ func _start_run() -> void:
 	env_node.environment = env
 	_render.add_child(env_node)
 	_build_route()
-	_metadata = {"schema_version": 2, "status": "warming", "scenario": scenario, "profile": profile,
+	_metadata = {"schema_version": 3, "status": "warming", "scenario": scenario, "profile": profile,
 		"godot": Engine.get_version_info(), "voxel_tools": str(VoxelEngine.get_version_v()),
 		"voxel_git_hash": VoxelEngine.get_version_git_hash(), "voxel_edition": VoxelEngine.get_version_edition(),
 		"voxelgame_commit": "4cf747a8456375e527c8c976c50fb24446f9d18f",
 		"cpu": OS.get_processor_name(), "cpu_threads": OS.get_processor_count(), "gpu": RenderingServer.get_video_adapter_name(),
 		"rendering_driver": RenderingServer.get_current_rendering_driver_name(), "rendering_method": RenderingServer.get_current_rendering_method(),
 		"render_size": str(_render.size), "window_size": str(DisplayServer.window_get_size()), "debug_build": OS.is_debug_build(),
-		"distance": view_distance, "bounds": str(_terrain.bounds), "height": 512, "seed": world_seed, "speed_mps": movement_speed,
+		"distance": view_distance, "horizontal_shape": "circle", "chunk_width": 16, "view_distance_chunks": view_distance / 16, "vertical_distance": vertical_distance, "bounds": str(_terrain.bounds), "height": 512, "seed": world_seed, "speed_mps": movement_speed,
 		"seconds": sample_seconds, "cap": fps_cap, "vsync": DisplayServer.window_get_vsync_mode(), "collisions": generate_collisions,
 		"scope": "controlled heightmap/trees, no caves/player/AI/water ticks/network/saves; fixed 1080p offscreen target composited into window",
 		"completion_method": "queue drain, two process frames, >= two physics ticks and surface ray checks; conservative update latency, not direct mesh timestamp",
-		"vertical_loading": "512-layer world bounds; viewer still streams a cube clipped to bounds, not an always-loaded full column",
+		"vertical_loading": "Horizontal block-center disk snapped to 16-voxel grid; independent vertical half-range clipped to world bounds; one data-neighbor halo",
 		"lighting": "ambient + directional shadows, no SDFGI"}
 	_write_json("metadata.json", _metadata)
 	_start = Time.get_ticks_usec()

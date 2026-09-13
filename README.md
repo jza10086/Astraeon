@@ -25,4 +25,8 @@ Godot 4.7 体素生存建造游戏。
 先阅读 AGENTS.md；MCP 的连接与迁移说明见 docs/development.md。
 
 ## voxelgame 基准工程
-已安装独立 voxelgame 与 Voxel Tools 1.7 扩展，准备256体素视距、512层高度的30分钟基准套件。本机Duet WinTab退出崩溃已在卸载重启后消除。正式矩阵已在22分17秒内完成：平原静态与128块编辑三轮通过，森林/山地及22/40m/s移动未全面达标。见 [性能结果](docs/voxelgame_performance_20260913.md)。方案见 [测试说明](docs/voxelgame_benchmarks.md)，执行记录见 [2026-09-13结果](docs/voxelgame_benchmark_results_20260913.md)。主游戏不依赖嵌套工程的 res://。
+已安装独立voxelgame与Voxel Tools 1.7扩展。当前基准采用水平16区块（256体素）圆形半径与独立垂直范围；区块定义、坐标和加载契约见 [区块文档](docs/voxel_chunks.md)。主游戏仍为占位场景，不依赖嵌套工程的res://。
+
+圆形加载原生检查已通过。性能测试按用户要求停止：19项完整完成，限帧编辑中断，限帧移动未启动；128方块编辑三轮通过，静态和移动未全面达标。详见 [圆形加载结果](docs/voxelgame_circular_performance_20260913.md)。
+
+运行方法见 [测试说明](docs/voxelgame_benchmarks.md)。历史资料：[盒形性能结果](docs/voxelgame_performance_20260913.md)、[初期执行记录](docs/voxelgame_benchmark_results_20260913.md)。此前Duet WinTab退出崩溃已在卸载重启后消除。
