@@ -18,7 +18,7 @@ $project = Join-Path $root 'benchmarks/voxelgame/project'
 if ($Mode -eq 'Info') {
     Write-Host "Project: $project"
     Write-Host 'Benchmark suite: python tools/run_voxel_suite.py --run (30-minute maximum). Import performs no workload.'
-    Write-Host 'Demo and Benchmark require -Run. See docs/voxelgame_benchmark_results_20260913.md for the current exit-crash blocker.'
+    Write-Host 'Demo and Benchmark require -Run. See docs/voxelgame_benchmark_results_20260913.md for benchmark validation status.'
     return
 }
 if (($Mode -eq 'Benchmark' -or $Mode -eq 'Demo') -and -not $Run) {

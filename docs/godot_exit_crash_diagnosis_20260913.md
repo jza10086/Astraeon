@@ -66,3 +66,9 @@ Godot 4.7该构建在Windows DisplayServer构造阶段直接LoadLibraryW("wintab
 
 下一步应通过Duet官方安装器修复/更新其WinTab组件；若不再使用Duet，可考虑卸载。修复后先重复最小退出和体素smoke，再恢复正式基准。
 本次仅完成定位，没有卸载Duet、替换/删除系统DLL、停止服务、修改注册表或主项目设置，没有重跑正式性能矩阵。
+
+## 卸载并重启后复核（2026-09-13 18:51）
+用户手动卸载Duet并重启后，System32和SysWOW64下的wintab32.dll均不存在；标准HKLM/HKCU卸载项未查到Duet。
+同一最小工程的OpenGL、D3D12、Vulkan三种图形后端均exit 0，无脚本错误。原始日志：tmp/exit-probe/post-uninstall-20260913-185054/。
+同一体素基准的D3D12短负载也正常完成并exit 0：128块放置/挖掘、数据与碰撞确认通过，没有0xC0000005。套件用时20.4秒，日志：tmp/voxel-bench-results/suite-20260913-185108/。
+本轮复核说明此前可重复的Duet WinTab退出崩溃已消除；没有修改系统设置或切换引擎。只做短负载复核，正式性能矩阵仍未执行。
