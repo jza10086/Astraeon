@@ -7,3 +7,6 @@
 /tmp/
 /export_credentials.cfg
 /exports/
+
+# Native dependencies restored using dependency-lock.json
+/benchmarks/voxelgame/project/addons/zylann.voxel/bin/

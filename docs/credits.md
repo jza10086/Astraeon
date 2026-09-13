@@ -4,3 +4,6 @@
 - 开发技能：godot-project-tooling，从本机个人技能目录复制；保留原脚本与本机工具链配置。
 - 默认图标：Godot 项目创建时生成的 icon.svg。
 - 当前启动场景使用 Godot 内置几何体，无额外下载的游戏素材。
+
+- 体素示例：Zylann/voxelgame https://github.com/Zylann/voxelgame ，固定提交 4cf747a；代码许可见 benchmarks/voxelgame/LICENSE.md，保留各目录素材和字体许可。
+- 体素依赖：Voxel Tools 1.7 GDExtension https://github.com/Zylann/godot_voxel/releases/tag/v1.7x ，MIT；许可保留于基准工程 addons/zylann.voxel/LICENSE.md。

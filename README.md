@@ -23,3 +23,6 @@ Godot 4.7 体素生存建造游戏。
 - tools/：开发脚本；tmp/：Git 忽略且 Godot 不导入的临时输出。
 
 先阅读 AGENTS.md；MCP 的连接与迁移说明见 docs/development.md。
+
+## voxelgame 基准工程
+已安装独立 voxelgame 与 Voxel Tools 1.7 扩展，准备四类待命性能场景；尚未运行测试。见 docs/voxelgame_benchmarks.md。主游戏不依赖嵌套工程的 res://。

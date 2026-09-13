@@ -26,7 +26,7 @@
 ## GDScript and scenes
 - Default to GDScript. Never use :=. Explicitly type variables, arguments, return values, signals, arrays, and dictionaries where supported.
 - Use explicit Variant only when multiple types are intentional.
-- Consider GDExtension or C# only after measured, serious performance bottlenecks remain after algorithmic optimization.
+- Consider project-authored GDExtension or C# only after measured, serious performance bottlenecks remain after algorithmic optimization. The user explicitly approved Voxel Tools 1.7 GDExtension for the isolated voxelgame evaluation under benchmarks/.
 - Use snake_case for files, functions, variables, resources, and signals; PascalCase for nodes, enums, and class_name; UPPER_SNAKE_CASE for constants.
 - Register class_name only for shared components, custom resources, and reusable data types.
 - Prefer composition. Use @export for configurable resources and replaceable node references; validate required references at startup.
@@ -36,7 +36,7 @@
 - Explain module boundaries and non-obvious decisions. Document public or complex APIs with ##.
 
 ## Voxel and survival boundaries
-- Keep authoritative voxel data separate from derived render meshes and collision shapes.
+- Current intended direction is Minecraft-like block terrain generation, mining, and building. Keep authoritative voxel data separate from derived render meshes and collision shapes.
 - Plan chunk coordinates and local voxel coordinates explicitly; include negative coordinates in future coordinate tests.
 - Avoid one Node per voxel for production terrain. Choose chunk sizing, meshing, streaming, and threading based on a measured prototype.
 - Background work must not mutate the active scene tree. Commit scene/resource changes on the main thread.

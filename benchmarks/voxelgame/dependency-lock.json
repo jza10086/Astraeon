@@ -1,0 +1,16 @@
+{
+  "voxelgame_commit": "4cf747a8456375e527c8c976c50fb24446f9d18f",
+  "voxel_tools_release": "v1.7x",
+  "downloads": {
+    "voxelgame": {
+      "url": "https://codeload.github.com/Zylann/voxelgame/zip/4cf747a8456375e527c8c976c50fb24446f9d18f",
+      "sha256": "5e9bd41ec815acae8c5aecc29f1b15238bd275d3b96e9d4c5707967e547809ab",
+      "bytes": 9530403
+    },
+    "voxel_tools": {
+      "url": "https://github.com/Zylann/godot_voxel/releases/download/v1.7x/GodotVoxelExtension.zip",
+      "sha256": "600737572a5e25541ba6f503e842a3717ba19afafa5474510a6ceff995a1d2d8",
+      "bytes": 54457774
+    }
+  }
+}
