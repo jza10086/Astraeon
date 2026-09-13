@@ -3,10 +3,13 @@ param(
     [ValidateSet('Info','Import','Open','Demo','Benchmark')][string]$Mode = 'Info',
     [switch]$Run,
     [ValidateSet('initial_load','stationary','streaming','editing')][string]$Case = 'stationary',
-    [ValidateSet(64,128,256)][int]$Distance = 128,
-    [ValidateRange(1,600)][int]$Seconds = 60,
-    [ValidateRange(1,300)][int]$Warmup = 15,
+    [ValidateSet(64,128,192,256,384,512)][int]$Distance = 256,
+    [ValidateRange(1,120)][int]$Seconds = 90,
+    [ValidateRange(1,30)][int]$Warmup = 3,
     [int]$Seed = 20260913,
+    [ValidateSet('plain','forest','mountain','mixed')][string]$Profile = 'plain',
+    [ValidateRange(1,100)][float]$Speed = 22,
+    [ValidateRange(0,240)][int]$Cap = 0,
     [string]$GodotPath
 )
 $ErrorActionPreference = 'Stop'
@@ -14,8 +17,8 @@ $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root 'benchmarks/voxelgame/project'
 if ($Mode -eq 'Info') {
     Write-Host "Project: $project"
-    Write-Host 'Prepared only. Import performs no workload; Open shows the editor.'
-    Write-Host 'Demo and Benchmark require -Run. Wait for user instruction before running.'
+    Write-Host 'Benchmark suite: python tools/run_voxel_suite.py --run (30-minute maximum). Import performs no workload.'
+    Write-Host 'Demo and Benchmark require -Run. See docs/voxelgame_benchmark_results_20260913.md for the current exit-crash blocker.'
     return
 }
 if (($Mode -eq 'Benchmark' -or $Mode -eq 'Demo') -and -not $Run) {
@@ -39,9 +42,9 @@ if ($Mode -eq 'Import') {
 } elseif ($Mode -eq 'Demo') {
     $arguments += 'res://blocky_game/main.tscn'
 } else {
-    $arguments += @('--resolution','1920x1080','--windowed','res://astraeon_benchmark/benchmark.tscn','--',
+    $arguments += @('--resolution','1280x720','--windowed','res://astraeon_benchmark/benchmark.tscn','--',
         '--run-benchmark',"--case=$Case","--distance=$Distance","--seconds=$Seconds",
-        "--warmup=$Warmup","--seed=$Seed","--output=$logDir")
+        "--warmup=$Warmup","--seed=$Seed","--profile=$Profile","--speed=$Speed","--cap=$Cap","--output=$logDir")
 }
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $output = @(& $engine.path @arguments 2>&1 | ForEach-Object { [string]$_ })

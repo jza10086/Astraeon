@@ -1,74 +1,47 @@
-# voxelgame 安装与性能测试准备
+# 本机体素基准：256视距 / 512高度
 
-状态：仅准备；尚未运行性能测试。后续必须得到用户的运行指令。
+用户已批准运行。入口仍需显式 -Run 或 --run；打开场景保持待命。
 
-## 安装
-独立工程：benchmarks/voxelgame/project/project.godot。
-主游戏的 MCP 和 project.godot 不受影响。benchmarks/.gdignore 防止主工程扫描嵌套项目。
-- voxelgame 固定提交：4cf747a8456375e527c8c976c50fb24446f9d18f
-- Voxel Tools：1.7 GDExtension，v1.7x
-- 引擎：当前 Godot 4.7.stable.official.5b4e0cb0f
-- 下载 URL、压缩包大小和 SHA-256：benchmarks/voxelgame/dependency-lock.json
-- 源码、素材、许可证纳入 Git；各平台原生二进制已安装但忽略提交，可用 tools/restore_voxel_dependency.py 按锁文件恢复。
-- 上游源码保持独立；改动包括工程名、默认入口、1080p、D3D12、独立用户目录及示例存档路径。上游原始 README 和许可证保留。
+## 运行
+在项目根目录执行 `python tools/run_voxel_suite.py --run`。
+计时从引擎版本检查/导入开始，包括图形有效性检查；硬上限1800秒。
+每个进程有单独超时，只终止本脚本创建的进程树。没有足够时间完成下一整轮时不启动它。
+发生脚本错误、崩溃、预热超时、编辑错误立即停止；性能未达标仍继续剩余有效项目。
+结果每轮落盘并更新 suite.json/report.md，不把未完成的项目算作通过。
 
-## 入口与运行门槛
-默认入口是 astraeon_benchmark/benchmark.tscn。打开后仅显示待命 UI，不创建体素地形或 Viewer。
-只有点击 Start 或显式传入 --run-benchmark 才开始负载。
-四个命名场景 initial_load.tscn、stationary.tscn、streaming.tscn、editing.tscn 可在 Inspector 调整参数；同样默认待命。
+## 配置
+- Voxel Tools 1.7 GDExtension；Godot 4.7，Forward+ / D3D12 / Jolt，实际构建写入metadata。
+- 256体素水平视距；世界Y=[-128,384)，总高512；X/Z测试边界±1048576。
+- Viewer按立方体加载并裁剪到世界边界，512不是强制全列常驻高度。
+- 独立1920×1080 SubViewport，缩放显示到1280×720窗口；不依赖窗口覆盖尺寸。
+- 固定种子20260913；环境光和方向光阴影，无SDFGI；开启地形碰撞；无存档stream。
+- benchmark_generator.gd在上游生成器基础上提供受控平原、森林、山地和混合路线；不是最终生物群系。
+- 无洞穴、玩家、AI、水流tick、网络和存档负载，结果不代表最终完整游戏。
+- 原始上游源码不修改；二进制恢复与许可证见dependency-lock.json及docs/credits.md。
 
-在 Astraeon 根目录：
-~~~powershell
-# 只查看说明
-./tools/voxelgame.ps1
-# 只导入、解析，不启动游戏；不要在这个嵌套工程已打开时并发执行
-./tools/voxelgame.ps1 -Mode Import
-# 打开嵌套工程编辑器（不会自动运行性能场景）
-./tools/voxelgame.ps1 -Mode Open
-~~~
+## 矩阵与验收
+1. smoke：紧凑128块放置/挖掘一次，检查数据和表面碰撞以及正常退出。
+2. stationary：平原/森林/山地，各45秒×3轮；平均≥120FPS，P95≤8.333ms，P99≤11.111ms。
+3. editing：3种布局×放置/挖掘×5次×3轮；一次do_box提交128块，验证128处实际变化。
+   布局8×4×4单区块、8×4×4跨8区块、16×1×8跨区块平台。放置后挖掘回空气，不计隐含准备操作。
+   每次操作后2秒窗口平均≥120FPS，P99≤16.667ms，无>33.333ms；完成延迟P95≤100ms、最大≤200ms。
+4. streaming：22/40m/s各60秒×3轮，新世界进程；路径有斜向跨块、平原、森林、山地。
+   22：平均≥120FPS，P99≤16.667ms，无>33.333ms。
+   40：平均≥90FPS，至少95%完整一秒窗口≥85FPS，P99≤22.222ms，无>50ms。
+   路线按3D弧长移动，离地24体素避开树冠，不是地面物理角色测试。
+5. cap=120：编辑一轮及混合移动30秒，仅体验复核，不套用不限帧验收线。
 
-以下命令仅供用户下达运行指令之后使用，本次没有执行：
-~~~powershell
-# 原版方块游戏菜单：保留单人、联机入口，但本次未验证游戏运行
-./tools/voxelgame.ps1 -Mode Demo -Run
-# 单项基准；一次一个新进程，完成即退出
-./tools/voxelgame.ps1 -Mode Benchmark -Run -Case stationary -Distance 128 -Warmup 15 -Seconds 60
-~~~
+## 有效性与局限
+- 预热为任务排空且中央区域网格就绪持续2秒，最少3秒，最多30秒。
+- 截图、写盘在采样外；截图后静置0.5秒再采样。每秒收集统计与射线会有少量测量开销。
+- is_area_meshed只表示首次网格加载，不能用于判断编辑重建完成。
+  编辑改用队列排空、至少两个进程帧/物理tick、每列编辑区域表面碰撞射线确认；报告保守延迟上界。
+- 近区网格/脚下碰撞每秒采样；不能证明远景没有缺口或逐帧物理正确性，人工画面验收单列。
+- 移动队列末10秒均值不能超过max(32,首10秒均值×1.25)，作为积压筛查而非完整调度证明。
+- 输出每帧wall interval，非GPU耗时。Godot内存估计非RSS；不比较Minecraft。
+- 引擎异常退出即结果无效，即使summary写成completed。三轮独立判定，性能失败不掩盖。
+- 原先的initial_load场景保留为兼容入口，但当前同样采用排空预热，不用于旧版冷加载指标；正式套件不包含该项。
 
-不带 -Run 的 Demo/Benchmark 命令会立即拒绝，不启动 Godot。
-Esc 或关闭窗口会保存部分数据，标记 aborted，不当作成功结果。
-
-## 测试矩阵
-初始建议每项 64、128、256 体素视距各运行 3 次，不并发。视距单位是体素，不是区块数。
-默认网格区块边长 16；种子 20260913，1920x1080 窗口，Forward+ / D3D12 / Jolt，VSync 关闭、帧率不限。
-统一采用环境光与方向光阴影，关闭 SDFGI，开启地形碰撞生成。相机为固定脚本轨迹，无物理玩家。
-- initial_load：新建内存世界后立即采样 60 秒。包括生成器初始化和首次加载；不是操作系统缓存清空后的磁盘冷启动。
-- stationary：静止预热 15 秒，再静止采样 60 秒。
-- streaming：静止预热后，以 x=16t、z=8t、y=56 的路线移动并采样；合速度约 17.9 体素/秒。
-- editing：静止预热后，在原点附近跨区块边界的 16x16 地表区域按固定顺序切换空气/泥土，目标 20 次/秒；报告实际执行与跳过数量。
-每种负载复用上游方块生成器和 mesher；不运行上游玩家、背包、水流 tick、网络和 UI 逻辑，因此是体素子系统基准，不代表完整游戏 FPS。
-测试世界禁用 stream，不读取或写入交互示例存档。交互示例单独存入 user://interactive_demo_save。
-
-## 采样与有效性
-- frames.csv：单调时钟记录的逐帧 wall interval；不是 GPU 时间。
-- summary.json：平均 FPS、帧时间均值/P50/P95/P99/最大值、超过 33.33ms 与 50ms 的帧数、编辑数量、区块事件数。
-- counters.json：每秒 draw calls、图元、Godot 分配器内存和渲染内存估计、VoxelTerrain/VoxelEngine 统计。
-- metadata.json：引擎与插件实际版本、插件提交、CPU/GPU、窗口、渲染器、参数和范围说明。
-- 数据缓存在内存中，测量结束后写文件；每秒收集统计本身仍有小量开销。
-- 中央 32x64x32 区域网格可用时间单独记录。它不等于整个视距完成加载，也不证明碰撞全部就绪。
-- stationary/streaming/editing 在预热结束中央区域仍不可用时终止并标记 warmup_incomplete。需要用户决定增加预热时间后重新测量。
-- initial_load 在结束时仍无中央网格、editing 没有实际编辑时，结果标记失败。
-- 预热为固定时长，不保证所有后台任务排空；分析时结合 engine/terrain 队列统计，不能把尚在生成的 stationary 结果当成纯渲染极限。
-- 内存值不是进程 RSS；没有 GPU 利用率与驱动级显存测量。记录真实渲染器而不是把 headless 数值当帧率。
-- 初始版本使用同一进程全局种子固定上游树模板，并设置高度噪声 seed；固定代码和版本下才用于重复对比，不承诺跨版本世界兼容。
-
-结果默认位于 tmp/voxel-bench-results/<时间_场景_视距>/。只有导入日志不表示运行过性能测试。
-本次准备验证只做扩展加载、资源加载（不实例化场景）和脚本解析；实际画面、负载行为和性能数据等待后续运行验证。
-
-## 本次准备检查结果（2026-09-13）
-- Godot 4.7.stable 完整导入退出码 0，已修正准备过程中发现的统计接口名称问题。
-- validate_preparation.gd 退出码 0；实际插件版本 1.7.0，edition 为 GDExtension；场景与依赖资源可加载。
-- 原生依赖通过锁文件 SHA-256 校验，并验证本地压缩包恢复流程。
-- PowerShell 语法检查和 Demo/Benchmark 无 -Run 的拒绝门槛检查通过。
-- 没有实例化基准场景，没有生成测试世界，没有运行原版示例，没有产生 frames.csv 或 summary.json。
-- 实际画面、交互及四类性能负载均待用户后续指令运行。
+## 2026-09-13执行状态
+已实际运行短负载；原生清理/退出异常阻塞正式矩阵，详见 [执行记录](voxelgame_benchmark_results_20260913.md)。
+`--smoke-only`只运行短负载，`--driver d3d12|vulkan`用于后端隔离；`--deadline-epoch`保留既有截止时间，永不扩展单次1800秒上限。
