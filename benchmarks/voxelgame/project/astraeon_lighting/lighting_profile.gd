@@ -24,8 +24,8 @@ extends Resource
 @export var shadows_enabled: bool = true
 @export_range(16.0, 256.0, 8.0) var shadow_distance: float = 96.0
 @export_enum("低", "中", "高") var shadow_quality: int = 1
-@export_range(0.0, 1.0, 0.01) var shadow_bias: float = 0.08
-@export_range(0.0, 4.0, 0.05) var shadow_normal_bias: float = 1.0
+@export_range(0.0, 1.0, 0.01) var shadow_bias: float = 0.06
+@export_range(0.0, 4.0, 0.05) var shadow_normal_bias: float = 1.7
 @export_group("P2 · 水")
 @export var water_enabled: bool = true
 @export var waves_enabled: bool = true
