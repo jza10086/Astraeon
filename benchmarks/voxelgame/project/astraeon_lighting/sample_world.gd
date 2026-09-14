@@ -31,5 +31,13 @@ static func create() -> Volume:
 	box(edits, AABB(Vector3(13, 1, 12), Vector3(2, 7, 2)), Volume.WOOD)
 	box(edits, AABB(Vector3(10, 7, 9), Vector3(8, 3, 8)), Volume.LEAVES)
 	box(edits, AABB(Vector3(-18, 1, 10), Vector3(2, 10, 2)), Volume.STONE)
+	# Shallow/deep basin: geometry agrees with the fixed analytic water depths.
+	box(edits, AABB(Vector3(12, -2, -25), Vector3(8, 3, 16)), Volume.AIR)
+	box(edits, AABB(Vector3(20, -5, -25), Vector3(8, 6, 16)), Volume.AIR)
+	for stair: int in range(5):
+		box(edits, AABB(Vector3(-25 + stair, 1, 2), Vector3(1, stair + 1, 5)), Volume.STONE)
+	box(edits, AABB(Vector3(-19, 1, 2), Vector3(1, 6, 5)), Volume.STONE)
+	for distance: int in range(4):
+		box(edits, AABB(Vector3(-25 + distance * 14, 1, -29), Vector3(2, 3 + distance, 2)), Volume.STONE)
 	volume.apply_edits(edits)
 	return volume

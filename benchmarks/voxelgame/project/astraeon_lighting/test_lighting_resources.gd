@@ -43,6 +43,11 @@ func _run() -> void:
 			_check(bounds.size.is_equal_approx(Vector3.ONE), "Single voxel mesh extent")
 			_check(instance.position == Vector3(-16, 0, 0), "Negative section transform")
 			_check(instance.mesh.surface_get_material(0) is ShaderMaterial, "Dedicated light shader bound")
+			var uv: PackedVector2Array = instance.mesh.surface_get_arrays(0)[Mesh.ARRAY_TEX_UV]
+			var maximum_uv: float = 0.0
+			for value: Vector2 in uv:
+				maximum_uv = maxf(maximum_uv, value.x)
+			_check(maximum_uv > 0.9, "Procedural material requires full-range UVs")
 	_check(occupied == 1, "Only occupied section has geometry")
 	var rebuild_count: int = sections.rebuilt_sections
 	# Display changes stay on materials and never dirty geometry or solver.

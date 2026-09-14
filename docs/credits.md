@@ -11,3 +11,5 @@
 - 圆形加载本地构建：Voxel Tools源码75d3c6d996ed2331c80edcd8c3ebc947afc0f041，加项目 tools/voxel_patches/horizontal_circle.patch；godot-cpp b4ce22a76b56bb5f734a5161d6105eb4b8d1021d（MIT，https://github.com/godotengine/godot-cpp）；SCons 4.10.1仅为本地构建工具。补丁默认关闭，仅基准启用。
 
 - P0 光照样板：复用上述 Voxel Tools mesher；方块配色和天空均为项目自编程序化占位素材。仅参考 MakeUp Ultra Fast 9.5e 的光强/颜色分离思路，未复制 GLSL；固定来源与许可研究见 makeup_ultra_fast_analysis.md。
+
+- P1/P2 水面、草/树叶裁剪图案、风动和二维云为项目自编程序化材质，未引入新第三方美术或复制 MakeUp GLSL。AO/阴影/雾/抗锯齿/Glow 复用现有 Godot 与 Voxel Tools 能力。

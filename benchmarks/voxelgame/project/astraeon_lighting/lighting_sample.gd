@@ -3,8 +3,11 @@ extends Node3D
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 const Fixtures: Script = preload("res://astraeon_lighting/sample_world.gd")
 const Sections: Script = preload("res://astraeon_lighting/section_meshes.gd")
+const Details: Script = preload("res://astraeon_lighting/environment_details.gd")
+const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd")
 const SKY_SHADER: Shader = preload("res://astraeon_lighting/sample_sky.gdshader")
 @export var profile: AstraeonLightingProfile
+@export var settings_path: String = "user://settings.cfg"
 var _settings: AstraeonLightingProfile
 var _volume: Volume
 var _sections: Sections
@@ -26,6 +29,11 @@ var _upload_usec: int = 0
 var _image_usec: int = 0
 var _update_begin: int = 0
 var _converge_usec: int = 0
+var _details: Details
+var _settings_panel: SettingsPanel
+var _cloud_clock: float = 0.0
+var _underwater: bool = false
+var _horizon: Color
 var _frame_counter: int = 0
 
 func _ready() -> void:
@@ -41,8 +49,11 @@ func _make_ui() -> void:
 	var canvas: CanvasLayer = CanvasLayer.new()
 	add_child(canvas)
 	var margin: MarginContainer = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	margin.position = Vector2(20, 20)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	margin.offset_left = 20
+	margin.offset_right = 430
+	margin.offset_top = 20
+	margin.offset_bottom = -20
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_top", 12)
@@ -50,11 +61,14 @@ func _make_ui() -> void:
 	canvas.add_child(margin)
 	var background: PanelContainer = PanelContainer.new()
 	margin.add_child(background)
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	background.add_child(scroll)
 	_panel = VBoxContainer.new()
-	_panel.custom_minimum_size.x = 350
-	background.add_child(_panel)
+	_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_panel)
 	var title: Label = Label.new()
-	title.text = "ASTRAEON · P0 光照样板"
+	title.text = "ASTRAEON · 模块化光照样板"
 	_panel.add_child(title)
 	_status = Label.new()
 	_status.text = "尚未创建体素世界"
@@ -71,21 +85,6 @@ func _make_ui() -> void:
 	_button("正午", func() -> void: _set_hour(12.0))
 	_button("日落", func() -> void: _set_hour(17.6))
 	_button("夜间", func() -> void: _set_hour(0.0))
-	_toggle("时间推进", _settings.cycle_enabled, func(value: bool) -> void:
-		_settings.cycle_enabled = value
-		_save_settings())
-	_toggle("天空渐变", _settings.sky_enhanced, func(value: bool) -> void:
-		_settings.sky_enhanced = value
-		_apply_lighting()
-		_save_settings())
-	_toggle("太阳 / 月亮直射", _settings.direct_enabled, func(value: bool) -> void:
-		_settings.direct_enabled = value
-		_apply_lighting()
-		_save_settings())
-	_toggle("实时阴影", _settings.shadows_enabled, func(value: bool) -> void:
-		_settings.shadows_enabled = value
-		_apply_lighting()
-		_save_settings())
 	_button("室外观察", func() -> void: _view(Vector3(23, 17, 27), Vector3(0, 4, 0)))
 	_button("窗边观察", func() -> void: _view(Vector3(0, 4, 9), Vector3(-1, 4, -3)))
 	_button("屋内观察", func() -> void: _view(Vector3(5, 4, 1), Vector3(-3, 3, -4)))
@@ -97,6 +96,18 @@ func _make_ui() -> void:
 	_button("挖掘准星方块", func() -> void: _edit_target(Volume.AIR))
 	_button("放置准星方块", func() -> void: _edit_target(Volume.STONE))
 	_button("放置准星光源", func() -> void: _edit_target(Volume.LAMP))
+	_button("阶梯 / 窄缝", func() -> void: _view(Vector3(-29, 8, 12), Vector3(-23, 3, 4)))
+	_button("水池观察", func() -> void: _view(Vector3(30, 10, -5), Vector3(20, 0, -17)))
+	_button("水下观察", func() -> void: _view(Vector3(23, -2, -14), Vector3(25, -2, -22)))
+	_button("逆光植被", func() -> void: _view(Vector3(-27, 2, -9), Vector3(-20, 3, -20)))
+	_button("夜间光源", func() -> void:
+		_set_hour(0.0)
+		if not _lamp_enabled:
+			_toggle_lamp()
+		_view(Vector3(5, 4, 1), Vector3(-3, 3, -4)))
+	_button("恢复默认设置", _reset_settings)
+	_settings_panel = SettingsPanel.new()
+	_settings_panel.build(_controls, _settings, _settings_changed)
 	var hint: Label = Label.new()
 	hint.text = "右键按住环视 · WASD 移动 · Q/E 升降\nEsc 释放鼠标 · 仅样板操作，不写入存档"
 	_controls.add_child(hint)
@@ -159,6 +170,9 @@ func _start() -> void:
 	var environment_node: WorldEnvironment = WorldEnvironment.new()
 	environment_node.environment = _environment
 	add_child(environment_node)
+	_details = Details.new()
+	add_child(_details)
+	_details.configure(_texture, _volume.origin, _volume.size)
 	_apply_lighting()
 
 func _process(delta: float) -> void:
@@ -173,6 +187,14 @@ func _process(delta: float) -> void:
 			Input.get_axis("p0_down", "p0_up"),
 			Input.get_axis("p0_forward", "p0_back"))
 		_camera.position += _camera.basis * movement.normalized() * delta * 10.0
+	_details.tick(delta, _settings, _sections.materials[3])
+	if _settings.clouds_enabled and _settings.cloud_speed > 0.0:
+		_cloud_clock += delta * _settings.cloud_speed
+		_sky_material.set_shader_parameter("cloud_clock", _cloud_clock)
+	var wet: bool = _details.is_underwater(_camera.position) and _settings.underwater_enabled
+	if wet != _underwater:
+		_underwater = wet
+		_apply_fog()
 	_sections.step()
 	if not _volume.is_settled():
 		_volume.step(_settings.work_cells, _settings.work_usec)
@@ -217,9 +239,11 @@ func _apply_lighting() -> void:
 		material.set_shader_parameter("block_color", _settings.block_color)
 		material.set_shader_parameter("block_energy", _settings.block_energy)
 		material.set_shader_parameter("block_curve", _settings.block_curve)
+	_apply_modules(sky_color, Color(0.015, 0.02, 0.045).lerp(Color(0.64, 0.78, 0.95).lerp(Color(0.95, 0.3, 0.12), sunset), day))
 
 func _set_hour(hour: float) -> void:
 	_settings.hour = hour
+	_settings_panel.sync(_settings)
 	_apply_lighting()
 	_save_settings()
 
@@ -299,25 +323,61 @@ func _unhandled_input(event: InputEvent) -> void:
 		_camera.rotation.x = clampf(_camera.rotation.x - motion.relative.y * 0.003, -1.5, 1.5)
 
 func _load_settings() -> void:
-	var config: ConfigFile = ConfigFile.new()
-	if config.load("user://settings.cfg") != OK:
-		return
-	for key: String in ["cycle_enabled", "sky_enhanced", "direct_enabled", "shadows_enabled"]:
-		var value: Variant = config.get_value("lighting_p0", key, _settings.get(key))
-		if value is bool:
-			_settings.set(key, value)
-	var hour: Variant = config.get_value("lighting_p0", "hour", _settings.hour)
-	if (hour is float or hour is int) and is_finite(float(hour)):
-		_settings.hour = fposmod(float(hour), 24.0)
+	_settings.load_settings(settings_path)
 
 func _save_settings() -> void:
-	var config: ConfigFile = ConfigFile.new()
-	var error: Error = config.load("user://settings.cfg")
-	if error != OK and error != ERR_FILE_NOT_FOUND:
-		push_warning("Settings unreadable; preserving the existing file.")
-		return
-	for key: String in ["hour", "cycle_enabled", "sky_enhanced", "direct_enabled", "shadows_enabled"]:
-		config.set_value("lighting_p0", key, _settings.get(key))
-	error = config.save("user://settings.cfg")
+	var error: Error = _settings.save_settings(settings_path)
 	if error != OK:
 		push_warning("Could not save lighting settings: %s" % error_string(error))
+
+func _settings_changed() -> void:
+	_apply_lighting()
+	_save_settings()
+
+func _reset_settings() -> void:
+	_settings = profile.duplicate(true) as AstraeonLightingProfile
+	_settings_panel.sync(_settings)
+	_apply_lighting()
+	_save_settings()
+
+func _apply_modules(sky_color: Color, horizon: Color) -> void:
+	_settings_panel.sync(_settings)
+	_horizon = horizon
+	get_viewport().use_taa = _settings.aa_mode == 2
+	get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if _settings.aa_mode == 1 else Viewport.SCREEN_SPACE_AA_DISABLED
+	_sun.shadow_bias = _settings.shadow_bias
+	_sun.shadow_normal_bias = _settings.shadow_normal_bias
+	_sun.directional_shadow_blend_splits = true
+	var qualities: Array[RenderingServer.ShadowQuality] = [
+		RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM, RenderingServer.SHADOW_QUALITY_SOFT_HIGH]
+	RenderingServer.directional_soft_shadow_filter_set_quality(qualities[_settings.shadow_quality])
+	_environment.glow_enabled = _settings.bloom_enabled
+	_environment.glow_intensity = _settings.bloom_strength
+	_environment.glow_hdr_threshold = 1.0
+	_sky_material.set_shader_parameter("clouds_enabled", _settings.clouds_enabled)
+	_sky_material.set_shader_parameter("cloud_coverage", _settings.cloud_coverage)
+	var materials: Array[ShaderMaterial] = _sections.materials.duplicate()
+	materials.append(_details.grass_material)
+	for material: ShaderMaterial in materials:
+		material.set_shader_parameter("ao_strength", _settings.ao_strength if _settings.ao_enabled else 0.0)
+		material.set_shader_parameter("sky_color", sky_color)
+		material.set_shader_parameter("block_color", _settings.block_color)
+		material.set_shader_parameter("block_energy", _settings.block_energy)
+		material.set_shader_parameter("block_curve", _settings.block_curve)
+	for material: ShaderMaterial in [_sections.materials[3], _details.grass_material]:
+		material.set_shader_parameter("wind_enabled", _settings.wind_enabled)
+		material.set_shader_parameter("wind_strength", _settings.wind_strength)
+		material.set_shader_parameter("translucency", _settings.translucency_strength if _settings.translucency_enabled else 0.0)
+	_details.apply(_settings, sky_color, horizon)
+	_underwater = _details.is_underwater(_camera.position) and _settings.underwater_enabled
+	_apply_fog()
+
+func _apply_fog() -> void:
+	_environment.fog_enabled = _settings.fog_enabled or _underwater
+	_environment.fog_mode = Environment.FOG_MODE_DEPTH
+	_environment.fog_light_color = Color(0.015, 0.16, 0.23) if _underwater else _horizon
+	_environment.fog_light_energy = 0.6 if _underwater else 1.0
+	_environment.fog_sky_affect = 1.0 if _underwater else 0.0
+	_environment.fog_depth_begin = 0.0 if _underwater else _settings.fog_start
+	_environment.fog_depth_end = 12.0 if _underwater else _settings.fog_start + 1.0 / _settings.fog_density
+	_environment.fog_depth_curve = 1.0

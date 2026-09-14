@@ -2,6 +2,7 @@ extends RefCounted
 ## One native block mesh per 16^3 section. Light-only changes never rebuild geometry.
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 const LIGHT_SHADER: Shader = preload("res://astraeon_lighting/voxel_light.gdshader")
+const PLANT_SHADER: Shader = preload("res://astraeon_lighting/plant.gdshader")
 var materials: Array[ShaderMaterial] = []
 var rebuilt_sections: int = 0
 var last_build_usec: int = 0
@@ -18,7 +19,7 @@ func configure(volume: Volume, parent: Node3D, texture: ImageTexture3D) -> void:
 	var colors: Array[Color] = [Color(0.58, 0.62, 0.65), Color(1.0, 0.72, 0.32), Color(0.55, 0.33, 0.15), Color(0.25, 0.48, 0.2)]
 	for i: int in range(colors.size()):
 		var material: ShaderMaterial = ShaderMaterial.new()
-		material.shader = LIGHT_SHADER
+		material.shader = PLANT_SHADER if i == 3 else LIGHT_SHADER
 		material.set_shader_parameter("base_color", colors[i])
 		material.set_shader_parameter("volume_origin", Vector3(volume.origin))
 		material.set_shader_parameter("volume_size", Vector3(volume.size))
@@ -26,6 +27,7 @@ func configure(volume: Volume, parent: Node3D, texture: ImageTexture3D) -> void:
 		material.set_shader_parameter("self_emission", 1.5 if i == 1 else 0.0)
 		materials.append(material)
 		var model: VoxelBlockyModelCube = VoxelBlockyModelCube.new()
+		model.atlas_size_in_tiles = Vector2i.ONE
 		model.set_material_override(0, material)
 		models.append(model)
 	var library: VoxelBlockyLibrary = VoxelBlockyLibrary.new()
@@ -79,6 +81,7 @@ func step() -> void:
 	if not _nodes.has(section):
 		var instance: MeshInstance3D = MeshInstance3D.new()
 		instance.position = Vector3(section_origin)
+		instance.extra_cull_margin = 0.5
 		_parent.add_child(instance)
 		_nodes[section] = instance
 	_nodes[section].mesh = mesh

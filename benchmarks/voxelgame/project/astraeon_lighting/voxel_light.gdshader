@@ -9,6 +9,7 @@ uniform vec3 block_color : source_color = vec3(1.0, 0.64, 0.32);
 uniform float block_energy = 1.3;
 uniform float block_curve = 1.6;
 uniform float self_emission = 0.0;
+uniform float ao_strength = 0.65;
 varying vec3 world_position;
 varying vec3 world_normal;
 varying float sky_visibility;
@@ -28,7 +29,7 @@ void fragment() {
 	sky_visibility = illumination.r;
 	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
 	float pattern = mix(0.85, 1.0, smoothstep(0.0, 0.035, edge));
-	ALBEDO = base_color.rgb * COLOR.rgb * pattern;
+	ALBEDO = base_color.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
 	ROUGHNESS = 1.0;
 	EMISSION = ALBEDO * (sky_color * illumination.r
 		+ block_color * block_energy * pow(illumination.g, block_curve));
