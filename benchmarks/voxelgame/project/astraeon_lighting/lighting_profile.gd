@@ -12,6 +12,11 @@ extends Resource
 @export_range(0.0, 4.0) var block_energy: float = 1.3
 @export_range(0.5, 3.0) var block_curve: float = 1.6
 @export_range(0.1, 4.0, 0.05) var exposure: float = 1.0
+@export_group("环境光渐变")
+@export_range(0.0, 1.0, 0.05) var ambient_smoothing: float = 1.0
+@export_range(0.0, 2.0, 0.05) var ambient_strength: float = 1.0
+@export_range(0.5, 3.0, 0.05) var ambient_curve: float = 1.4
+@export_range(0.0, 1.0, 0.05) var block_grid_strength: float = 1.0
 @export_group("局部光源")
 @export var local_lights_enabled: bool = true
 @export_range(0.0, 12.0, 0.1) var local_light_energy: float = 4.0
@@ -49,6 +54,10 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var translucency_strength: float = 0.25
 @export_group("P2 · 云")
 @export var clouds_enabled: bool = true
+@export_enum("写实简化体积云", "方块体积云") var cloud_type: int = 1
+@export var block_cloud_shadows: bool = true
+@export_range(0.0, 1.0, 0.05) var cloud_shadow_strength: float = 0.55
+@export_range(0.0, 1.0, 0.05) var cloud_shadow_softness: float = 0.3
 @export_range(8, 48, 4) var cloud_steps: int = 24
 @export var cloud_morph: bool = false
 @export_range(0.0, 1.0, 0.05) var cloud_coverage: float = 0.45

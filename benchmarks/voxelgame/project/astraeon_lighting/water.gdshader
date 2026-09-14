@@ -8,6 +8,7 @@ uniform float clock = 0.0;
 uniform float wave_strength = 0.12;
 uniform vec3 sky_color : source_color = vec3(0.4, 0.5, 0.65);
 uniform vec3 horizon : source_color = vec3(0.6, 0.78, 0.95);
+#include "res://astraeon_lighting/cloud_shadow.gdshaderinc"
 varying vec3 world_position;
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -49,4 +50,12 @@ void fragment() {
 	ROUGHNESS = 0.22;
 	SPECULAR = 0.45;
 	ALPHA = depth_absorption ? mix(0.03, 0.92, absorption) : 0.65;
+}
+
+void light() {
+	float shadow = LIGHT_IS_DIRECTIONAL ? cloud_visibility(world_position) : 1.0;
+	DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR * shadow / PI;
+	// Keep the existing water highlight when supplying a custom light function.
+	vec3 halfway = normalize(LIGHT + VIEW);
+	SPECULAR_LIGHT += pow(max(dot(NORMAL, halfway),0.0),64.0) * 0.45 * ATTENUATION * LIGHT_COLOR * shadow;
 }

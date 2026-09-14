@@ -3,6 +3,8 @@ extends Node3D
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 const Fixtures: Script = preload("res://astraeon_lighting/sample_world.gd")
 const Sections: Script = preload("res://astraeon_lighting/section_meshes.gd")
+const BlockClouds: Script = preload("res://astraeon_lighting/block_clouds.gd")
+const PLAIN_SKY_SHADER: Shader = preload("res://astraeon_lighting/background_sky.gdshader")
 const LocalLights: Script = preload("res://astraeon_lighting/local_lights.gd")
 const Details: Script = preload("res://astraeon_lighting/environment_details.gd")
 const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd")
@@ -17,6 +19,9 @@ var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _environment: Environment
 var _sky_material: ShaderMaterial
+var _volume_sky_material: ShaderMaterial
+var _plain_sky_material: ShaderMaterial
+var _block_clouds: BlockClouds
 var _status: Label
 var _panel: VBoxContainer
 var _controls: VBoxContainer
@@ -120,6 +125,8 @@ func _make_ui() -> void:
 	_button("放置准星方块", func() -> void: _edit_target(Volume.STONE))
 	_button("放置准星光源", func() -> void: _edit_target(Volume.LAMP))
 	_button("阶梯 / 窄缝", func() -> void: _view(Vector3(-29, 8, 12), Vector3(-23, 3, 4)))
+	_button("洞口环境光观察", func() -> void: _view(Vector3(16, -4, -0.5), Vector3(-16, -4, 0)))
+	_button("云层观察", func() -> void: _view(Vector3(20, 2, 25), Vector3(20, 30, -20)))
 	_button("水池观察", func() -> void: _view(Vector3(30, 10, -5), Vector3(20, 0, -17)))
 	_button("水下观察", func() -> void: _view(Vector3(23, -2, -14), Vector3(25, -2, -22)))
 	_button("逆光植被", func() -> void: _view(Vector3(-27, 2, -9), Vector3(-20, 3, -20)))
@@ -173,7 +180,7 @@ func _start() -> void:
 	_sections.configure(_volume, self, _texture)
 	_camera = Camera3D.new()
 	_camera.current = true
-	_camera.far = 180.0
+	_camera.far = 1600.0 # Cloud mesh horizon; directional shadow distance remains independent.
 	_camera.near = 0.05
 	add_child(_camera)
 	_view(Vector3(23, 17, 27), Vector3(0, 4, 0))
@@ -197,6 +204,9 @@ func _start() -> void:
 	noise_texture.seamless = true
 	noise_texture.noise = noise
 	_sky_material.set_shader_parameter("cloud_noise", noise_texture)
+	_volume_sky_material = _sky_material
+	_plain_sky_material = ShaderMaterial.new()
+	_plain_sky_material.shader = PLAIN_SKY_SHADER
 	var sky: Sky = Sky.new()
 	sky.sky_material = _sky_material
 	_environment.sky = sky
@@ -209,6 +219,12 @@ func _start() -> void:
 	_local_lights = LocalLights.new()
 	add_child(_local_lights)
 	_local_lights.configure(_volume)
+	_block_clouds = BlockClouds.new()
+	add_child(_block_clouds)
+	var receivers: Array[ShaderMaterial] = _sections.materials.duplicate()
+	receivers.append(_details.grass_material)
+	receivers.append_array(_details.water_materials)
+	_block_clouds.configure(receivers)
 	_apply_lighting()
 
 func _process(delta: float) -> void:
@@ -235,7 +251,9 @@ func _process(delta: float) -> void:
 	_details.tick(delta, _settings, _sections.materials[3])
 	if _settings.clouds_enabled and _settings.cloud_speed > 0.0:
 		_cloud_clock += delta * _settings.cloud_speed
-		_sky_material.set_shader_parameter("cloud_clock", _cloud_clock)
+		if _settings.cloud_type == 0:
+			_volume_sky_material.set_shader_parameter("cloud_clock", _cloud_clock)
+	_block_clouds.tick(_cloud_clock, _camera.position)
 	var wet: bool = _details.is_underwater(_camera.position) and _settings.underwater_enabled
 	if wet != _underwater:
 		_underwater = wet
@@ -264,6 +282,10 @@ func _apply_lighting() -> void:
 	_apply_display()
 	if _sun == null:
 		return
+	var chosen: ShaderMaterial = _volume_sky_material if _settings.clouds_enabled and _settings.cloud_type == 0 else _plain_sky_material
+	if _sky_material != chosen:
+		_sky_material = chosen
+		_environment.sky.sky_material = chosen
 	var solar_angle: float = (_settings.hour - 6.0) * PI / 12.0
 	var altitude: float = sin(solar_angle)
 	var day: float = smoothstep(-0.12, 0.3, altitude)
@@ -391,6 +413,8 @@ func _reset_settings() -> void:
 func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_settings_panel.sync(_settings)
 	_horizon = horizon
+	_block_clouds.apply(_settings, horizon, _sun.global_basis.z.normalized())
+	_block_clouds.tick(_cloud_clock, _camera.position)
 	get_viewport().use_taa = _settings.aa_mode == 2
 	get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if _settings.aa_mode == 1 else Viewport.SCREEN_SPACE_AA_DISABLED
 	_sun.shadow_bias = _settings.shadow_bias
@@ -419,6 +443,10 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	var materials: Array[ShaderMaterial] = _sections.materials.duplicate()
 	materials.append(_details.grass_material)
 	for material: ShaderMaterial in materials:
+		material.set_shader_parameter("ambient_smoothing", _settings.ambient_smoothing)
+		material.set_shader_parameter("ambient_strength", _settings.ambient_strength)
+		material.set_shader_parameter("ambient_curve", _settings.ambient_curve)
+		material.set_shader_parameter("block_grid_strength", _settings.block_grid_strength)
 		material.set_shader_parameter("indirect_strength", _settings.indirect_strength if _settings.indirect_enabled else 0.0)
 		material.set_shader_parameter("ao_strength", _settings.ao_strength if _settings.ao_enabled else 0.0)
 		material.set_shader_parameter("sky_color", sky_color)

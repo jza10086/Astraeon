@@ -15,3 +15,5 @@
 - P1/P2 水面、草/树叶裁剪图案、风动和二维云为项目自编程序化材质，未引入新第三方美术或复制 MakeUp GLSL。AO/阴影/雾/抗锯齿/Glow 复用现有 Godot 与 Voxel Tools 能力。
 
 - 光影更新：简化体积云参考 MakeUp Ultra Fast 9.5e（固定提交 68d2cc033c285f2c424d73e5202d765c57095e7f）的二维高度场体积采样路线，采用项目自编 Godot shader 与 Godot FastNoiseLite/NoiseTexture2D 生成纹理；未复制其 GLSL 或纹理。水面厚度吸收、遮挡感知补光与调试控件均为项目自编。
+
+- 2026-09-15 环境光表面插值、方块云合并网格与二值底面云影为项目自编；覆盖图由 Godot FastNoiseLite 生成，未引入第三方云素材。

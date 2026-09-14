@@ -8,6 +8,9 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 	profile = settings
 	changed = callback
 	var labels: Dictionary[StringName, String] = {
+		&"ambient_smoothing": "环境光平滑", &"ambient_strength": "环境光强度", &"ambient_curve": "环境光衰减曲线",
+		&"block_grid_strength": "方块格线强度", &"cloud_type": "云类型", &"block_cloud_shadows": "方块云日月阴影",
+		&"cloud_shadow_strength": "云影强度", &"cloud_shadow_softness": "云影边缘柔度",
 		&"local_lights_enabled": "局部直射光", &"local_light_energy": "局部光强度", &"local_light_range": "局部光范围",
 		&"indirect_enabled": "体素间接补光", &"indirect_strength": "补光强度",
 		&"hard_shadows": "硬阴影", &"shadow_blur": "阴影模糊半径", &"shadow_resolution": "日月阴影贴图",
@@ -21,7 +24,7 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 		&"exposure": "固定曝光", &"water_enabled": "显示水面", &"waves_enabled": "水面波纹",
 		&"wave_strength": "波纹强度", &"water_reflection": "水面天空反射", &"underwater_enabled": "水下效果",
 		&"wind_enabled": "植被风动", &"wind_strength": "风动强度", &"translucency_enabled": "植被透光",
-		&"translucency_strength": "透光强度", &"clouds_enabled": "简化体积云", &"cloud_coverage": "云覆盖率",
+		&"translucency_strength": "透光强度", &"clouds_enabled": "显示云", &"cloud_coverage": "云覆盖率",
 		&"cloud_speed": "云速度", &"bloom_enabled": "Bloom", &"bloom_strength": "Bloom 强度"}
 	var current_group: String = ""
 	for property: Dictionary in profile.get_property_list():

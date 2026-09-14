@@ -11,6 +11,11 @@ uniform float block_curve = 1.6;
 uniform float self_emission = 0.0;
 uniform float ao_strength = 0.65;
 uniform float indirect_strength = 0.04;
+uniform float ambient_smoothing = 1.0;
+uniform float ambient_strength = 1.0;
+uniform float ambient_curve = 1.4;
+uniform float block_grid_strength = 1.0;
+#include "res://astraeon_lighting/cloud_shadow.gdshaderinc"
 #include "res://astraeon_lighting/light_sampling.gdshaderinc"
 uniform bool grass = false;
 uniform bool wind_enabled = true;
@@ -42,19 +47,23 @@ void fragment() {
 		illumination = texture(light_volume, (cell + vec3(0.5)) / volume_size).rg;
 	}
 	sky_visibility = illumination.r;
-	float indirect = indirect_strength > 0.0 ? smooth_block_light(world_position, normalize(world_normal)) : 0.0;
+	vec2 filtered = (ambient_smoothing > 0.0 || indirect_strength > 0.0)
+		? smooth_surface_light(world_position, normalize(world_normal)) : illumination;
+	float indirect = filtered.g;
+	float ambient = pow(max(mix(illumination.r, filtered.r, ambient_smoothing), 0.0), ambient_curve) * ambient_strength;
 	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
-	float pattern = mix(0.85, 1.0, smoothstep(0.0, 0.035, edge));
+	float pattern = mix(1.0, mix(0.85, 1.0, smoothstep(0.0, 0.035, edge)), block_grid_strength);
 	ALBEDO = base_color.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
 	ROUGHNESS = 1.0;
-	EMISSION = ALBEDO * (sky_color * illumination.r
+	EMISSION = ALBEDO * (sky_color * ambient
 		+ block_color * block_energy * indirect_strength * pow(indirect, block_curve));
 	EMISSION += base_color.rgb * self_emission;
 }
 
 void light() {
+	float visibility = LIGHT_IS_DIRECTIONAL ? sky_visibility * cloud_visibility(world_position) : 1.0;
 	// Sky visibility prevents direct light in sealed rooms even with shadows off.
 	DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION
-		* LIGHT_COLOR * (LIGHT_IS_DIRECTIONAL ? sky_visibility : 1.0) / PI;
-	DIFFUSE_LIGHT += max(-dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR * translucency * (LIGHT_IS_DIRECTIONAL ? sky_visibility : 1.0) / PI;
+		* LIGHT_COLOR * visibility / PI;
+	DIFFUSE_LIGHT += max(-dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR * translucency * visibility / PI;
 }

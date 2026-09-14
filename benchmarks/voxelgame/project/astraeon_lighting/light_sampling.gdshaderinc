@@ -3,7 +3,7 @@ vec3 cell_light(vec3 cell) {
 	if (any(lessThan(cell, vec3(0.0))) || any(greaterThanEqual(cell, volume_size))) { return vec3(0.0); }
 	return texture(light_volume, (cell + vec3(0.5)) / volume_size).rgb;
 }
-float smooth_block_light(vec3 position, vec3 normal) {
+vec2 smooth_surface_light(vec3 position, vec3 normal) {
 	vec3 q = position + normal * 0.03 - volume_origin;
 	vec3 anchor = floor(q);
 	vec3 a = abs(normal);
@@ -20,5 +20,6 @@ float smooth_block_light(vec3 position, vec3 normal) {
 	// Never sample across the surface normal; diagonal cannot cut a blocked corner.
 	vec4 valid = vec4(c0.b, c1.b, c2.b, c3.b * c1.b * c2.b) * c0.b;
 	vec4 weights = vec4((1.0-f.x)*(1.0-f.y), f.x*(1.0-f.y), (1.0-f.x)*f.y, f.x*f.y) * valid;
-	return dot(weights, vec4(c0.g,c1.g,c2.g,c3.g)) / max(dot(weights,vec4(1.0)), 0.0001);
+	return vec2(dot(weights, vec4(c0.r,c1.r,c2.r,c3.r)), dot(weights, vec4(c0.g,c1.g,c2.g,c3.g)))
+		/ max(dot(weights,vec4(1.0)), 0.0001);
 }
