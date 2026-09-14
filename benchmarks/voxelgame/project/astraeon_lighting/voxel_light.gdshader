@@ -10,6 +10,8 @@ uniform float block_energy = 1.3;
 uniform float block_curve = 1.6;
 uniform float self_emission = 0.0;
 uniform float ao_strength = 0.65;
+uniform float indirect_strength = 0.04;
+#include "res://astraeon_lighting/light_sampling.gdshaderinc"
 varying vec3 world_position;
 varying vec3 world_normal;
 varying float sky_visibility;
@@ -27,17 +29,18 @@ void fragment() {
 		illumination = texture(light_volume, (cell + vec3(0.5)) / volume_size).rg;
 	}
 	sky_visibility = illumination.r;
+	float indirect = indirect_strength > 0.0 ? smooth_block_light(world_position, normalize(world_normal)) : 0.0;
 	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
 	float pattern = mix(0.85, 1.0, smoothstep(0.0, 0.035, edge));
 	ALBEDO = base_color.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
 	ROUGHNESS = 1.0;
 	EMISSION = ALBEDO * (sky_color * illumination.r
-		+ block_color * block_energy * pow(illumination.g, block_curve));
+		+ block_color * block_energy * indirect_strength * pow(indirect, block_curve));
 	EMISSION += base_color.rgb * self_emission;
 }
 
 void light() {
 	// Sky visibility prevents direct light in sealed rooms even with shadows off.
 	DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION
-		* LIGHT_COLOR * sky_visibility / PI;
+		* LIGHT_COLOR * (LIGHT_IS_DIRECTIONAL ? sky_visibility : 1.0) / PI;
 }

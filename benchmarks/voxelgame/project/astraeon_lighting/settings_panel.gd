@@ -8,15 +8,20 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 	profile = settings
 	changed = callback
 	var labels: Dictionary[StringName, String] = {
+		&"local_lights_enabled": "局部直射光", &"local_light_energy": "局部光强度", &"local_light_range": "局部光范围",
+		&"indirect_enabled": "体素间接补光", &"indirect_strength": "补光强度",
+		&"hard_shadows": "硬阴影", &"shadow_blur": "阴影模糊半径", &"shadow_resolution": "日月阴影贴图",
+		&"water_quality": "水面画质", &"cloud_steps": "云采样步数", &"cloud_morph": "云动态变形",
+		&"show_fps": "显示 FPS", &"max_fps": "最大 FPS（0 不限）", &"vsync_enabled": "垂直同步",
 		&"hour": "时间", &"cycle_enabled": "时间推进", &"sky_enhanced": "天空渐变",
 		&"ao_enabled": "顶点 AO", &"ao_strength": "AO 强度",
 		&"fog_enabled": "距离雾", &"fog_density": "雾浓度", &"fog_start": "雾起始距离",
-		&"aa_mode": "抗锯齿", &"direct_enabled": "太阳 / 月亮直射", &"shadows_enabled": "实时阴影",
+		&"aa_mode": "抗锯齿", &"direct_enabled": "太阳 / 月亮直射", &"shadows_enabled": "日月阴影",
 		&"shadow_distance": "阴影距离", &"shadow_quality": "阴影质量", &"shadow_bias": "阴影偏移", &"shadow_normal_bias": "法线偏移",
 		&"exposure": "固定曝光", &"water_enabled": "显示水面", &"waves_enabled": "水面波纹",
 		&"wave_strength": "波纹强度", &"water_reflection": "水面天空反射", &"underwater_enabled": "水下效果",
 		&"wind_enabled": "植被风动", &"wind_strength": "风动强度", &"translucency_enabled": "植被透光",
-		&"translucency_strength": "透光强度", &"clouds_enabled": "二维云", &"cloud_coverage": "云覆盖率",
+		&"translucency_strength": "透光强度", &"clouds_enabled": "简化体积云", &"cloud_coverage": "云覆盖率",
 		&"cloud_speed": "云速度", &"bloom_enabled": "Bloom", &"bloom_strength": "Bloom 强度"}
 	var current_group: String = ""
 	for property: Dictionary in profile.get_property_list():

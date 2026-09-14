@@ -29,7 +29,7 @@ func configure(volume: Volume, parent: Node3D, texture: ImageTexture3D) -> void:
 		var model: VoxelBlockyModelCube = VoxelBlockyModelCube.new()
 		model.atlas_size_in_tiles = Vector2i.ONE
 		model.set_material_override(0, material)
-		models.append(model)
+		models.append(VoxelBlockyModelEmpty.new() if i == 1 else model)
 	var library: VoxelBlockyLibrary = VoxelBlockyLibrary.new()
 	library.models = models
 	library.bake()

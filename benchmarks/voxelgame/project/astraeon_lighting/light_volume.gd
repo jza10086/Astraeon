@@ -176,19 +176,21 @@ func _enqueue_neighbors(p: Vector3i) -> void:
 		if contains(neighbor):
 			_enqueue(index_of(neighbor))
 
-## RG8 display adapter, independent of voxel IDs and future RGB solver storage.
+## RGBA8 display adapter: sky, block, air occupancy, reserved. Solver remains unchanged.
 ## This bounded prototype uploads the complete texture only after convergence.
 func make_images() -> Array[Image]:
 	assert(is_settled())
 	var images: Array[Image] = []
 	for z: int in range(size.z):
 		var data: PackedByteArray = PackedByteArray()
-		data.resize(size.x * size.y * 2)
+		data.resize(size.x * size.y * 4)
 		for y: int in range(size.y):
 			for x: int in range(size.x):
 				var index: int = x + size.x * (y + size.y * z)
-				var pixel: int = 2 * (x + size.x * y)
+				var pixel: int = 4 * (x + size.x * y)
 				data[pixel] = sky[index] * 17
 				data[pixel + 1] = block[index] * 17
-		images.append(Image.create_from_data(size.x, size.y, false, Image.FORMAT_RG8, data))
+				data[pixel + 2] = 255 if voxels[index] == AIR else 0
+				data[pixel + 3] = 255
+		images.append(Image.create_from_data(size.x, size.y, false, Image.FORMAT_RGBA8, data))
 	return images

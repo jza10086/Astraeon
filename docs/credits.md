@@ -13,3 +13,5 @@
 - P0 光照样板：复用上述 Voxel Tools mesher；方块配色和天空均为项目自编程序化占位素材。仅参考 MakeUp Ultra Fast 9.5e 的光强/颜色分离思路，未复制 GLSL；固定来源与许可研究见 makeup_ultra_fast_analysis.md。
 
 - P1/P2 水面、草/树叶裁剪图案、风动和二维云为项目自编程序化材质，未引入新第三方美术或复制 MakeUp GLSL。AO/阴影/雾/抗锯齿/Glow 复用现有 Godot 与 Voxel Tools 能力。
+
+- 光影更新：简化体积云参考 MakeUp Ultra Fast 9.5e（固定提交 68d2cc033c285f2c424d73e5202d765c57095e7f）的二维高度场体积采样路线，采用项目自编 Godot shader 与 Godot FastNoiseLite/NoiseTexture2D 生成纹理；未复制其 GLSL 或纹理。水面厚度吸收、遮挡感知补光与调试控件均为项目自编。

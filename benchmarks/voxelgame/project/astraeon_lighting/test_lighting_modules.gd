@@ -1,6 +1,6 @@
 extends SceneTree
 ## Settings checks always run. --render opts into short GPU/interaction validation.
-## No FPS sampling or benchmark workload. Artifacts use a separate output directory.
+## FPS UI is verified, without collecting a performance benchmark. Artifacts use a separate output directory.
 const Sample: Script = preload("res://astraeon_lighting/lighting_sample.gd")
 const Details: Script = preload("res://astraeon_lighting/environment_details.gd")
 var _failures: int = 0
@@ -51,6 +51,14 @@ func _settings_checks() -> void:
 	defaults.load_settings(file)
 	_check(defaults.ao_strength == 1.0 and defaults.fog_density == 0.001 and defaults.aa_mode == 2, "Numeric settings clamped")
 	_check(not defaults.bloom_enabled, "Wrong setting type ignored")
+	defaults.max_fps = 120
+	defaults.hard_shadows = true
+	defaults.shadow_blur = 0.35
+	defaults.shadow_resolution = 1
+	defaults.water_quality = 0
+	defaults.cloud_steps = 16
+	defaults.cloud_morph = true
+	defaults.indirect_strength = 0.02
 	defaults.clouds_enabled = false
 	defaults.bloom_enabled = true
 	defaults.water_reflection = false
@@ -116,6 +124,9 @@ func _render_checks() -> void:
 	var revision: int = _sample._volume.revision
 	var mesh_count: int = _sample._sections.rebuilt_sections
 	await _capture("p12-default")
+	await _updated_module_checks()
+	revision = _sample._volume.revision
+	mesh_count = _sample._sections.rebuilt_sections
 	# Independent switches must not dirty world data or mesh geometry.
 	for key: StringName in [&"ao_enabled", &"fog_enabled", &"shadows_enabled", &"clouds_enabled", &"wind_enabled", &"translucency_enabled", &"bloom_enabled", &"water_reflection", &"waves_enabled"]:
 		var old: bool = _sample._settings.get(key)
@@ -156,7 +167,7 @@ func _render_checks() -> void:
 	_sample._apply_lighting()
 	await _capture("p12-no-bloom-night")
 	# All-off: feature clocks stop and basic world light survives.
-	for key: StringName in [&"sky_enhanced", &"direct_enabled", &"ao_enabled", &"fog_enabled", &"shadows_enabled", &"clouds_enabled", &"wind_enabled", &"translucency_enabled", &"bloom_enabled", &"water_enabled", &"underwater_enabled", &"water_reflection", &"waves_enabled"]:
+	for key: StringName in [&"local_lights_enabled", &"indirect_enabled", &"sky_enhanced", &"direct_enabled", &"ao_enabled", &"fog_enabled", &"shadows_enabled", &"clouds_enabled", &"wind_enabled", &"translucency_enabled", &"bloom_enabled", &"water_enabled", &"underwater_enabled", &"water_reflection", &"waves_enabled"]:
 		_sample._settings.set(key, false)
 	_sample._settings.aa_mode = 0
 	_sample._apply_lighting()
@@ -185,3 +196,84 @@ func _render_checks() -> void:
 		_check(_sample._panel.get_parent() is ScrollContainer, "Panel scroll container")
 	_sample._reset_settings()
 	print("P12_RENDERED renderer=", RenderingServer.get_current_rendering_method())
+
+func _updated_module_checks() -> void:
+	var revision: int = _sample._volume.revision
+	var cap: SpinBox = _sample._settings_panel.widgets[&"max_fps"] as SpinBox
+	cap.value = 120
+	_check(Engine.max_fps == 120, "FPS cap applies from UI")
+	var saved: AstraeonLightingProfile = AstraeonLightingProfile.new()
+	saved.load_settings(_sample.settings_path)
+	_check(saved.max_fps == 120, "FPS cap persists")
+	cap.value = 0
+	_check(Engine.max_fps == 0, "Unlimited FPS restores")
+	_sample._settings.show_fps = false
+	_sample._apply_lighting()
+	_check(not _sample._fps_label.visible, "FPS overlay can hide")
+	_sample._settings.show_fps = true
+	_sample._settings.hard_shadows = true
+	_sample._settings.shadow_resolution = 1
+	_sample._apply_lighting()
+	_check(_sample._filter_quality == RenderingServer.SHADOW_QUALITY_HARD and _sample._atlas_size == 2048 and _sample._sun.shadow_blur == 0.0, "Hard shadow and atlas apply")
+	_sample._settings.hour = 17.6
+	_sample._view(Vector3(10, 3, 12), Vector3(0, 1, 0))
+	_sample._apply_lighting()
+	await _capture("update-hard-shadows")
+	_sample._settings.hard_shadows = false
+	_sample._settings.shadow_blur = 0.4
+	_sample._settings.shadow_resolution = 2
+	_sample._apply_lighting()
+	_check(is_equal_approx(_sample._sun.shadow_blur, 0.4) and _sample._atlas_size == 4096, "Soft blur and atlas restore")
+	await _capture("update-soft-shadows")
+	_sample._settings.hour = 12.0
+	_sample._view(Vector3(20, 2, 25), Vector3(20, 30, -20))
+	_sample._apply_lighting()
+	await _capture("update-clouds")
+	_sample._settings.cloud_morph = true
+	_sample._apply_lighting()
+	await _capture("update-clouds-morph")
+	_sample._settings.clouds_enabled = false
+	_sample._apply_lighting()
+	await _capture("update-clouds-off")
+	_check(_sample._volume.revision == revision, "New display controls do not alter voxels")
+	_sample._view(Vector3(30, 10, -5), Vector3(20, 0, -17))
+	_sample._settings.water_quality = 0
+	_sample._apply_lighting()
+	_check(not _sample._details.water_materials[0].get_shader_parameter("depth_absorption"), "Uniform water fallback")
+	await _capture("update-water-low")
+	_sample._settings.water_quality = 1
+	_sample._apply_lighting()
+	await _capture("update-water-depth")
+	# Light tight against front wall; a one-voxel aperture versus fully sealed.
+	_sample._settings.hour = 0.0
+	_sample._settings.indirect_enabled = false
+	_sample._settings.fog_enabled = false
+	_sample._apply_lighting()
+	var edits: Dictionary[Vector3i, int] = {}
+	_sample.Fixtures.box(edits, _sample.Fixtures.WINDOW, _sample.Volume.WOOD)
+	edits[Vector3i(-1, 1, 2)] = _sample.Volume.LAMP
+	edits[Vector3i(-1, 2, 3)] = _sample.Volume.AIR
+	_sample._edit(edits)
+	await _settle()
+	_check(_sample._local_lights.emitters.has(Vector3i(-1,1,2)), "Edited lamp creates local emitter")
+	_sample._view(Vector3(5, 4, 1), Vector3(-1, 2, 2))
+	await _capture("update-local-interior")
+	_sample._view(Vector3(4, 4, 12), Vector3(-1, 2, 3))
+	await _capture("update-local-hole-direct")
+	_sample._settings.indirect_enabled = true
+	_sample._apply_lighting()
+	await _capture("update-local-hole-fill")
+	_sample._edit({Vector3i(-1,2,3): _sample.Volume.WOOD})
+	await _settle()
+	await _capture("update-local-sealed")
+	_sample._settings.local_lights_enabled = false
+	_sample._apply_lighting()
+	_check(_sample._local_lights.emitters[Vector3i(-1,1,2)].light_energy == 0.0, "Local direct switch independent")
+	_sample._edit({Vector3i(-1,1,2): _sample.Volume.AIR})
+	_check(_sample._local_lights.emitters.is_empty(), "Removed lamp removes emitter")
+	edits.clear()
+	_sample.Fixtures.box(edits, _sample.Fixtures.WINDOW, _sample.Volume.AIR)
+	_sample._edit(edits)
+	await _settle()
+	_sample._reset_settings()
+	_sample._view(Vector3(23,17,27), Vector3(0,4,0))

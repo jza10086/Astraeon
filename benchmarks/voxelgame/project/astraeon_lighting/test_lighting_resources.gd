@@ -27,7 +27,7 @@ func _run() -> void:
 		volume.step(32768, 0)
 	var texture: ImageTexture3D = ImageTexture3D.new()
 	var images: Array[Image] = volume.make_images()
-	_check(texture.create(Image.FORMAT_RG8, 32, 16, 16, false, images) == OK, "Texture resource creation")
+	_check(texture.create(Image.FORMAT_RGBA8, 32, 16, 16, false, images) == OK, "Texture resource creation")
 	var parent: Node3D = Node3D.new() # Unattached, no gameplay or camera.
 	var sections: Sections = Sections.new()
 	sections.configure(volume, parent, texture)

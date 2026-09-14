@@ -3,6 +3,7 @@ extends Node3D
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 const Fixtures: Script = preload("res://astraeon_lighting/sample_world.gd")
 const Sections: Script = preload("res://astraeon_lighting/section_meshes.gd")
+const LocalLights: Script = preload("res://astraeon_lighting/local_lights.gd")
 const Details: Script = preload("res://astraeon_lighting/environment_details.gd")
 const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd")
 const SKY_SHADER: Shader = preload("res://astraeon_lighting/sample_sky.gdshader")
@@ -35,6 +36,14 @@ var _cloud_clock: float = 0.0
 var _underwater: bool = false
 var _horizon: Color
 var _frame_counter: int = 0
+var _local_lights: LocalLights
+var _fps_label: Label
+var _fps_elapsed: float = 0.0
+var _fps_frames: int = 0
+var _previous_max_fps: int
+var _previous_vsync: DisplayServer.VSyncMode
+var _atlas_size: int = -1
+var _filter_quality: int = -1
 
 func _ready() -> void:
 	if profile == null:
@@ -42,12 +51,26 @@ func _ready() -> void:
 		return
 	_settings = profile.duplicate(true) as AstraeonLightingProfile
 	_load_settings()
+	_previous_max_fps = Engine.max_fps
+	_previous_vsync = DisplayServer.window_get_vsync_mode()
 	_make_ui()
+	_apply_display()
 	_register_input()
 
 func _make_ui() -> void:
 	var canvas: CanvasLayer = CanvasLayer.new()
 	add_child(canvas)
+	_fps_label = Label.new()
+	_fps_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_fps_label.offset_left = -340
+	_fps_label.offset_right = -20
+	_fps_label.offset_top = 16
+	_fps_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_fps_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fps_label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	_fps_label.add_theme_constant_override("shadow_offset_x", 2)
+	_fps_label.add_theme_constant_override("shadow_offset_y", 2)
+	canvas.add_child(_fps_label)
 	var margin: MarginContainer = MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
 	margin.offset_left = 20
@@ -139,8 +162,8 @@ func _start() -> void:
 	_texture = ImageTexture3D.new()
 	var blank: Array[Image] = []
 	for z: int in range(_volume.size.z):
-		blank.append(Image.create_empty(_volume.size.x, _volume.size.y, false, Image.FORMAT_RG8))
-	var error: Error = _texture.create(Image.FORMAT_RG8, _volume.size.x, _volume.size.y, _volume.size.z, false, blank)
+		blank.append(Image.create_empty(_volume.size.x, _volume.size.y, false, Image.FORMAT_RGBA8))
+	var error: Error = _texture.create(Image.FORMAT_RGBA8, _volume.size.x, _volume.size.y, _volume.size.z, false, blank)
 	if error != OK:
 		push_error("Could not allocate lighting texture: %s" % error_string(error))
 		_started = false
@@ -164,6 +187,16 @@ func _start() -> void:
 	_environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	_sky_material = ShaderMaterial.new()
 	_sky_material.shader = SKY_SHADER
+	var noise: FastNoiseLite = FastNoiseLite.new()
+	noise.seed = 72419
+	noise.frequency = 0.008
+	noise.fractal_octaves = 4
+	var noise_texture: NoiseTexture2D = NoiseTexture2D.new()
+	noise_texture.width = 512
+	noise_texture.height = 512
+	noise_texture.seamless = true
+	noise_texture.noise = noise
+	_sky_material.set_shader_parameter("cloud_noise", noise_texture)
 	var sky: Sky = Sky.new()
 	sky.sky_material = _sky_material
 	_environment.sky = sky
@@ -173,9 +206,21 @@ func _start() -> void:
 	_details = Details.new()
 	add_child(_details)
 	_details.configure(_texture, _volume.origin, _volume.size)
+	_local_lights = LocalLights.new()
+	add_child(_local_lights)
+	_local_lights.configure(_volume)
 	_apply_lighting()
 
 func _process(delta: float) -> void:
+	if _settings == null:
+		return
+	if _settings.show_fps:
+		_fps_elapsed += delta
+		_fps_frames += 1
+		if _fps_elapsed >= 0.5:
+			_fps_label.text = "%.0f FPS · %.2f ms\n上限 %s · VSync %s" % [float(_fps_frames) / _fps_elapsed, _fps_elapsed * 1000.0 / _fps_frames, str(_settings.max_fps) if _settings.max_fps > 0 else "不限", "开" if _settings.vsync_enabled else "关"]
+			_fps_elapsed = 0.0
+			_fps_frames = 0
 	if not _started:
 		return
 	if _settings.cycle_enabled:
@@ -216,6 +261,7 @@ func _process(delta: float) -> void:
 			_image_usec / 1000.0, _upload_usec / 1000.0])
 
 func _apply_lighting() -> void:
+	_apply_display()
 	if _sun == null:
 		return
 	var solar_angle: float = (_settings.hour - 6.0) * PI / 12.0
@@ -257,6 +303,8 @@ func _edit(edits: Dictionary[Vector3i, int]) -> void:
 	var changed: Array[Vector3i] = _volume.apply_edits(edits)
 	if not changed.is_empty():
 		_sections.invalidate(changed)
+		_local_lights.sync_edits(changed)
+		_local_lights.apply(_settings)
 		_update_begin = Time.get_ticks_usec()
 
 func _toggle_roof() -> void:
@@ -348,17 +396,30 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_sun.shadow_bias = _settings.shadow_bias
 	_sun.shadow_normal_bias = _settings.shadow_normal_bias
 	_sun.directional_shadow_blend_splits = true
+	_sun.shadow_blur = 0.0 if _settings.hard_shadows else _settings.shadow_blur
 	var qualities: Array[RenderingServer.ShadowQuality] = [
 		RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM, RenderingServer.SHADOW_QUALITY_SOFT_HIGH]
-	RenderingServer.directional_soft_shadow_filter_set_quality(qualities[_settings.shadow_quality])
+	var quality: int = RenderingServer.SHADOW_QUALITY_HARD if _settings.hard_shadows else qualities[_settings.shadow_quality]
+	if quality != _filter_quality:
+		RenderingServer.directional_soft_shadow_filter_set_quality(quality)
+		RenderingServer.positional_soft_shadow_filter_set_quality(quality)
+		_filter_quality = quality
+	var atlas: int = 1024 << _settings.shadow_resolution
+	if atlas != _atlas_size:
+		RenderingServer.directional_shadow_atlas_set_size(atlas, false)
+		_atlas_size = atlas
+	_local_lights.apply(_settings)
 	_environment.glow_enabled = _settings.bloom_enabled
 	_environment.glow_intensity = _settings.bloom_strength
 	_environment.glow_hdr_threshold = 1.0
 	_sky_material.set_shader_parameter("clouds_enabled", _settings.clouds_enabled)
 	_sky_material.set_shader_parameter("cloud_coverage", _settings.cloud_coverage)
+	_sky_material.set_shader_parameter("cloud_steps", _settings.cloud_steps)
+	_sky_material.set_shader_parameter("cloud_morph", _settings.cloud_morph)
 	var materials: Array[ShaderMaterial] = _sections.materials.duplicate()
 	materials.append(_details.grass_material)
 	for material: ShaderMaterial in materials:
+		material.set_shader_parameter("indirect_strength", _settings.indirect_strength if _settings.indirect_enabled else 0.0)
 		material.set_shader_parameter("ao_strength", _settings.ao_strength if _settings.ao_enabled else 0.0)
 		material.set_shader_parameter("sky_color", sky_color)
 		material.set_shader_parameter("block_color", _settings.block_color)
@@ -381,3 +442,16 @@ func _apply_fog() -> void:
 	_environment.fog_depth_begin = 0.0 if _underwater else _settings.fog_start
 	_environment.fog_depth_end = 12.0 if _underwater else _settings.fog_start + 1.0 / _settings.fog_density
 	_environment.fog_depth_curve = 1.0
+
+func _apply_display() -> void:
+	Engine.max_fps = _settings.max_fps
+	var mode: DisplayServer.VSyncMode = DisplayServer.VSYNC_ENABLED if _settings.vsync_enabled else DisplayServer.VSYNC_DISABLED
+	if DisplayServer.window_get_vsync_mode() != mode:
+		DisplayServer.window_set_vsync_mode(mode)
+	if _fps_label != null:
+		_fps_label.visible = _settings.show_fps
+
+func _exit_tree() -> void:
+	if _settings != null:
+		Engine.max_fps = _previous_max_fps
+		DisplayServer.window_set_vsync_mode(_previous_vsync)

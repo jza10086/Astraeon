@@ -12,6 +12,12 @@ extends Resource
 @export_range(0.0, 4.0) var block_energy: float = 1.3
 @export_range(0.5, 3.0) var block_curve: float = 1.6
 @export_range(0.1, 4.0, 0.05) var exposure: float = 1.0
+@export_group("局部光源")
+@export var local_lights_enabled: bool = true
+@export_range(0.0, 12.0, 0.1) var local_light_energy: float = 4.0
+@export_range(2.0, 24.0, 1.0) var local_light_range: float = 12.0
+@export var indirect_enabled: bool = true
+@export_range(0.0, 0.25, 0.01) var indirect_strength: float = 0.04
 @export_group("P1 · AO")
 @export var ao_enabled: bool = true
 @export_range(0.0, 1.0, 0.05) var ao_strength: float = 0.65
@@ -22,12 +28,16 @@ extends Resource
 @export_group("P1 · 抗锯齿与阴影")
 @export_enum("关闭", "FXAA", "TAA") var aa_mode: int = 1
 @export var shadows_enabled: bool = true
+@export var hard_shadows: bool = false
+@export_range(0.0, 4.0, 0.05) var shadow_blur: float = 1.0
+@export_enum("1024", "2048", "4096", "8192") var shadow_resolution: int = 2
 @export_range(16.0, 256.0, 8.0) var shadow_distance: float = 96.0
 @export_enum("低", "中", "高") var shadow_quality: int = 1
 @export_range(0.0, 1.0, 0.01) var shadow_bias: float = 0.06
 @export_range(0.0, 4.0, 0.05) var shadow_normal_bias: float = 1.7
 @export_group("P2 · 水")
 @export var water_enabled: bool = true
+@export_enum("低：统一水色", "标准：深度吸收") var water_quality: int = 1
 @export var waves_enabled: bool = true
 @export_range(0.0, 0.3, 0.01) var wave_strength: float = 0.12
 @export var water_reflection: bool = true
@@ -39,11 +49,17 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var translucency_strength: float = 0.25
 @export_group("P2 · 云")
 @export var clouds_enabled: bool = true
+@export_range(8, 48, 4) var cloud_steps: int = 24
+@export var cloud_morph: bool = false
 @export_range(0.0, 1.0, 0.05) var cloud_coverage: float = 0.45
 @export_range(0.0, 0.2, 0.005) var cloud_speed: float = 0.015
 @export_group("P2 · Bloom")
 @export var bloom_enabled: bool = false
 @export_range(0.0, 2.0, 0.05) var bloom_strength: float = 0.6
+@export_group("显示与帧率")
+@export var show_fps: bool = true
+@export_range(0, 360, 1) var max_fps: int = 0
+@export var vsync_enabled: bool = false
 @export_group("传播预算")
 @export_range(256, 32768) var work_cells: int = 4096
 @export_range(250, 8000) var work_usec: int = 2000

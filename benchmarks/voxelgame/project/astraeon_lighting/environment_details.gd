@@ -13,7 +13,6 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 	for side: int in range(2):
 		var material: ShaderMaterial = ShaderMaterial.new()
 		material.shader = WATER_SHADER
-		material.set_shader_parameter("water_depth", 2.75 if side == 0 else 5.75)
 		water_materials.append(material)
 		var plane: PlaneMesh = PlaneMesh.new()
 		plane.size = Vector2(8, 16)
@@ -59,6 +58,7 @@ func apply(settings: AstraeonLightingProfile, sky_color: Color, horizon: Color) 
 	for node: MeshInstance3D in water_nodes:
 		node.visible = settings.water_enabled
 	for material: ShaderMaterial in water_materials:
+		material.set_shader_parameter("depth_absorption", settings.water_quality == 1)
 		material.set_shader_parameter("waves_enabled", settings.waves_enabled)
 		material.set_shader_parameter("reflection_enabled", settings.water_reflection)
 		material.set_shader_parameter("wave_strength", settings.wave_strength)
