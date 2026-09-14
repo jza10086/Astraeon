@@ -9,3 +9,5 @@
 - 体素依赖：Voxel Tools 1.7 GDExtension https://github.com/Zylann/godot_voxel/releases/tag/v1.7x ，MIT；许可保留于基准工程 addons/zylann.voxel/LICENSE.md。
 
 - 圆形加载本地构建：Voxel Tools源码75d3c6d996ed2331c80edcd8c3ebc947afc0f041，加项目 tools/voxel_patches/horizontal_circle.patch；godot-cpp b4ce22a76b56bb5f734a5161d6105eb4b8d1021d（MIT，https://github.com/godotengine/godot-cpp）；SCons 4.10.1仅为本地构建工具。补丁默认关闭，仅基准启用。
+
+- P0 光照样板：复用上述 Voxel Tools mesher；方块配色和天空均为项目自编程序化占位素材。仅参考 MakeUp Ultra Fast 9.5e 的光强/颜色分离思路，未复制 GLSL；固定来源与许可研究见 makeup_ultra_fast_analysis.md。

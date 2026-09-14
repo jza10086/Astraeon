@@ -30,3 +30,7 @@ Godot 4.7 体素生存建造游戏。
 圆形加载原生检查已通过。性能测试按用户要求停止：19项完整完成，限帧编辑中断，限帧移动未启动；128方块编辑三轮通过，静态和移动未全面达标。详见 [圆形加载结果](docs/voxelgame_circular_performance_20260913.md)。
 
 运行方法见 [测试说明](docs/voxelgame_benchmarks.md)。历史资料：[盒形性能结果](docs/voxelgame_performance_20260913.md)、[初期执行记录](docs/voxelgame_benchmark_results_20260913.md)。此前Duet WinTab退出崩溃已在卸载重启后消除。
+
+## P0 光照样板
+
+独立评估工程已增加 64³ 光照样板：天空光/单色方块光增量传播、太阳/月亮直射与阴影、天空色彩、固定曝光，以及开闭屋顶/窗口和放置光源的交互。自动正确性检查通过，尚未运行视觉或性能验收。主游戏状态不变；启动与边界见 [P0 光照文档](docs/lighting_p0.md)。

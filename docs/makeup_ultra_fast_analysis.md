@@ -110,3 +110,7 @@ MakeUp依赖GLSL 120、Minecraft lightmap、方块ID、gbufferProjection、color
 - [Godot Compositor](https://docs.godotengine.org/en/stable/tutorials/rendering/compositor.html)
 - [Godot CompositorEffect](https://docs.godotengine.org/en/stable/classes/class_compositoreffect.html)
 - [Godot环境与后期](https://docs.godotengine.org/en/stable/tutorials/3d/environment_and_post_processing.html)
+
+## 后续实现状态（2026-09-14）
+
+用户确认 P0 将天空光/方块光传播提前，与太阳/月亮阴影、天空色彩和固定曝光一起落地；采用独立光照样板、首版单色方块光。相关实现与验证边界见 [P0 光照文档](lighting_p0.md)。上文推进顺序保留为最初研究建议，不代表当前已实现范围。

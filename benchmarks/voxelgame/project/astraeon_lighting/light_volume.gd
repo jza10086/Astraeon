@@ -1,0 +1,194 @@
+extends RefCounted
+## Finite P0 volume. Voxel IDs are authoritative; sky/block arrays are derived.
+## Coordinates are world voxel coordinates, bounds are half-open.
+const AIR: int = 0
+const STONE: int = 1
+const LAMP: int = 2
+const WOOD: int = 3
+const LEAVES: int = 4
+const MAX_LIGHT: int = 15
+const DIRECTIONS: Array[Vector3i] = [Vector3i.LEFT, Vector3i.RIGHT, Vector3i.UP, Vector3i.DOWN, Vector3i.FORWARD, Vector3i.BACK]
+var origin: Vector3i
+var size: Vector3i
+var voxels: PackedByteArray = PackedByteArray()
+var sky: PackedByteArray = PackedByteArray()
+var block: PackedByteArray = PackedByteArray()
+var revision: int = 0
+var settled_revision: int = -1
+var processed_cells: int = 0
+var last_step_usec: int = 0
+var total_step_usec: int = 0
+var _direct: PackedByteArray = PackedByteArray()
+var _queued: PackedByteArray = PackedByteArray()
+var _queue: PackedInt32Array = PackedInt32Array()
+var _head: int = 0
+var _columns: Dictionary[Vector2i, bool] = {}
+
+func configure(volume_origin: Vector3i, volume_size: Vector3i) -> void:
+	assert(volume_size.x > 0 and volume_size.y > 0 and volume_size.z > 0)
+	origin = volume_origin
+	size = volume_size
+	var count: int = size.x * size.y * size.z
+	voxels.resize(count)
+	voxels.fill(0)
+	sky.resize(count)
+	block.resize(count)
+	_direct.resize(count)
+	_queued.resize(count)
+	rebuild()
+
+func contains(p: Vector3i) -> bool:
+	var q: Vector3i = p - origin
+	return q.x >= 0 and q.y >= 0 and q.z >= 0 and q.x < size.x and q.y < size.y and q.z < size.z
+
+func index_of(p: Vector3i) -> int:
+	var q: Vector3i = p - origin
+	return q.x + size.x * (q.y + size.y * q.z)
+
+func position_of(index: int) -> Vector3i:
+	@warning_ignore("integer_division")
+	return origin + Vector3i(index % size.x, (index / size.x) % size.y, index / (size.x * size.y))
+
+func voxel_at(p: Vector3i) -> int:
+	if not contains(p):
+		return STONE # Unknown world never supplies light.
+	return voxels[index_of(p)]
+
+func light_at(p: Vector3i) -> Vector2i:
+	if not contains(p):
+		return Vector2i.ZERO
+	var index: int = index_of(p)
+	return Vector2i(sky[index], block[index])
+
+## Apply a whole transaction before advancing the solver. Last value per voxel wins.
+## Returns actual changed cells for independent geometry invalidation.
+func apply_edits(edits: Dictionary[Vector3i, int]) -> Array[Vector3i]:
+	var changed: Array[Vector3i] = []
+	for p: Vector3i in edits:
+		var value: int = edits[p]
+		assert(value >= AIR and value <= LEAVES)
+		if not contains(p):
+			continue
+		var index: int = index_of(p)
+		if voxels[index] == value:
+			continue
+		voxels[index] = value
+		changed.append(p)
+		_columns[Vector2i(p.x, p.z)] = true
+		_enqueue(index)
+		_enqueue_neighbors(p)
+	if not changed.is_empty():
+		revision += 1
+	return changed
+
+## Reference reset also serves initialization; ordinary edits do not call this.
+func rebuild() -> void:
+	sky.fill(0)
+	block.fill(0)
+	_direct.fill(0)
+	_queued.fill(0)
+	_queue.clear()
+	_head = 0
+	_columns.clear()
+	for z: int in range(origin.z, origin.z + size.z):
+		for x: int in range(origin.x, origin.x + size.x):
+			_columns[Vector2i(x, z)] = true
+	# Include emissive sources even when fully enclosed.
+	for index: int in range(voxels.size()):
+		if voxels[index] == LAMP:
+			_enqueue(index)
+	revision += 1
+	settled_revision = -1
+
+func pending_count() -> int:
+	return _queue.size() - _head + _columns.size() * size.y
+
+func is_settled() -> bool:
+	return _columns.is_empty() and _head == _queue.size() and settled_revision == revision
+
+## Budgeted main-thread relaxation handles both removal and re-spreading.
+## Every non-source edge loses one level, so stale cycles decay to zero.
+## A column scan is atomic (64 cells in the sample); time budget is soft.
+func step(max_cells: int = 4096, budget_usec: int = 2000) -> bool:
+	var begin: int = Time.get_ticks_usec()
+	var work: int = 0
+	while not _columns.is_empty() and work < max_cells:
+		var column: Vector2i = _columns.keys()[0]
+		_columns.erase(column)
+		_refresh_column(column)
+		work += size.y
+		if budget_usec > 0 and Time.get_ticks_usec() - begin >= budget_usec:
+			break
+	while _columns.is_empty() and _head < _queue.size() and work < max_cells:
+		if budget_usec > 0 and Time.get_ticks_usec() - begin >= budget_usec:
+			break
+		var index: int = _queue[_head]
+		_head += 1
+		_queued[index] = 0
+		var p: Vector3i = position_of(index)
+		var next_sky: int = _direct[index]
+		var next_block: int = MAX_LIGHT if voxels[index] == LAMP else 0
+		if voxels[index] == AIR:
+			for direction: Vector3i in DIRECTIONS:
+				var neighbor: Vector3i = p + direction
+				if contains(neighbor):
+					var ni: int = index_of(neighbor)
+					next_sky = maxi(next_sky, int(sky[ni]) - 1)
+					next_block = maxi(next_block, int(block[ni]) - 1)
+		if next_sky != sky[index] or next_block != block[index]:
+			sky[index] = next_sky
+			block[index] = next_block
+			_enqueue_neighbors(p)
+		work += 1
+	processed_cells += work
+	if _head == _queue.size():
+		_queue.clear()
+		_head = 0
+		if _columns.is_empty():
+			settled_revision = revision
+	elif _head > 65536:
+		_queue = _queue.slice(_head)
+		_head = 0
+	last_step_usec = Time.get_ticks_usec() - begin
+	total_step_usec += last_step_usec
+	return is_settled()
+
+func _refresh_column(column: Vector2i) -> void:
+	var open_sky: bool = true
+	for y: int in range(origin.y + size.y - 1, origin.y - 1, -1):
+		var p: Vector3i = Vector3i(column.x, y, column.y)
+		var index: int = index_of(p)
+		if voxels[index] != AIR:
+			open_sky = false
+		var value: int = MAX_LIGHT if open_sky else 0
+		if _direct[index] != value:
+			_direct[index] = value
+			_enqueue(index)
+
+func _enqueue(index: int) -> void:
+	if _queued[index] == 0:
+		_queued[index] = 1
+		_queue.append(index)
+
+func _enqueue_neighbors(p: Vector3i) -> void:
+	for direction: Vector3i in DIRECTIONS:
+		var neighbor: Vector3i = p + direction
+		if contains(neighbor):
+			_enqueue(index_of(neighbor))
+
+## RG8 display adapter, independent of voxel IDs and future RGB solver storage.
+## This bounded prototype uploads the complete texture only after convergence.
+func make_images() -> Array[Image]:
+	assert(is_settled())
+	var images: Array[Image] = []
+	for z: int in range(size.z):
+		var data: PackedByteArray = PackedByteArray()
+		data.resize(size.x * size.y * 2)
+		for y: int in range(size.y):
+			for x: int in range(size.x):
+				var index: int = x + size.x * (y + size.y * z)
+				var pixel: int = 2 * (x + size.x * y)
+				data[pixel] = sky[index] * 17
+				data[pixel + 1] = block[index] * 17
+		images.append(Image.create_from_data(size.x, size.y, false, Image.FORMAT_RG8, data))
+	return images
