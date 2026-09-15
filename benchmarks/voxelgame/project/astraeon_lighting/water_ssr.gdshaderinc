@@ -1,6 +1,8 @@
 // Transparent water cannot receive Environment SSR. Trace the opaque depth buffer locally.
 uniform sampler2D scene_color : hint_screen_texture, repeat_disable, filter_linear_mipmap;
 uniform int water_ssr_steps = 32;
+uniform int water_ssr_refinements = 5;
+uniform float water_ssr_normal_offset = 0.06;
 uniform float water_ssr_strength = 1.0;
 uniform float water_ssr_distance = 48.0;
 uniform float water_ssr_tolerance = 0.3;
@@ -8,7 +10,7 @@ uniform float water_ssr_edge_fade = 0.08;
 
 vec4 trace_water_reflection(vec3 surface, vec3 normal, mat4 projection, mat4 inverse_projection) {
 	vec3 ray = normalize(reflect(normalize(surface), normal));
-	vec3 origin = surface + normal * 0.06;
+	vec3 origin = surface + normal * water_ssr_normal_offset;
 	float previous_t = 0.0;
 	bool was_in_front = false;
 	for (int i = 1; i <= water_ssr_steps; i++) {
@@ -27,7 +29,7 @@ vec4 trace_water_reflection(vec3 surface, vec3 normal, mat4 projection, mat4 inv
 			float lo = previous_t;
 			float hi = t;
 			// Refine the first crossing to avoid fixed-step reflection stripes.
-			for (int refine = 0; refine < 5; refine++) {
+			for (int refine = 0; refine < water_ssr_refinements; refine++) {
 				float mid = (lo + hi) * 0.5;
 				vec3 probe = origin + ray * mid;
 				vec4 projected = projection * vec4(probe,1.0);

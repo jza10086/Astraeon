@@ -18,6 +18,7 @@ uniform float block_grid_strength = 1.0;
 #include "res://astraeon_lighting/cloud_shadow.gdshaderinc"
 #include "res://astraeon_lighting/light_sampling.gdshaderinc"
 uniform bool grass = false;
+uniform bool reflection_plants = true;
 uniform bool wind_enabled = true;
 uniform float wind_clock = 0.0;
 uniform float wind_strength = 0.12;
@@ -35,7 +36,10 @@ void vertex() {
 	}
 }
 
+#include "res://astraeon_lighting/reflection_clip.gdshaderinc"
 void fragment() {
+	if ((CAMERA_VISIBLE_LAYERS & 524288u) != 0u && !reflection_plants) discard;
+	if (reflection_clipped(world_position, CAMERA_VISIBLE_LAYERS)) discard;
 	vec2 p = abs(UV - vec2(0.5));
 	float mask = grass ? step(p.x, 0.09 + UV.y * 0.38) : step(p.x * 0.65 + p.y, 0.61);
 	ALPHA = mask;

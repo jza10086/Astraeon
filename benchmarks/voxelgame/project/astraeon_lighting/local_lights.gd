@@ -3,16 +3,13 @@ extends Node3D
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 var emitters: Dictionary[Vector3i, OmniLight3D] = {}
 var _volume: Volume
-var _material: StandardMaterial3D
+var _material: ShaderMaterial
 
 func configure(volume: Volume) -> void:
 	_volume = volume
-	_material = StandardMaterial3D.new()
-	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material.albedo_color = Color(1.0, 0.72, 0.32)
-	_material.emission_enabled = true
-	_material.emission = Color(1.0, 0.72, 0.32)
-	_material.emission_energy_multiplier = 1.5
+	_material = ShaderMaterial.new()
+	_material.shader = preload("res://astraeon_lighting/lamp_surface.gdshader")
+	_material.set_shader_parameter("lamp_color", Color(1.0,0.72,0.32))
 	var lamps: Array[Vector3i] = []
 	for index: int in range(volume.voxels.size()):
 		if volume.voxels[index] == Volume.LAMP:

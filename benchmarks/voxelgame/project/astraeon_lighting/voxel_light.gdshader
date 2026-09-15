@@ -26,7 +26,9 @@ void vertex() {
 	world_normal = normalize(MODEL_NORMAL_MATRIX * NORMAL);
 }
 
+#include "res://astraeon_lighting/reflection_clip.gdshaderinc"
 void fragment() {
+	if (reflection_clipped(world_position, CAMERA_VISIBLE_LAYERS)) discard;
 	// Sample the adjacent air cell, never interpolate through an opaque wall.
 	vec3 cell = floor(world_position + normalize(world_normal) * 0.02 - volume_origin);
 	vec2 illumination = vec2(0.0);

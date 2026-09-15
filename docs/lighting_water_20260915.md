@@ -42,3 +42,5 @@ Godot 4.7 stable / Forward+ / D3D12 / RTX 3060 Laptop GPU：完整导入通过�
 截图覆盖 1920×1080、2560×1440、3840×2160、2560×1080。可视检查确认彩色柱与建筑倒影、参数面板和水下状态正常。验证脚本为 `benchmarks/voxelgame/project/astraeon_lighting/test_water_reflections.gd`；截图在 `tmp/water-ssr/`，日志为 `tmp/water-ssr-render.log` 和 `tmp/water-ssr-import.log`，不提交临时产物。
 
 未运行正式性能基准；截图中的即时 FPS 不能作为 SSR 性能对照。后续统一优化再测水面屏幕覆盖率、分辨率、三档步数与屏幕颜色复制 / mip 成本。
+
+最新更新：已实现平面反射，并将质量档位拆为显式参数（SSR 步数、反射分辨率 / 更新频率、阴影滤波采样等），详见 [平面反射与调节说明](lighting_planar_reflections_20260915.md)。

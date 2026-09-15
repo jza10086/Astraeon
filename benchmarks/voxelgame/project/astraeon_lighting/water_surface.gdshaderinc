@@ -16,6 +16,9 @@ uniform float water_sky_strength = 1.0;
 #ifdef WATER_SSR
 #include "res://astraeon_lighting/water_ssr.gdshaderinc"
 #endif
+#ifdef WATER_PLANAR
+#include "res://astraeon_lighting/water_planar.gdshaderinc"
+#endif
 uniform vec3 sky_color : source_color = vec3(0.4, 0.5, 0.65);
 uniform vec3 horizon : source_color = vec3(0.6, 0.78, 0.95);
 #include "res://astraeon_lighting/cloud_shadow.gdshaderinc"
@@ -65,6 +68,14 @@ void fragment() {
 		float confidence = hit.a * water_ssr_strength;
 		reflected = mix(reflected, hit.rgb * fresnel, confidence);
 		reflect_weight = mix(reflect_weight, fresnel, confidence);
+#endif
+#ifdef WATER_PLANAR
+		vec3 surface_world = (INV_VIEW_MATRIX * vec4(VERTEX,1.0)).xyz;
+		vec3 normal_world = normalize(mat3(INV_VIEW_MATRIX)*NORMAL);
+		vec4 planar = sample_planar(surface_world, normal_world);
+		float planar_weight = planar.a * planar_strength;
+		reflected = mix(reflected, planar.rgb * fresnel, planar_weight);
+		reflect_weight = mix(reflect_weight, fresnel, planar_weight);
 #endif
 	}
 	ALPHA = max(base_alpha + (1.0 - base_alpha) * reflect_weight, 0.0001);

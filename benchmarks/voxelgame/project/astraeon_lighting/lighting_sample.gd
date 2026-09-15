@@ -1,5 +1,6 @@
 extends Node3D
 ## Opt-in finite lighting lab; does not instantiate terrain in the editor.
+const PlanarReflection: Script = preload("res://astraeon_lighting/planar_reflection.gd")
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 const Fixtures: Script = preload("res://astraeon_lighting/sample_world.gd")
 const Sections: Script = preload("res://astraeon_lighting/section_meshes.gd")
@@ -11,6 +12,7 @@ const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd
 const SKY_SHADER: Shader = preload("res://astraeon_lighting/sample_sky.gdshader")
 @export var profile: AstraeonLightingProfile
 @export var settings_path: String = "user://settings.cfg"
+var _planar: PlanarReflection
 var _settings: AstraeonLightingProfile
 var _volume: Volume
 var _sections: Sections
@@ -227,6 +229,13 @@ func _start() -> void:
 	receivers.append_array(_details.marker_materials)
 	receivers.append_array(_details.water_materials)
 	_block_clouds.configure(receivers)
+	_planar = PlanarReflection.new()
+	add_child(_planar)
+	var clips: Array[ShaderMaterial] = _sections.materials.duplicate()
+	clips.append_array(_details.marker_materials)
+	clips.append(_details.grass_material)
+	clips.append(_local_lights._material)
+	_planar.configure(_camera, _details.water_materials, clips)
 	_apply_lighting()
 
 func _process(delta: float) -> void:
@@ -260,6 +269,7 @@ func _process(delta: float) -> void:
 	if wet != _underwater:
 		_underwater = wet
 		_apply_fog()
+	_planar.tick(delta, _settings)
 	_sections.step()
 	if not _volume.is_settled():
 		_volume.step(_settings.work_cells, _settings.work_usec)
@@ -279,6 +289,8 @@ func _process(delta: float) -> void:
 			% [_settings.hour, _uploaded_revision, _volume.revision, _volume.pending_count(),
 			_sections.pending_count(), _volume.last_step_usec / 1000.0, _converge_usec / 1000.0,
 			_image_usec / 1000.0, _upload_usec / 1000.0])
+		if _settings.water_reflection_mode == 2:
+			_status.text += "\n平面反射 %d×%d · %s · %s" % [_planar.viewport.size.x, _planar.viewport.size.y, "每帧" if _settings.planar_update_fps == 0 else "%d Hz 上限" % _settings.planar_update_fps, "更新中" if _planar._valid else "暂停"]
 
 func _apply_lighting() -> void:
 	_apply_display()
@@ -424,7 +436,7 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_sun.directional_shadow_blend_splits = true
 	_sun.shadow_blur = 0.0 if _settings.hard_shadows else _settings.shadow_blur
 	var qualities: Array[RenderingServer.ShadowQuality] = [
-		RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM, RenderingServer.SHADOW_QUALITY_SOFT_HIGH]
+		RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM, RenderingServer.SHADOW_QUALITY_SOFT_HIGH, RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW, RenderingServer.SHADOW_QUALITY_SOFT_ULTRA]
 	var quality: int = RenderingServer.SHADOW_QUALITY_HARD if _settings.hard_shadows else qualities[_settings.shadow_quality]
 	if quality != _filter_quality:
 		RenderingServer.directional_soft_shadow_filter_set_quality(quality)
@@ -463,6 +475,8 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_details.apply(_settings, sky_color, horizon)
 	_underwater = _details.is_underwater(_camera.position) and _settings.underwater_enabled
 	_apply_fog()
+	if _planar != null:
+		_planar.apply(_settings, _environment)
 
 func _apply_fog() -> void:
 	_environment.fog_enabled = _settings.fog_enabled or _underwater

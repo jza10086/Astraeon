@@ -22,6 +22,7 @@ func configure(receivers: Array[ShaderMaterial]) -> void:
 	material = ShaderMaterial.new()
 	material.shader = CLOUD_SHADER
 	geometry = MultiMeshInstance3D.new()
+	geometry.layers = 1 << 16
 	geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	geometry.material_override = material
 	add_child(geometry)

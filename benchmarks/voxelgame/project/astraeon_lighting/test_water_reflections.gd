@@ -98,7 +98,7 @@ func _render_checks() -> void:
 	_sample._settings.cloud_speed = 0.0
 	_sample._apply_lighting()
 	var scroll: ScrollContainer = _sample._panel.get_parent() as ScrollContainer
-	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"water_ssr"])
+	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"water_reflection_mode"])
 	await _capture("water-controls")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"water_ssr_edge_fade"])
 	await _capture("water-ssr-controls")
@@ -108,8 +108,8 @@ func _render_checks() -> void:
 	# Exercise actual panel bindings and persist non-default water controls.
 	var picker: ColorPickerButton = _sample._settings_panel.widgets[&"water_shallow_color"] as ColorPickerButton
 	picker.color_changed.emit(Color(0.2,0.4,0.6))
-	var quality: OptionButton = _sample._settings_panel.widgets[&"water_ssr_quality"] as OptionButton
-	quality.item_selected.emit(2)
+	var quality: SpinBox = _sample._settings_panel.widgets[&"water_ssr_steps"] as SpinBox
+	quality.value_changed.emit(64.0)
 	_check(_sample._settings.water_shallow_color == Color(0.2,0.4,0.6) and _sample._settings.water_ssr_quality == 2,"Color and quality UI bindings")
 	var saved: AstraeonLightingProfile = AstraeonLightingProfile.new()
 	_check(saved.load_settings(_sample.settings_path) == OK and saved.water_shallow_color == Color(0.2,0.4,0.6) and saved.water_ssr_quality == 2,"Non-default water settings persist")

@@ -8,12 +8,22 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 	profile = settings
 	changed = callback
 	var labels: Dictionary[StringName, String] = {
+		&"day_seconds": "昼夜周期（秒）", &"block_color": "方块光颜色", &"block_energy": "补光亮度系数",
+		&"block_curve": "方块光衰减曲线", &"work_cells": "每帧传播格数预算", &"work_usec": "每帧传播预算（微秒）",
+		&"water_ssr_refinements": "SSR 命中细化次数", &"water_ssr_normal_offset": "SSR 起点偏移（米）",
+		&"planar_strength": "平面反射强度", &"planar_resolution_scale": "反射宽高倍率",
+		&"planar_update_fps": "反射更新 Hz（0 每帧）", &"planar_distance": "反射距离（米）",
+		&"planar_clip_offset": "水位裁剪偏移（米）", &"planar_distortion": "波纹倒影扰动",
+		&"planar_blur_pixels": "倒影模糊半径（像素）", &"planar_edge_fade": "倒影边缘淡出",
+		&"planar_aa": "倒影抗锯齿", &"planar_visible_only": "水面离屏停止更新",
+		&"planar_reflect_plants": "倒影包含植被", &"planar_reflect_clouds": "倒影包含方块云",
+		&"planar_fog": "倒影距离雾",
 		&"water_shallow_color": "浅水颜色", &"water_deep_color": "深水颜色",
 		&"water_absorption": "水体吸收", &"water_opacity": "水体不透明度",
-		&"water_low_opacity": "低画质基础不透明度", &"water_roughness": "水面粗糙度",
+		&"water_low_opacity": "统一水色不透明度", &"water_roughness": "水面粗糙度",
 		&"water_specular": "直射高光强度", &"wave_scale": "波纹密度", &"wave_speed": "波纹速度",
-		&"water_sky_strength": "天空反射强度", &"water_ssr": "屏幕空间反射 SSR",
-		&"water_ssr_strength": "SSR 强度", &"water_ssr_quality": "SSR 质量",
+		&"water_sky_strength": "天空反射强度", &"water_reflection_mode": "场景反射方式",
+		&"water_ssr_strength": "SSR 强度", &"water_ssr_steps": "SSR 步进次数",
 		&"water_ssr_distance": "SSR 最大距离", &"water_ssr_tolerance": "SSR 命中容差",
 		&"water_ssr_edge_fade": "SSR 屏幕边缘淡出",
 		&"underwater_color": "水下颜色", &"underwater_distance": "水下可视距离",
@@ -23,18 +33,32 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 		&"local_lights_enabled": "局部直射光", &"local_light_energy": "局部光强度", &"local_light_range": "局部光范围",
 		&"indirect_enabled": "体素间接补光", &"indirect_strength": "补光强度",
 		&"hard_shadows": "硬阴影", &"shadow_blur": "阴影模糊半径", &"shadow_resolution": "日月阴影贴图",
-		&"water_quality": "水面画质", &"cloud_steps": "云采样步数", &"cloud_morph": "云动态变形",
+		&"water_quality": "水色计算方式", &"cloud_steps": "云采样步数", &"cloud_morph": "云动态变形",
 		&"show_fps": "显示 FPS", &"max_fps": "最大 FPS（0 不限）", &"vsync_enabled": "垂直同步",
 		&"hour": "时间", &"cycle_enabled": "时间推进", &"sky_enhanced": "天空渐变",
 		&"ao_enabled": "顶点 AO", &"ao_strength": "AO 强度",
 		&"fog_enabled": "距离雾", &"fog_density": "雾浓度", &"fog_start": "雾起始距离",
 		&"aa_mode": "抗锯齿", &"direct_enabled": "太阳 / 月亮直射", &"shadows_enabled": "日月阴影",
-		&"shadow_distance": "阴影距离", &"shadow_quality": "阴影质量", &"shadow_bias": "阴影偏移", &"shadow_normal_bias": "法线偏移",
+		&"shadow_distance": "阴影距离", &"shadow_quality": "阴影滤波采样", &"shadow_bias": "阴影偏移", &"shadow_normal_bias": "法线偏移",
 		&"exposure": "固定曝光", &"water_enabled": "显示水面", &"waves_enabled": "水面波纹",
 		&"wave_strength": "波纹强度", &"water_reflection": "水面天空反射", &"underwater_enabled": "水下效果",
 		&"wind_enabled": "植被风动", &"wind_strength": "风动强度", &"translucency_enabled": "植被透光",
 		&"translucency_strength": "透光强度", &"clouds_enabled": "显示云", &"cloud_coverage": "云覆盖率",
 		&"cloud_speed": "云速度", &"bloom_enabled": "Bloom", &"bloom_strength": "Bloom 强度"}
+	var tips: Dictionary[StringName, String] = {
+		&"water_reflection_mode": "关闭场景倒影时，天空反射仍由其独立开关控制。SSR 与平面反射互斥，不代表画质预设。",
+		&"planar_resolution_scale": "反射宽高相对当前视口的倍率。0.5 = 宽高各减半、像素数 1/4；实际尺寸显示在顶部状态栏。",
+		&"planar_update_fps": "0 表示每个渲染帧更新。正数是更新频率上限；低频率下动态物体倒影会滞后。相机矩阵与捕捉图像一起更新。",
+		&"planar_distance": "镜像相机远裁剪距离。距离外物体不进入捕捉，但天空背景仍存在。",
+		&"planar_clip_offset": "相对固定水位 0.75 米的裁剪高度。正值剔除更多岸边；负值可能反射水下物体。仅作用于反射相机。",
+		&"planar_distortion": "根据水面波纹法线偏移倒影 UV；不是折射。0 保持严格平面投影。",
+		&"planar_blur_pixels": "反射纹理像素单位，0 单次采样，非零四点采样。与水面高光粗糙度独立。",
+		&"planar_reflect_plants": "关闭时反射不绘制草与树叶；树干和植被投下的阴影仍可能存在。",
+		&"planar_reflect_clouds": "控制方块云几何。程序化天空云属于天空背景，遵循全局云设置。",
+		&"planar_fog": "仅控制倒影中的距离雾；仍受全局距离雾开关约束。",
+		&"water_ssr_steps": "每像素最大步进次数。次数越多越不容易跳过细物体，深度采样开销越高。",
+		&"water_ssr_refinements": "首次穿越深度后进行二分细化的次数；增加后可改善命中精度。",
+		&"shadow_quality": "引擎提供的软阴影滤波采样数。硬阴影开启时忽略此项；滤波核半径也遵循引擎对应设置。"}
 	var current_group: String = ""
 	for property: Dictionary in profile.get_property_list():
 		if property.usage & PROPERTY_USAGE_GROUP:
@@ -89,6 +113,10 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 				spin.value_changed.connect(func(v: float) -> void: _set_value(key, v))
 				row.add_child(spin)
 				widgets[key] = spin
+
+	for key: StringName in widgets:
+		if tips.has(key):
+			widgets[key].tooltip_text = tips[key]
 
 func _set_value(key: StringName, value: Variant) -> void:
 	profile.set(key, value)

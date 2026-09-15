@@ -37,12 +37,12 @@ extends Resource
 @export_range(0.0, 4.0, 0.05) var shadow_blur: float = 1.0
 @export_enum("1024", "2048", "4096", "8192") var shadow_resolution: int = 2
 @export_range(16.0, 256.0, 8.0) var shadow_distance: float = 96.0
-@export_enum("低", "中", "高") var shadow_quality: int = 1
+@export_enum("4 采样", "8 采样", "16 采样", "1 采样", "32 采样") var shadow_quality: int = 1
 @export_range(0.0, 1.0, 0.01) var shadow_bias: float = 0.06
 @export_range(0.0, 4.0, 0.05) var shadow_normal_bias: float = 1.7
 @export_group("P2 · 水")
 @export var water_enabled: bool = true
-@export_enum("低：统一水色", "标准：深度吸收") var water_quality: int = 1
+@export_enum("统一水色", "逐像素深度吸收") var water_quality: int = 1
 @export var waves_enabled: bool = true
 @export_range(0.0, 0.3, 0.01) var wave_strength: float = 0.12
 @export var water_reflection: bool = true
@@ -56,13 +56,30 @@ extends Resource
 @export_range(0.2, 4.0, 0.1) var wave_scale: float = 1.0
 @export_range(0.0, 4.0, 0.1) var wave_speed: float = 1.0
 @export_range(0.0, 2.0, 0.05) var water_sky_strength: float = 1.0
-@export_group("水面 · 屏幕空间反射")
-@export var water_ssr: bool = true
+@export_group("水面 · 场景反射")
+@export_enum("关闭", "SSR", "平面反射") var water_reflection_mode: int = 2
+@export_group("水面 · SSR 参数")
 @export_range(0.0, 1.0, 0.05) var water_ssr_strength: float = 1.0
-@export_enum("低：16 步", "中：32 步", "高：64 步") var water_ssr_quality: int = 1
+@export_range(4, 128, 1) var water_ssr_steps: int = 32
+@export_range(0, 8, 1) var water_ssr_refinements: int = 5
+@export_range(0.0, 0.3, 0.01) var water_ssr_normal_offset: float = 0.06
 @export_range(4.0, 96.0, 1.0) var water_ssr_distance: float = 48.0
 @export_range(0.02, 2.0, 0.02) var water_ssr_tolerance: float = 0.3
 @export_range(0.01, 0.3, 0.01) var water_ssr_edge_fade: float = 0.08
+@export_group("水面 · 平面反射参数")
+@export_range(0.0, 1.0, 0.05) var planar_strength: float = 1.0
+@export_range(0.1, 1.0, 0.05) var planar_resolution_scale: float = 0.5
+@export_range(0, 120, 1) var planar_update_fps: int = 0
+@export_range(16.0, 1600.0, 8.0) var planar_distance: float = 256.0
+@export_range(-0.2, 0.3, 0.01) var planar_clip_offset: float = 0.02
+@export_range(0.0, 0.1, 0.001) var planar_distortion: float = 0.015
+@export_range(0.0, 6.0, 0.25) var planar_blur_pixels: float = 0.0
+@export_range(0.001, 0.2, 0.001) var planar_edge_fade: float = 0.02
+@export_enum("关闭", "FXAA") var planar_aa: int = 1
+@export var planar_visible_only: bool = true
+@export var planar_reflect_plants: bool = true
+@export var planar_reflect_clouds: bool = true
+@export var planar_fog: bool = true
 @export_group("水下")
 @export var underwater_enabled: bool = true
 @export_color_no_alpha var underwater_color: Color = Color(0.015, 0.16, 0.23)
@@ -93,6 +110,14 @@ extends Resource
 @export_range(256, 32768) var work_cells: int = 4096
 @export_range(250, 8000) var work_usec: int = 2000
 
+# Legacy script API. New settings use explicit reflection mode and sample counts.
+var water_ssr: bool:
+	get: return water_reflection_mode == 1
+	set(value): water_reflection_mode = 1 if value else 0
+var water_ssr_quality: int:
+	get: return 0 if water_ssr_steps <= 16 else (1 if water_ssr_steps <= 32 else 2)
+	set(value): water_ssr_steps = 16 << clampi(value, 0, 2)
+
 func settings_properties() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for property: Dictionary in get_property_list():
@@ -106,6 +131,14 @@ func load_settings(path: String = "user://settings.cfg") -> Error:
 	var error: Error = config.load(path)
 	if error != OK:
 		return error
+	if not config.has_section_key("lighting", "water_reflection_mode") and config.has_section_key("lighting", "water_ssr"):
+		var old_enabled: Variant = config.get_value("lighting", "water_ssr")
+		if old_enabled is bool:
+			water_ssr = old_enabled
+	if not config.has_section_key("lighting", "water_ssr_steps") and config.has_section_key("lighting", "water_ssr_quality"):
+		var old_quality: Variant = config.get_value("lighting", "water_ssr_quality")
+		if old_quality is int:
+			water_ssr_quality = old_quality
 	for property: Dictionary in settings_properties():
 		var key: String = property.name
 		var fallback: Variant = config.get_value("lighting_p0", key, get(key))

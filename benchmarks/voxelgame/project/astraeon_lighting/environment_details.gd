@@ -2,6 +2,7 @@ extends Node3D
 ## Local finite water and grass fixtures. No world streaming or liquid simulation.
 const WATER_SHADER: Shader = preload("res://astraeon_lighting/water.gdshader")
 const SSR_SHADER: Shader = preload("res://astraeon_lighting/water_reflective.gdshader")
+const PLANAR_SHADER: Shader = preload("res://astraeon_lighting/water_planar.gdshader")
 const PLANT_SHADER: Shader = preload("res://astraeon_lighting/plant.gdshader")
 const POOL: AABB = AABB(Vector3(12, -5, -25), Vector3(16, 5.75, 16))
 var water_materials: Array[ShaderMaterial] = []
@@ -22,6 +23,7 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 		plane.subdivide_depth = 32
 		var instance: MeshInstance3D = MeshInstance3D.new()
 		instance.mesh = plane
+		instance.layers = 1 << 18
 		instance.material_override = material
 		instance.position = Vector3(16 + side * 8, 0.75, -17)
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -65,6 +67,7 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 			multimesh.set_instance_transform(i * 2 + side, Transform3D(Basis(Vector3.UP, side * PI / 2.0 + i * 0.37), p))
 	var plants: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	plants.multimesh = multimesh
+	plants.layers = 1 << 17
 	plants.material_override = grass_material
 	plants.custom_aabb = AABB(Vector3(-28, 0, -23), Vector3(14, 5, 14))
 	add_child(plants)
@@ -79,11 +82,13 @@ func apply(settings: AstraeonLightingProfile, sky_color: Color, horizon: Color) 
 		node.extra_cull_margin = settings.wave_strength
 	for material: ShaderMaterial in water_materials:
 		var desired_shader: Shader = SSR_SHADER if settings.water_enabled and settings.water_ssr and settings.water_ssr_strength > 0.0 else WATER_SHADER
+		if settings.water_enabled and settings.water_reflection_mode == 2 and settings.planar_strength > 0.0:
+			desired_shader = PLANAR_SHADER
 		if material.shader != desired_shader:
 			material.shader = desired_shader
-		for key: StringName in [&"water_shallow_color", &"water_deep_color", &"water_absorption", &"water_opacity", &"water_low_opacity", &"water_roughness", &"water_specular", &"wave_scale", &"water_sky_strength", &"water_ssr_strength", &"water_ssr_distance", &"water_ssr_tolerance", &"water_ssr_edge_fade"]:
+		for key: StringName in [&"water_shallow_color", &"water_deep_color", &"water_absorption", &"water_opacity", &"water_low_opacity", &"water_roughness", &"water_specular", &"wave_scale", &"water_sky_strength", &"water_ssr_strength", &"water_ssr_distance", &"water_ssr_tolerance", &"water_ssr_edge_fade", &"water_ssr_refinements", &"water_ssr_normal_offset", &"planar_strength", &"planar_distortion", &"planar_blur_pixels", &"planar_edge_fade"]:
 			material.set_shader_parameter(key, settings.get(key))
-		material.set_shader_parameter("water_ssr_steps", 16 << settings.water_ssr_quality)
+		material.set_shader_parameter("water_ssr_steps", settings.water_ssr_steps)
 		material.set_shader_parameter("depth_absorption", settings.water_quality == 1)
 		material.set_shader_parameter("waves_enabled", settings.waves_enabled)
 		material.set_shader_parameter("reflection_enabled", settings.water_reflection)
