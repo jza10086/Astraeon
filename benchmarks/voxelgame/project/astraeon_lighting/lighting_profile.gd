@@ -17,7 +17,24 @@ extends Resource
 @export_range(0.0, 2.0, 0.05) var ambient_strength: float = 1.0
 @export_range(0.5, 3.0, 0.05) var ambient_curve: float = 1.4
 @export_range(0.0, 1.0, 0.05) var block_grid_strength: float = 1.0
+@export_range(0.0, 0.2, 0.005) var ambient_minimum: float = 0.015
+@export_color_no_alpha var ambient_minimum_color: Color = Color(0.7,0.75,0.85)
 @export_group("局部光源")
+@export_enum("仅自发光", "体素传播光", "点光源＋阴影", "点光源无阴影", "体素光＋限额点光源") var local_lighting_mode: int = 2
+@export_range(0.0, 3.0, 0.05) var voxel_light_strength: float = 1.0
+@export_range(0, 32, 1) var local_point_budget: int = 8
+@export_range(0, 16, 1) var local_shadow_budget: int = 4
+@export_color_no_alpha var lamp_emission_color: Color = Color(1.0,0.72,0.32)
+@export_range(0.0, 8.0, 0.1) var lamp_emission_strength: float = 1.5
+@export_group("光源批量测试")
+@export_range(1, 32, 1) var test_light_count: int = 16
+@export_group("测试人物")
+@export var avatar_visible: bool = true
+@export var avatar_animate: bool = true
+@export_range(0.0, 3.0, 0.1) var avatar_speed: float = 1.0
+@export_range(0.0, 2.0, 0.1) var avatar_travel: float = 1.0
+@export_range(0.5, 3.0, 0.1) var avatar_scale: float = 1.4
+@export_group("局部光源参数")
 @export var local_lights_enabled: bool = true
 @export_range(0.0, 12.0, 0.1) var local_light_energy: float = 4.0
 @export_range(2.0, 24.0, 1.0) var local_light_range: float = 12.0
@@ -117,6 +134,14 @@ var water_ssr: bool:
 var water_ssr_quality: int:
 	get: return 0 if water_ssr_steps <= 16 else (1 if water_ssr_steps <= 32 else 2)
 	set(value): water_ssr_steps = 16 << clampi(value, 0, 2)
+
+## Primary voxel lighting and the optional weak fill have separate controls.
+func effective_block_strength() -> float:
+	if local_lighting_mode == 0:
+		return 0.0
+	if local_lighting_mode == 1 or local_lighting_mode == 4:
+		return voxel_light_strength
+	return indirect_strength if indirect_enabled else 0.0
 
 func settings_properties() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []

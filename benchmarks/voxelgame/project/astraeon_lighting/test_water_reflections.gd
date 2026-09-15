@@ -22,6 +22,7 @@ func _render_checks() -> void:
 			(node as Button).pressed.emit()
 			break
 	await _settle()
+	_sample._settings.avatar_animate = false
 	_sample._settings.cloud_speed = 0.0
 	_sample._settings.clouds_enabled = false
 	_sample._settings.waves_enabled = false
@@ -71,6 +72,7 @@ func _render_checks() -> void:
 	await _capture("water-ssr-without-sky")
 	_check(_sample._details.water_materials[0].shader == Details.SSR_SHADER, "SSR independent of sky reflection")
 	_sample._reset_settings()
+	_sample._settings.avatar_animate = false
 	_sample._settings.cloud_speed = 0.0
 	_sample._settings.wave_speed = 0.0
 	_sample._view(Vector3(20, 4, -5), Vector3(20, 1.0, -20))
@@ -95,6 +97,7 @@ func _render_checks() -> void:
 	_check(not _sample._underwater, "Leaving water restores air")
 	_sample._reset_settings()
 	_sample._settings.wave_speed = 0.0
+	_sample._settings.avatar_animate = false
 	_sample._settings.cloud_speed = 0.0
 	_sample._apply_lighting()
 	var scroll: ScrollContainer = _sample._panel.get_parent() as ScrollContainer

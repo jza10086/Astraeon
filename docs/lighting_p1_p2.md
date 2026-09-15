@@ -100,3 +100,5 @@ Godot 4.7.stable.official.5b4e0cb0f，RTX 3060 Laptop，Forward+ / D3D12 12_0。
 水面现已增加颜色、吸收、波纹、高光、水下参数及可独立关闭的专用 SSR（三档质量），详见 [水面调节与反射](lighting_water_20260915.md)。
 
 最新更新：已实现平面反射，并将质量档位拆为显式参数（SSR 步数、反射分辨率 / 更新频率、阴影滤波采样等），详见 [平面反射与调节说明](lighting_planar_reflections_20260915.md)。
+
+样板新增最低环境光、动画测试人物、固定批量光源按钮，以及五种局部照明方案；具体操作和近似边界见 [局部光源方案与人物测试](lighting_local_schemes_20260915.md)。

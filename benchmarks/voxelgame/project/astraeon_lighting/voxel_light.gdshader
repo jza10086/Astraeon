@@ -13,6 +13,8 @@ uniform float ao_strength = 0.65;
 uniform float indirect_strength = 0.04;
 uniform float ambient_smoothing = 1.0;
 uniform float ambient_strength = 1.0;
+uniform float ambient_minimum = 0.0;
+uniform vec3 ambient_minimum_color : source_color = vec3(0.7,0.75,0.85);
 uniform float ambient_curve = 1.4;
 uniform float block_grid_strength = 1.0;
 #include "res://astraeon_lighting/cloud_shadow.gdshaderinc"
@@ -44,7 +46,7 @@ void fragment() {
 	float pattern = mix(1.0, mix(0.85, 1.0, smoothstep(0.0, 0.035, edge)), block_grid_strength);
 	ALBEDO = base_color.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
 	ROUGHNESS = 1.0;
-	EMISSION = ALBEDO * (sky_color * ambient
+	EMISSION = ALBEDO * (sky_color * ambient * (1.0-ambient_minimum) + ambient_minimum_color * ambient_minimum
 		+ block_color * block_energy * indirect_strength * pow(indirect, block_curve));
 	EMISSION += base_color.rgb * self_emission;
 }

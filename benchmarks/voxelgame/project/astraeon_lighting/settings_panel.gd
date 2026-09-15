@@ -8,6 +8,13 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 	profile = settings
 	changed = callback
 	var labels: Dictionary[StringName, String] = {
+		&"ambient_minimum": "最低环境光强度", &"ambient_minimum_color": "暗处补光颜色",
+		&"local_lighting_mode": "局部照明方案", &"voxel_light_strength": "体素主照明强度",
+		&"local_point_budget": "混合方案点光源上限", &"local_shadow_budget": "混合方案阴影灯上限",
+		&"lamp_emission_color": "发光方块自身颜色", &"lamp_emission_strength": "方块自发光倍率",
+		&"test_light_count": "批量光源数量", &"avatar_visible": "显示测试人物",
+		&"avatar_animate": "人物移动与摆臂", &"avatar_speed": "人物动画速度",
+		&"avatar_travel": "人物移动幅度（米）", &"avatar_scale": "人物尺寸倍率",
 		&"day_seconds": "昼夜周期（秒）", &"block_color": "方块光颜色", &"block_energy": "补光亮度系数",
 		&"block_curve": "方块光衰减曲线", &"work_cells": "每帧传播格数预算", &"work_usec": "每帧传播预算（微秒）",
 		&"water_ssr_refinements": "SSR 命中细化次数", &"water_ssr_normal_offset": "SSR 起点偏移（米）",
@@ -46,6 +53,12 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 		&"translucency_strength": "透光强度", &"clouds_enabled": "显示云", &"cloud_coverage": "云覆盖率",
 		&"cloud_speed": "云速度", &"bloom_enabled": "Bloom", &"bloom_strength": "Bloom 强度"}
 	var tips: Dictionary[StringName, String] = {
+		&"ambient_minimum": "仅抬高材质暗处可见度，不修改体素传播。0 恢复真实零光；非零会让密闭房间也能看清轮廓。",
+		&"local_lighting_mode": "仅自发光不照亮周围；体素光没有逐灯阴影；点光源无阴影可能穿墙。混合方案使用体素照明，加少量近处点光源。",
+		&"local_point_budget": "仅混合方案生效。按与观察相机距离选择，不合并光源；0 只保留体素光。",
+		&"local_shadow_budget": "仅混合方案生效，且不超过启用的点光源数量。未获得阴影预算的点光源可能穿墙。",
+		&"test_light_count": "点击放置测试光源才应用数量。固定布局，重新放置先恢复上一批；清除时保留已被用户改成其他方块的位置。",
+		&"avatar_animate": "测试人物只有网格动画，没有碰撞、寻路或角色控制器。关闭后冻结当前姿态和位置。",
 		&"water_reflection_mode": "关闭场景倒影时，天空反射仍由其独立开关控制。SSR 与平面反射互斥，不代表画质预设。",
 		&"planar_resolution_scale": "反射宽高相对当前视口的倍率。0.5 = 宽高各减半、像素数 1/4；实际尺寸显示在顶部状态栏。",
 		&"planar_update_fps": "0 表示每个渲染帧更新。正数是更新频率上限；低频率下动态物体倒影会滞后。相机矩阵与捕捉图像一起更新。",

@@ -1,5 +1,6 @@
 extends Node3D
 ## Opt-in finite lighting lab; does not instantiate terrain in the editor.
+const TestAvatar: Script = preload("res://astraeon_lighting/test_avatar.gd")
 const PlanarReflection: Script = preload("res://astraeon_lighting/planar_reflection.gd")
 const Volume: Script = preload("res://astraeon_lighting/light_volume.gd")
 const Fixtures: Script = preload("res://astraeon_lighting/sample_world.gd")
@@ -12,6 +13,8 @@ const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd
 const SKY_SHADER: Shader = preload("res://astraeon_lighting/sample_sky.gdshader")
 @export var profile: AstraeonLightingProfile
 @export var settings_path: String = "user://settings.cfg"
+var _avatar: TestAvatar
+var _test_lamps_original: Dictionary[Vector3i, int] = {}
 var _planar: PlanarReflection
 var _settings: AstraeonLightingProfile
 var _volume: Volume
@@ -123,6 +126,18 @@ func _make_ui() -> void:
 	_button("封闭 / 打开窗口", _toggle_window)
 	_button("放置 / 移除室内光源", _toggle_lamp)
 	_button("放置 / 挖掘 128 方块", _toggle_batch)
+	_button("放置测试光源（按设置数量）", _place_test_lamps)
+	_button("清除测试光源", _clear_test_lamps)
+	_button("多光源观察", func() -> void: _view(Vector3(-14,8,31),Vector3(-14,1,20)))
+	_button("人物：岸边反射", func() -> void:
+		_avatar.move_to(Vector3(23,1,-26))
+		_view(Vector3(23,3,-12),Vector3(23,1,-25)))
+	_button("人物：涉水反射", func() -> void:
+		_avatar.move_to(Vector3(23,-0.6,-19))
+		_view(Vector3(23,2.5,-11),Vector3(23,0.8,-19)))
+	_button("人物：多光源区域", func() -> void:
+		_avatar.move_to(Vector3(-14,1,21))
+		_view(Vector3(-14,4,30),Vector3(-14,2,21)))
 	_button("挖掘准星方块", func() -> void: _edit_target(Volume.AIR))
 	_button("放置准星方块", func() -> void: _edit_target(Volume.STONE))
 	_button("放置准星光源", func() -> void: _edit_target(Volume.LAMP))
@@ -219,6 +234,9 @@ func _start() -> void:
 	_details = Details.new()
 	add_child(_details)
 	_details.configure(_texture, _volume.origin, _volume.size)
+	_avatar = TestAvatar.new()
+	add_child(_avatar)
+	_avatar.configure(_texture, _volume.origin, _volume.size)
 	_local_lights = LocalLights.new()
 	add_child(_local_lights)
 	_local_lights.configure(_volume)
@@ -227,12 +245,14 @@ func _start() -> void:
 	var receivers: Array[ShaderMaterial] = _sections.materials.duplicate()
 	receivers.append(_details.grass_material)
 	receivers.append_array(_details.marker_materials)
+	receivers.append_array(_avatar.materials)
 	receivers.append_array(_details.water_materials)
 	_block_clouds.configure(receivers)
 	_planar = PlanarReflection.new()
 	add_child(_planar)
 	var clips: Array[ShaderMaterial] = _sections.materials.duplicate()
 	clips.append_array(_details.marker_materials)
+	clips.append_array(_avatar.materials)
 	clips.append(_details.grass_material)
 	clips.append(_local_lights._material)
 	_planar.configure(_camera, _details.water_materials, clips)
@@ -259,6 +279,8 @@ func _process(delta: float) -> void:
 			Input.get_axis("p0_down", "p0_up"),
 			Input.get_axis("p0_forward", "p0_back"))
 		_camera.position += _camera.basis * movement.normalized() * delta * 10.0
+	_avatar.tick(delta, _settings)
+	_local_lights.tick(delta, _settings, _camera.global_position)
 	_details.tick(delta, _settings, _sections.materials[3])
 	if _settings.clouds_enabled and _settings.cloud_speed > 0.0:
 		_cloud_clock += delta * _settings.cloud_speed
@@ -289,6 +311,7 @@ func _process(delta: float) -> void:
 			% [_settings.hour, _uploaded_revision, _volume.revision, _volume.pending_count(),
 			_sections.pending_count(), _volume.last_step_usec / 1000.0, _converge_usec / 1000.0,
 			_image_usec / 1000.0, _upload_usec / 1000.0])
+		_status.text += "\n光源方块 %d · 点光源 %d · 阴影灯 %d" % [_local_lights.emitters.size(), _local_lights.active_points, _local_lights.active_shadows]
 		if _settings.water_reflection_mode == 2:
 			_status.text += "\n平面反射 %d×%d · %s · %s" % [_planar.viewport.size.x, _planar.viewport.size.y, "每帧" if _settings.planar_update_fps == 0 else "%d Hz 上限" % _settings.planar_update_fps, "更新中" if _planar._valid else "暂停"]
 
@@ -457,12 +480,15 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	var materials: Array[ShaderMaterial] = _sections.materials.duplicate()
 	materials.append(_details.grass_material)
 	materials.append_array(_details.marker_materials)
+	materials.append_array(_avatar.materials)
 	for material: ShaderMaterial in materials:
 		material.set_shader_parameter("ambient_smoothing", _settings.ambient_smoothing)
 		material.set_shader_parameter("ambient_strength", _settings.ambient_strength)
+		material.set_shader_parameter("ambient_minimum", _settings.ambient_minimum)
+		material.set_shader_parameter("ambient_minimum_color", _settings.ambient_minimum_color)
 		material.set_shader_parameter("ambient_curve", _settings.ambient_curve)
 		material.set_shader_parameter("block_grid_strength", _settings.block_grid_strength)
-		material.set_shader_parameter("indirect_strength", _settings.indirect_strength if _settings.indirect_enabled else 0.0)
+		material.set_shader_parameter("indirect_strength", _settings.effective_block_strength())
 		material.set_shader_parameter("ao_strength", _settings.ao_strength if _settings.ao_enabled else 0.0)
 		material.set_shader_parameter("sky_color", sky_color)
 		material.set_shader_parameter("block_color", _settings.block_color)
@@ -472,6 +498,7 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 		material.set_shader_parameter("wind_enabled", _settings.wind_enabled)
 		material.set_shader_parameter("wind_strength", _settings.wind_strength)
 		material.set_shader_parameter("translucency", _settings.translucency_strength if _settings.translucency_enabled else 0.0)
+	_avatar.apply(_settings)
 	_details.apply(_settings, sky_color, horizon)
 	_underwater = _details.is_underwater(_camera.position) and _settings.underwater_enabled
 	_apply_fog()
@@ -500,3 +527,23 @@ func _exit_tree() -> void:
 	if _settings != null:
 		Engine.max_fps = _previous_max_fps
 		DisplayServer.window_set_vsync_mode(_previous_vsync)
+
+## Dedicated fixed-layout lamp batch. Restore only cells still owned by this test batch.
+func _clear_test_lamps() -> void:
+	var edits: Dictionary[Vector3i,int] = {}
+	for p: Vector3i in _test_lamps_original:
+		if _volume.voxel_at(p) == Volume.LAMP:
+			edits[p] = _test_lamps_original[p]
+	_test_lamps_original.clear()
+	if not edits.is_empty():
+		_edit(edits)
+
+func _place_test_lamps() -> void:
+	_clear_test_lamps()
+	var edits: Dictionary[Vector3i,int] = {}
+	for i: int in range(_settings.test_light_count):
+		@warning_ignore("integer_division")
+		var p: Vector3i = Vector3i(-25 + (i % 8)*3,1,15 + (i / 8)*4)
+		_test_lamps_original[p] = _volume.voxel_at(p)
+		edits[p] = Volume.LAMP
+	_edit(edits)
