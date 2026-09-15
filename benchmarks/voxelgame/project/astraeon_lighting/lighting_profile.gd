@@ -46,7 +46,27 @@ extends Resource
 @export var waves_enabled: bool = true
 @export_range(0.0, 0.3, 0.01) var wave_strength: float = 0.12
 @export var water_reflection: bool = true
+@export_color_no_alpha var water_shallow_color: Color = Color(0.06, 0.4, 0.36)
+@export_color_no_alpha var water_deep_color: Color = Color(0.012, 0.075, 0.15)
+@export_range(0.01, 1.5, 0.01) var water_absorption: float = 0.22
+@export_range(0.0, 1.0, 0.01) var water_opacity: float = 1.0
+@export_range(0.0, 1.0, 0.01) var water_low_opacity: float = 0.65
+@export_range(0.0, 1.0, 0.01) var water_roughness: float = 0.22
+@export_range(0.0, 1.0, 0.05) var water_specular: float = 0.45
+@export_range(0.2, 4.0, 0.1) var wave_scale: float = 1.0
+@export_range(0.0, 4.0, 0.1) var wave_speed: float = 1.0
+@export_range(0.0, 2.0, 0.05) var water_sky_strength: float = 1.0
+@export_group("水面 · 屏幕空间反射")
+@export var water_ssr: bool = true
+@export_range(0.0, 1.0, 0.05) var water_ssr_strength: float = 1.0
+@export_enum("低：16 步", "中：32 步", "高：64 步") var water_ssr_quality: int = 1
+@export_range(4.0, 96.0, 1.0) var water_ssr_distance: float = 48.0
+@export_range(0.02, 2.0, 0.02) var water_ssr_tolerance: float = 0.3
+@export_range(0.01, 0.3, 0.01) var water_ssr_edge_fade: float = 0.08
+@export_group("水下")
 @export var underwater_enabled: bool = true
+@export_color_no_alpha var underwater_color: Color = Color(0.015, 0.16, 0.23)
+@export_range(1.0, 40.0, 1.0) var underwater_distance: float = 12.0
 @export_group("P2 · 植被")
 @export var wind_enabled: bool = true
 @export_range(0.0, 0.5, 0.01) var wind_strength: float = 0.12

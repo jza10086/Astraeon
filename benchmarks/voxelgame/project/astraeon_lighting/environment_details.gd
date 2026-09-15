@@ -1,9 +1,11 @@
 extends Node3D
 ## Local finite water and grass fixtures. No world streaming or liquid simulation.
 const WATER_SHADER: Shader = preload("res://astraeon_lighting/water.gdshader")
+const SSR_SHADER: Shader = preload("res://astraeon_lighting/water_reflective.gdshader")
 const PLANT_SHADER: Shader = preload("res://astraeon_lighting/plant.gdshader")
 const POOL: AABB = AABB(Vector3(12, -5, -25), Vector3(16, 5.75, 16))
 var water_materials: Array[ShaderMaterial] = []
+var marker_materials: Array[ShaderMaterial] = []
 var grass_material: ShaderMaterial
 var water_nodes: Array[MeshInstance3D] = []
 var water_clock: float = 0.0
@@ -25,6 +27,23 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(instance)
 		water_nodes.append(instance)
+	# Opaque colored markers make screen-space reflection alignment easy to inspect.
+	for i: int in range(3):
+		var marker: MeshInstance3D = MeshInstance3D.new()
+		var box: BoxMesh = BoxMesh.new()
+		box.size = Vector3(1.6, 5.0 + i, 1.6)
+		var marker_material: ShaderMaterial = ShaderMaterial.new()
+		marker_material.shader = preload("res://astraeon_lighting/voxel_light.gdshader")
+		var colors: Array[Color] = [Color(0.85, 0.12, 0.06), Color(0.08, 0.25, 0.9), Color(0.9, 0.65, 0.08)]
+		marker_material.set_shader_parameter("base_color", colors[i])
+		marker_material.set_shader_parameter("light_volume", texture)
+		marker_material.set_shader_parameter("volume_origin", Vector3(origin))
+		marker_material.set_shader_parameter("volume_size", Vector3(size))
+		marker_materials.append(marker_material)
+		marker.mesh = box
+		marker.material_override = marker_material
+		marker.position = Vector3(14 + i * 6, 1.0 + box.size.y * 0.5, -27)
+		add_child(marker)
 	grass_material = ShaderMaterial.new()
 	grass_material.shader = PLANT_SHADER
 	grass_material.set_shader_parameter("base_color", Color(0.25, 0.5, 0.14))
@@ -57,7 +76,14 @@ func is_underwater(p: Vector3) -> bool:
 func apply(settings: AstraeonLightingProfile, sky_color: Color, horizon: Color) -> void:
 	for node: MeshInstance3D in water_nodes:
 		node.visible = settings.water_enabled
+		node.extra_cull_margin = settings.wave_strength
 	for material: ShaderMaterial in water_materials:
+		var desired_shader: Shader = SSR_SHADER if settings.water_enabled and settings.water_ssr and settings.water_ssr_strength > 0.0 else WATER_SHADER
+		if material.shader != desired_shader:
+			material.shader = desired_shader
+		for key: StringName in [&"water_shallow_color", &"water_deep_color", &"water_absorption", &"water_opacity", &"water_low_opacity", &"water_roughness", &"water_specular", &"wave_scale", &"water_sky_strength", &"water_ssr_strength", &"water_ssr_distance", &"water_ssr_tolerance", &"water_ssr_edge_fade"]:
+			material.set_shader_parameter(key, settings.get(key))
+		material.set_shader_parameter("water_ssr_steps", 16 << settings.water_ssr_quality)
 		material.set_shader_parameter("depth_absorption", settings.water_quality == 1)
 		material.set_shader_parameter("waves_enabled", settings.waves_enabled)
 		material.set_shader_parameter("reflection_enabled", settings.water_reflection)
@@ -66,8 +92,8 @@ func apply(settings: AstraeonLightingProfile, sky_color: Color, horizon: Color) 
 		material.set_shader_parameter("horizon", horizon)
 
 func tick(delta: float, settings: AstraeonLightingProfile, leaf_material: ShaderMaterial) -> void:
-	if settings.water_enabled and settings.waves_enabled:
-		water_clock += delta
+	if settings.water_enabled and settings.waves_enabled and settings.wave_speed > 0.0:
+		water_clock += delta * settings.wave_speed
 		for material: ShaderMaterial in water_materials:
 			material.set_shader_parameter("clock", water_clock)
 	if settings.wind_enabled:

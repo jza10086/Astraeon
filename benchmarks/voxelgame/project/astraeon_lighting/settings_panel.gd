@@ -8,6 +8,15 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 	profile = settings
 	changed = callback
 	var labels: Dictionary[StringName, String] = {
+		&"water_shallow_color": "浅水颜色", &"water_deep_color": "深水颜色",
+		&"water_absorption": "水体吸收", &"water_opacity": "水体不透明度",
+		&"water_low_opacity": "低画质基础不透明度", &"water_roughness": "水面粗糙度",
+		&"water_specular": "直射高光强度", &"wave_scale": "波纹密度", &"wave_speed": "波纹速度",
+		&"water_sky_strength": "天空反射强度", &"water_ssr": "屏幕空间反射 SSR",
+		&"water_ssr_strength": "SSR 强度", &"water_ssr_quality": "SSR 质量",
+		&"water_ssr_distance": "SSR 最大距离", &"water_ssr_tolerance": "SSR 命中容差",
+		&"water_ssr_edge_fade": "SSR 屏幕边缘淡出",
+		&"underwater_color": "水下颜色", &"underwater_distance": "水下可视距离",
 		&"ambient_smoothing": "环境光平滑", &"ambient_strength": "环境光强度", &"ambient_curve": "环境光衰减曲线",
 		&"block_grid_strength": "方块格线强度", &"cloud_type": "云类型", &"block_cloud_shadows": "方块云日月阴影",
 		&"cloud_shadow_strength": "云影强度", &"cloud_shadow_softness": "云影边缘柔度",
@@ -54,7 +63,15 @@ func build(parent: VBoxContainer, settings: AstraeonLightingProfile, callback: C
 			label.text = labels[key]
 			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			row.add_child(label)
-			if property.hint == PROPERTY_HINT_ENUM:
+			if value is Color:
+				var picker: ColorPickerButton = ColorPickerButton.new()
+				picker.color = value
+				picker.edit_alpha = false
+				picker.custom_minimum_size = Vector2(100, 32)
+				picker.color_changed.connect(func(v: Color) -> void: _set_value(key, v))
+				row.add_child(picker)
+				widgets[key] = picker
+			elif property.hint == PROPERTY_HINT_ENUM:
 				var option: OptionButton = OptionButton.new()
 				for title: String in str(property.hint_string).split(","):
 					option.add_item(title)
@@ -85,5 +102,7 @@ func sync(settings: AstraeonLightingProfile) -> void:
 			(control as CheckButton).set_pressed_no_signal(profile.get(key))
 		elif control is OptionButton:
 			(control as OptionButton).select(profile.get(key))
+		elif control is ColorPickerButton:
+			(control as ColorPickerButton).color = profile.get(key)
 		elif control is SpinBox:
 			(control as SpinBox).set_value_no_signal(profile.get(key))

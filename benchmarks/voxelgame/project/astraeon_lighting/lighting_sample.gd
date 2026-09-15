@@ -128,6 +128,7 @@ func _make_ui() -> void:
 	_button("洞口环境光观察", func() -> void: _view(Vector3(16, -4, -0.5), Vector3(-16, -4, 0)))
 	_button("云层观察", func() -> void: _view(Vector3(20, 2, 25), Vector3(20, 30, -20)))
 	_button("水池观察", func() -> void: _view(Vector3(30, 10, -5), Vector3(20, 0, -17)))
+	_button("水面倒影观察", func() -> void: _view(Vector3(20, 4, -5), Vector3(20, 1, -20)))
 	_button("水下观察", func() -> void: _view(Vector3(23, -2, -14), Vector3(25, -2, -22)))
 	_button("逆光植被", func() -> void: _view(Vector3(-27, 2, -9), Vector3(-20, 3, -20)))
 	_button("夜间光源", func() -> void:
@@ -223,6 +224,7 @@ func _start() -> void:
 	add_child(_block_clouds)
 	var receivers: Array[ShaderMaterial] = _sections.materials.duplicate()
 	receivers.append(_details.grass_material)
+	receivers.append_array(_details.marker_materials)
 	receivers.append_array(_details.water_materials)
 	_block_clouds.configure(receivers)
 	_apply_lighting()
@@ -442,6 +444,7 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_sky_material.set_shader_parameter("cloud_morph", _settings.cloud_morph)
 	var materials: Array[ShaderMaterial] = _sections.materials.duplicate()
 	materials.append(_details.grass_material)
+	materials.append_array(_details.marker_materials)
 	for material: ShaderMaterial in materials:
 		material.set_shader_parameter("ambient_smoothing", _settings.ambient_smoothing)
 		material.set_shader_parameter("ambient_strength", _settings.ambient_strength)
@@ -464,11 +467,11 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 func _apply_fog() -> void:
 	_environment.fog_enabled = _settings.fog_enabled or _underwater
 	_environment.fog_mode = Environment.FOG_MODE_DEPTH
-	_environment.fog_light_color = Color(0.015, 0.16, 0.23) if _underwater else _horizon
+	_environment.fog_light_color = _settings.underwater_color if _underwater else _horizon
 	_environment.fog_light_energy = 0.6 if _underwater else 1.0
 	_environment.fog_sky_affect = 1.0 if _underwater else 0.0
 	_environment.fog_depth_begin = 0.0 if _underwater else _settings.fog_start
-	_environment.fog_depth_end = 12.0 if _underwater else _settings.fog_start + 1.0 / _settings.fog_density
+	_environment.fog_depth_end = _settings.underwater_distance if _underwater else _settings.fog_start + 1.0 / _settings.fog_density
 	_environment.fog_depth_curve = 1.0
 
 func _apply_display() -> void:
