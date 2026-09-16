@@ -1,0 +1,733 @@
+{
+  "metadata": {
+    "started_utc": "2026-09-16T07:18:03.300148+00:00",
+    "engine": "F:\\Godot_v4.7-stable_win64.exe\\Godot_v4.7-stable_win64.exe",
+    "configured_engine": "F:\\Godot_v4.7-stable_win64.exe\\Godot_v4.7-stable_win64_console.exe",
+    "version": "4.7.stable.official.5b4e0cb0f",
+    "platform": "Windows-10-10.0.19045-SP0",
+    "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+    "logical_cpus": 16,
+    "repeats": 3,
+    "budget_seconds": 300,
+    "deadline_utc": "2026-09-16T10:11:38+00:00",
+    "scope": "Headless GDScript, not rendering FPS",
+    "git_head": "eb737bd9500974662848c842cf1b90c5b3cd3f56",
+    "source_sha256": {
+      "game\\world\\blocks\\block_catalog.gd": "2017c842bf5f4ded9e7059124a8cec5f3bddbd3dbf95a37065b41af1879436dd",
+      "game\\world\\blocks\\block_definition.gd": "01efe2890a5c3ea0e2017a07be80c515f9ad75fb984defc187a0911c3e43ed95",
+      "game\\world\\blocks\\block_registry.gd": "61be9e0bad2e65aaac47469b665b039ade7bf6e54a72ee5d73adbd45842f7084",
+      "game\\world\\blocks\\block_section.gd": "97ca7cea25c56b337d24c45d63011c15fb75e982e89f6ea6f53c46cb9e29e33d",
+      "game\\world\\blocks\\block_state_definition.gd": "d3c35640a18ff41f7130f7a3fa3ee92480ca430b9073648b2707e3edf8fd9d99",
+      "game\\world\\blocks\\storage\\block_storage.gd": "6e03cbbf89d2565e67b3c8ec0729d31c471fb6345ddcffa6a67c229af3609481",
+      "game\\world\\blocks\\storage\\block_storage_factory.gd": "156f03692277a982984cd462cec7bbb8ceffe39b610c97999a7d2789a159b608",
+      "game\\world\\blocks\\storage\\direct16_storage.gd": "96fef023ef7313e52dba08196864efc014376ed63957ec1f1f75d41e614075a1",
+      "game\\world\\blocks\\storage\\direct32_storage.gd": "6d1b5a37ca4f49c82ba37a86f9f7642cd6966e8df990558bcbf4f33707692d04",
+      "game\\world\\blocks\\storage\\palette_storage.gd": "d7ca10ba50738e39663c57d3e86f3abcffe6e62f96b9c090f45509a3e99b701e",
+      "tests\\blocks\\benchmark_block_selection.gd": "6f73a169032e2e80143e83a0ec274e6a8047e2b60508f9b1d8c54c612d002ea5",
+      "tools\\run_block_storage_suite.py": "19e09923686b46cdea8c4045ee27958ccd8221f02548257483924a8bb824de2a"
+    }
+  },
+  "verified_cpu_name": "AMD Ryzen 9 5900HX with Radeon Graphics",
+  "debug_build": true,
+  "summary": {
+    "complete": true,
+    "error": null,
+    "wall_seconds": 284.15363170000273,
+    "job_count": 27,
+    "summary": [
+      {
+        "fixture": "uniform",
+        "backend": "DIRECT32",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 334872,
+          "p95": 339651,
+          "min": 331580,
+          "max": 339651
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 553186,
+          "p95": 554380,
+          "min": 550547,
+          "max": 554380
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 380676,
+          "p95": 381716,
+          "min": 380368,
+          "max": 381716
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 186240,
+          "p95": 194642,
+          "min": 182909,
+          "max": 194642
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 230.0,
+          "p95": 250,
+          "min": 202,
+          "max": 491,
+          "p99": 328
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1.0,
+          "p95": 1,
+          "min": 0,
+          "max": 2,
+          "p99": 2
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3099572,
+          "p95": 3171609,
+          "min": 3070945,
+          "max": 3171609
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 16777216,
+          "p95": 16777216,
+          "min": 16777216,
+          "max": 16777216
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 13139968,
+          "p95": 14573568,
+          "min": 13086720,
+          "max": 14573568
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 13463552,
+          "p95": 14462976,
+          "min": 13119488,
+          "max": 14462976
+        }
+      },
+      {
+        "fixture": "uniform",
+        "backend": "DIRECT16",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 341840,
+          "p95": 356809,
+          "min": 341478,
+          "max": 356809
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 568990,
+          "p95": 578070,
+          "min": 568020,
+          "max": 578070
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 399486,
+          "p95": 401830,
+          "min": 386096,
+          "max": 401830
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 192073,
+          "p95": 193736,
+          "min": 191198,
+          "max": 193736
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 229.0,
+          "p95": 255,
+          "min": 207,
+          "max": 450,
+          "p99": 315
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1.0,
+          "p95": 2,
+          "min": 0,
+          "max": 2,
+          "p99": 2
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3178445,
+          "p95": 3198485,
+          "min": 3152317,
+          "max": 3198485
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 8388608,
+          "p95": 8388608,
+          "min": 8388608,
+          "max": 8388608
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 7860224,
+          "p95": 8663040,
+          "min": 7290880,
+          "max": 8663040
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 7454720,
+          "p95": 8273920,
+          "min": 6926336,
+          "max": 8273920
+        }
+      },
+      {
+        "fixture": "uniform",
+        "backend": "PALETTE",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 362190,
+          "p95": 364936,
+          "min": 360558,
+          "max": 364936
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 598002,
+          "p95": 611428,
+          "min": 596842,
+          "max": 611428
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 424261,
+          "p95": 456866,
+          "min": 421820,
+          "max": 456866
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 202225,
+          "p95": 215401,
+          "min": 199774,
+          "max": 215401
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 279.0,
+          "p95": 412,
+          "min": 241,
+          "max": 702,
+          "p99": 480
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 4.0,
+          "p95": 14,
+          "min": 2,
+          "max": 27,
+          "p99": 27
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3427005,
+          "p95": 3551760,
+          "min": 3374349,
+          "max": 3551760
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 4096,
+          "p95": 4096,
+          "min": 4096,
+          "max": 4096
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 372736,
+          "p95": 401408,
+          "min": 327680,
+          "max": 401408
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 348160,
+          "p95": 360448,
+          "min": 323584,
+          "max": 360448
+        }
+      },
+      {
+        "fixture": "terrain",
+        "backend": "DIRECT32",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 337703,
+          "p95": 339485,
+          "min": 334790,
+          "max": 339485
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 554820,
+          "p95": 594459,
+          "min": 553376,
+          "max": 594459
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 384672,
+          "p95": 386033,
+          "min": 382451,
+          "max": 386033
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 184451,
+          "p95": 186747,
+          "min": 183712,
+          "max": 186747
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 258.0,
+          "p95": 275,
+          "min": 235,
+          "max": 524,
+          "p99": 357
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1.0,
+          "p95": 1,
+          "min": 0,
+          "max": 2,
+          "p99": 2
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3111954,
+          "p95": 3123916,
+          "min": 3087757,
+          "max": 3123916
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 16777216,
+          "p95": 16777216,
+          "min": 16777216,
+          "max": 16777216
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 13180928,
+          "p95": 14807040,
+          "min": 12955648,
+          "max": 14807040
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 13635584,
+          "p95": 14794752,
+          "min": 12951552,
+          "max": 14794752
+        }
+      },
+      {
+        "fixture": "terrain",
+        "backend": "DIRECT16",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 348082,
+          "p95": 360531,
+          "min": 346266,
+          "max": 360531
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 570918,
+          "p95": 574727,
+          "min": 570015,
+          "max": 574727
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 376612,
+          "p95": 378754,
+          "min": 375332,
+          "max": 378754
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 189470,
+          "p95": 193794,
+          "min": 189310,
+          "max": 193794
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 258.0,
+          "p95": 272,
+          "min": 242,
+          "max": 533,
+          "p99": 317
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1.0,
+          "p95": 2,
+          "min": 0,
+          "max": 2,
+          "p99": 2
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3088068,
+          "p95": 3105821,
+          "min": 3072433,
+          "max": 3105821
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 8388608,
+          "p95": 8388608,
+          "min": 8388608,
+          "max": 8388608
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 7827456,
+          "p95": 8224768,
+          "min": 7376896,
+          "max": 8224768
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 7675904,
+          "p95": 8081408,
+          "min": 7110656,
+          "max": 8081408
+        }
+      },
+      {
+        "fixture": "terrain",
+        "backend": "PALETTE",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 467819,
+          "p95": 497737,
+          "min": 460051,
+          "max": 497737
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 746634,
+          "p95": 823595,
+          "min": 743464,
+          "max": 823595
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 988971,
+          "p95": 997904,
+          "min": 983787,
+          "max": 997904
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 249680,
+          "p95": 261086,
+          "min": 249491,
+          "max": 261086
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 323.0,
+          "p95": 361,
+          "min": 287,
+          "max": 679,
+          "p99": 534
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1472.5,
+          "p95": 1648,
+          "min": 1360,
+          "max": 1773,
+          "p99": 1773
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 7934033,
+          "p95": 8020289,
+          "min": 7870512,
+          "max": 8020289
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 1638400,
+          "p95": 1638400,
+          "min": 1638400,
+          "max": 1638400
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 1892352,
+          "p95": 2637824,
+          "min": 1658880,
+          "max": 2637824
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 1609728,
+          "p95": 2015232,
+          "min": 1470464,
+          "max": 2015232
+        }
+      },
+      {
+        "fixture": "building",
+        "backend": "DIRECT32",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 339655,
+          "p95": 343664,
+          "min": 336032,
+          "max": 343664
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 558813,
+          "p95": 564794,
+          "min": 558429,
+          "max": 564794
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 382563,
+          "p95": 385124,
+          "min": 381225,
+          "max": 385124
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 187944,
+          "p95": 188740,
+          "min": 186504,
+          "max": 188740
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 267.0,
+          "p95": 380,
+          "min": 241,
+          "max": 555,
+          "p99": 423
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1.0,
+          "p95": 2,
+          "min": 0,
+          "max": 2,
+          "p99": 2
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3140740,
+          "p95": 3155222,
+          "min": 3105725,
+          "max": 3155222
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 16777216,
+          "p95": 16777216,
+          "min": 16777216,
+          "max": 16777216
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 13160448,
+          "p95": 14467072,
+          "min": 12005376,
+          "max": 14467072
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 13877248,
+          "p95": 14823424,
+          "min": 12468224,
+          "max": 14823424
+        }
+      },
+      {
+        "fixture": "building",
+        "backend": "DIRECT16",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 348321,
+          "p95": 367329,
+          "min": 342138,
+          "max": 367329
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 593756,
+          "p95": 601472,
+          "min": 569088,
+          "max": 601472
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 378959,
+          "p95": 386926,
+          "min": 376035,
+          "max": 386926
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 191190,
+          "p95": 219952,
+          "min": 190774,
+          "max": 219952
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 268.0,
+          "p95": 307,
+          "min": 242,
+          "max": 617,
+          "p99": 471
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1.0,
+          "p95": 1,
+          "min": 0,
+          "max": 2,
+          "p99": 2
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 3093777,
+          "p95": 3109116,
+          "min": 3087052,
+          "max": 3109116
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 8388608,
+          "p95": 8388608,
+          "min": 8388608,
+          "max": 8388608
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 6459392,
+          "p95": 8314880,
+          "min": 5582848,
+          "max": 8314880
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 6438912,
+          "p95": 7794688,
+          "min": 5566464,
+          "max": 7794688
+        }
+      },
+      {
+        "fixture": "building",
+        "backend": "PALETTE",
+        "processes": 3,
+        "scan_1048576_us": {
+          "n": 3,
+          "median": 472821,
+          "p95": 482092,
+          "min": 468170,
+          "max": 482092
+        },
+        "neighbors_1572864_us": {
+          "n": 3,
+          "median": 748972,
+          "p95": 750700,
+          "min": 747886,
+          "max": 750700
+        },
+        "import_128_us": {
+          "n": 3,
+          "median": 1566689,
+          "p95": 1587089,
+          "min": 1539177,
+          "max": 1587089
+        },
+        "export_128_us": {
+          "n": 3,
+          "median": 249721,
+          "p95": 253476,
+          "min": 249333,
+          "max": 253476
+        },
+        "edit_batch_128_us": {
+          "n": 1536,
+          "median": 339.0,
+          "p95": 370,
+          "min": 305,
+          "max": 688,
+          "p99": 481
+        },
+        "new_state_us": {
+          "n": 96,
+          "median": 1475.5,
+          "p95": 1604,
+          "min": 1361,
+          "max": 2316,
+          "p99": 2316
+        },
+        "load_1024_us": {
+          "n": 3,
+          "median": 12574242,
+          "p95": 12898550,
+          "min": 12552958,
+          "max": 12898550
+        },
+        "payload_bytes": {
+          "n": 3,
+          "median": 3620864,
+          "p95": 3620864,
+          "min": 3620864,
+          "max": 3620864
+        },
+        "private_bytes_delta": {
+          "n": 3,
+          "median": 9441280,
+          "p95": 10063872,
+          "min": 7450624,
+          "max": 10063872
+        },
+        "working_set_bytes_delta": {
+          "n": 3,
+          "median": 9064448,
+          "p95": 10047488,
+          "min": 7675904,
+          "max": 10047488
+        }
+      }
+    ]
+  }
+}

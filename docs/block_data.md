@@ -1,6 +1,6 @@
 # 方块数据与可替换存储
 
-状态：已实现独立数据模块，未决定最终存储后端；未接入主场景地形、挖掘、网格、碰撞或光照系统。
+状态：独立数据模块已完成三后端初筛，当前推荐 DIRECT16 作为活跃区块段基线；未接入主场景地形、挖掘、网格、碰撞或光照系统。测试证据见 [存储初筛结果](block_storage_results_20260916.md)。
 
 ## 数据边界
 
@@ -33,7 +33,7 @@
 
 `payload_bytes()` 仅计数组有效载荷，包括调色板整数表；**不含字典、对象、容量预留、分配器及进程总内存**。纯色段返回 4 字节也不意味着整个对象只占 4 字节。
 
-无默认优胜后端、自动切换或自动性能选型。Factory 创建时必须显式选择。当前纯 GDScript 方案和独立基准工程的原生 VoxelBuffer 并非等价性能实现。
+Factory 创建时仍需显式选择；可使用 RECOMMENDED_ACTIVE_BACKEND（当前为 DIRECT16）。推荐来自本机简化初筛，不做自动切换。当前纯 GDScript 方案和独立基准工程的原生 VoxelBuffer 并非等价性能实现。
 
 ## API 与坐标
 
@@ -52,7 +52,7 @@ func create_section() -> AstraeonBlockSection:
         push_error(str(errors))
         return null
     var section: AstraeonBlockSection = AstraeonBlockSection.new()
-    if not section.configure(Vector3i(-1, 0, 0), registry.state_count(), FACTORY.Backend.DIRECT16):
+    if not section.configure(Vector3i(-1, 0, 0), registry.state_count(), FACTORY.RECOMMENDED_ACTIVE_BACKEND):
         return null
     var stone_id: int = registry.find_state(&"astraeon:stone")
     if not section.set_state(Vector3i(15, 0, 0), stone_id):
@@ -97,4 +97,4 @@ $blockEngine = ./.agents/skills/godot-project-tooling/scripts/resolve_godot.ps1 
 
 三个固定种子数据集：纯色、8 种分层状态、高多样性。计时项目：整段导入、32768 次顺序读取、8192 次随机读取、8192 次随机编辑、快照导出、整段填充。数据生成不计时；编辑耗时包含必要的调色板增长，所有后端使用同一轨迹。
 
-这是 GDScript 数据微基准，不是最终地形性能结论。后续正式比较应另外记录同规模驻留段的真实内存、分配抖动、跨段邻居扫描、转换峰值、网格/碰撞/光照集成延迟，以及多次运行的中位数和尾部延迟。原生 VoxelBuffer 若进入比较，应使用相同数据集与语义。当前不选定生产后端。
+这是 GDScript 数据微基准，不是最终地形性能结论。后续正式比较应另外记录同规模驻留段的真实内存、分配抖动、跨段邻居扫描、转换峰值、网格/碰撞/光照集成延迟，以及多次运行的中位数和尾部延迟。原生 VoxelBuffer 若进入比较，应使用相同数据集与语义。当前以 DIRECT16 为数据层推荐基线；最终地形集成尚未验收。

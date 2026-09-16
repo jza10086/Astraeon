@@ -5,3 +5,5 @@
 可选微基准：`blocks/benchmark_block_storage.gd`，显式执行后输出 JSON，不自动选择后端。命令、指标和验收边界见 [方块数据文档](../docs/block_data.md)。
 
 初始化与冷启动环境检查仍使用 `tools/check.ps1`；已有编辑器连接时优先 MCP 导入与诊断，避免第二个编辑器并发导入。
+
+限时选型测试：tools/run_block_storage_suite.py 驱动 blocks/benchmark_block_selection.gd，每后端独立进程采集实际内存并比较同一轨迹。见 [初筛报告](../docs/block_storage_results_20260916.md)。

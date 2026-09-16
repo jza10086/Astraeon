@@ -1,11 +1,13 @@
 class_name AstraeonBlockStorageFactory
 extends RefCounted
-## Backend selection is explicit; no winner or automatic switching is assumed.
+## Explicit selection remains available. Recommendation comes from the 2026-09-16 local suite.
 const STORAGE: Script = preload("res://game/world/blocks/storage/block_storage.gd")
 const DIRECT32: Script = preload("res://game/world/blocks/storage/direct32_storage.gd")
 const DIRECT16: Script = preload("res://game/world/blocks/storage/direct16_storage.gd")
 const PALETTE: Script = preload("res://game/world/blocks/storage/palette_storage.gd")
 enum Backend { DIRECT32, DIRECT16, PALETTE }
+## Active-section baseline, not a claim about release rendering or native VoxelBuffer.
+const RECOMMENDED_ACTIVE_BACKEND: Backend = Backend.DIRECT16
 
 static func create(backend: Backend) -> AstraeonBlockStorage:
 	match backend:
