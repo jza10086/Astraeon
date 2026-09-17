@@ -7,7 +7,8 @@ const LIMIT: int = 1048576
 static func digest(data: PackedByteArray) -> PackedByteArray:
 	var context: HashingContext = HashingContext.new()
 	context.start(HashingContext.HASH_SHA256)
-	context.update(data)
+	if not data.is_empty():
+		context.update(data)
 	return context.finish()
 
 static func envelope(value: Dictionary) -> PackedByteArray:
@@ -120,4 +121,3 @@ static func decode(record: Dictionary, mapping: PackedInt32Array) -> Dictionary:
 			return {"error": "Unknown persistent state"}
 		values[index] = mapping[disk_id]
 	return {"states": values, "decompress_us": decompressed - started, "verify_us": checked - decompressed, "unpack_us": unpacked - checked, "map_us": Time.get_ticks_usec() - unpacked}
-

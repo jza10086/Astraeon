@@ -6,4 +6,4 @@
 - runtime/：后台工作器、版本化提交、自动保存和加载范围。
 - presentation/：共用暴露面网格与静态碰撞。
 
-地图实验入口位于 tests/world/。主场景仍为占位场景；新增模块按用户要求未运行解析或测试。详见 [方块数据](../../docs/block_data.md) 和 [地图实验](../../docs/world_lab.md)。
+地图实验入口位于 tests/world/。主场景仍为占位场景；实验模块已执行解析、正确性和综合测量，持续移动吞吐仍待改进，见 [本轮结果](../../docs/world_suite_results_20260917.md)。详见 [方块数据](../../docs/block_data.md) 和 [地图实验](../../docs/world_lab.md)。

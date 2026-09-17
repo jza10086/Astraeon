@@ -198,10 +198,10 @@ func _next_job(save_due: bool) -> Dictionary:
 		return {}
 	var coordinates: Array[Vector3i] = _desired.keys()
 	coordinates.sort_custom(func(a: Vector3i, b: Vector3i) -> bool: return (a - _center).length_squared() < (b - _center).length_squared())
+	# Ready meshes precede further reads so continuous movement cannot starve rendering.
 	for coordinate: Vector3i in coordinates:
-		if not sections.has(coordinate) and not _busy("load", coordinate) and sections.size() + pending_count() < resident_limit:
-			return {"kind": "load", "coordinate": coordinate, "generation": _tokens[coordinate], "queued_us": _requested[coordinate]}
-	for coordinate: Vector3i in _visible:
+		if not _visible.has(coordinate):
+			continue
 		if not sections.has(coordinate) or _mesh_revision.has(coordinate) or _busy("mesh", coordinate):
 			continue
 		var neighbors: Array[Vector3i] = [coordinate]
@@ -218,6 +218,9 @@ func _next_job(save_due: bool) -> Dictionary:
 		for neighbor: Vector3i in neighbors:
 			snapshots[neighbor] = sections[neighbor].export_states()
 		return {"kind": "mesh", "coordinate": coordinate, "revision": sections[coordinate].revision(), "epoch": _mesh_epoch.get(coordinate, 0), "snapshots": snapshots, "snapshot_us": Time.get_ticks_usec() - started, "queued_us": _mesh_requested.get(coordinate, started)}
+	for coordinate: Vector3i in coordinates:
+		if not sections.has(coordinate) and not _busy("load", coordinate) and sections.size() + pending_count() < resident_limit:
+			return {"kind": "load", "coordinate": coordinate, "generation": _tokens[coordinate], "queued_us": _requested[coordinate]}
 	return {}
 
 func _accept(worker: AstraeonWorldWorker) -> void:

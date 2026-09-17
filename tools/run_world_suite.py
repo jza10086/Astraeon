@@ -179,6 +179,9 @@ def main() -> int:
     parser.add_argument('--stage', choices=['all', 'correctness', 'data', 'files', 'graphics'], default='all')
     parser.add_argument('--repeats', type=int, default=2)
     parser.add_argument('--seconds', type=int, default=30)
+    parser.add_argument('--travel-seconds', type=int)
+    parser.add_argument('--route-distance', type=int, default=1024)
+    parser.add_argument('--teleport-x', type=int, default=2112)
     parser.add_argument('--layout', type=int, choices=[0, 1], default=1)
     parser.add_argument('--horizontal', type=int, default=64)
     parser.add_argument('--vertical', type=int, default=32)
@@ -187,6 +190,10 @@ def main() -> int:
     parser.add_argument('--candidates', type=Path, help='JSON list of [G,B,S,F] tuples, all zero-based')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.travel_seconds is None:
+        args.travel_seconds = args.seconds
+    if args.travel_seconds < 2 or args.route_distance <= 0:
+        parser.error('Invalid travel duration/distance')
     candidates = json.loads(args.candidates.read_text()) if args.candidates else CANDIDATES
     if args.seconds < 2 or args.horizontal < 16 or args.vertical < 16 or args.horizontal % 16 or args.vertical % 16:
         parser.error('Duration must be >= 2; distances must be positive multiples of 16')
@@ -228,13 +235,14 @@ def main() -> int:
         else:
             command += ['res://tests/world/world_benchmark.tscn']
         command += ['--', '--run', f'--output={run.as_posix()}', f'--run-id={job["label"]}', f'--seconds={args.seconds}']
+        command += [f'--travel-seconds={args.travel_seconds}', f'--route-distance={args.route_distance}', f'--teleport-x={args.teleport_x}']
         command += [f'--layout={args.layout}', f'--horizontal={args.horizontal}', f'--vertical={args.vertical}', f'--workers={args.workers}']
         command += [f'--{key}={job[key]}' for key in ('mode', 'generator', 'backend', 'codec', 'files') if key in job]
         if 'world' in job:
             command += [f'--world={(output / "worlds" / job["world"]).as_posix()}']
         started = time.monotonic()
         memory = []
-        timeout = min(remaining, 600 if job['kind'] == 'data' else 600 + args.seconds * 5)
+        timeout = min(remaining, 600 if job['kind'] == 'data' else 600 + args.seconds * 3 + args.travel_seconds * 2)
         with (run / 'engine.log').open('w', encoding='utf-8') as log:
             process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
             timed_out = False

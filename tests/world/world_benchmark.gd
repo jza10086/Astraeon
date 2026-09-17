@@ -27,6 +27,9 @@ var _world_path: String
 var _armed: bool = false
 var _finishing: bool = false
 var _duration: float = 30.0
+var _travel_duration: float = 30.0
+var _route_distance: float = 1024.0
+var _teleport_x: float = 2112.0
 var _initial_timeout: float = 240.0
 var _edit_attempts: int = 0
 var _edit_successes: int = 0
@@ -60,6 +63,9 @@ func _start() -> void:
 	var codec: int = int(_options.get("codec", "0"))
 	var organization: int = int(_options.get("files", "1"))
 	_duration = maxf(2.0, float(_options.get("seconds", "30")))
+	_travel_duration = maxf(2.0, float(_options.get("travel-seconds", str(_duration))))
+	_route_distance = float(_options.get("route-distance", "1024"))
+	_teleport_x = float(_options.get("teleport-x", "2112"))
 	_run_id = _options.get("run-id", str(Time.get_ticks_usec()))
 	_output = _options.get("output", "res://tmp/world_lab/" + _run_id)
 	_world_path = _options.get("world", _output.path_join("world"))
@@ -136,14 +142,15 @@ func _process(_delta: float) -> void:
 			_records = []
 			_last_telemetry = now
 	var elapsed: float = float(now - _phase_started) / 1000000.0
-	var fraction: float = clampf(elapsed / _duration, 0.0, 1.0)
+	var phase_duration: float = _travel_duration if _phase in [2, 3] else _duration
+	var fraction: float = clampf(elapsed / phase_duration, 0.0, 1.0)
 	var x: float = 64.0
 	if _phase == 2:
-		x = lerpf(64.0, 1088.0, fraction)
+		x = lerpf(64.0, 64.0 + _route_distance, fraction)
 	elif _phase == 3:
-		x = lerpf(1088.0, 64.0, fraction)
+		x = lerpf(64.0 + _route_distance, 64.0, fraction)
 	elif _phase >= 4:
-		x = 2112.0
+		x = _teleport_x
 	var z: float = 64.0
 	var height: float = maxf(float(_sampler.config.sea_level), _sampler.sample_exact(int(x), int(z)).x)
 	var focus: Vector3 = Vector3(x, height + 2.0, z)
@@ -178,7 +185,7 @@ func _process(_delta: float) -> void:
 			_finish("completed", "")
 		elif elapsed >= _initial_timeout:
 			_finish("incomplete", "Save drain timed out")
-	elif elapsed >= _duration:
+	elif elapsed >= phase_duration:
 		_next_phase(_runtime.visible_missing_count() == 0)
 
 func _next_phase(ready: bool) -> void:
