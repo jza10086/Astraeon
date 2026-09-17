@@ -55,7 +55,7 @@ func apply(settings: AstraeonLightingProfile) -> void:
 	active_shadows = 0
 	for i: int in range(ordered.size()):
 		var light: OmniLight3D = emitters[ordered[i]]
-		var enabled: bool = settings.local_lights_enabled and settings.local_lighting_mode >= 2
+		var enabled: bool = settings.local_lighting_mode >= 2
 		if settings.local_lighting_mode == 4:
 			enabled = enabled and i < settings.local_point_budget
 		var shadows: bool = enabled and (settings.local_lighting_mode == 2 or (settings.local_lighting_mode == 4 and i < settings.local_shadow_budget))

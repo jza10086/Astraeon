@@ -55,19 +55,12 @@ func _render_checks() -> void:
 	# All exported settings have visible controls, not hidden preset bundles.
 	for property: Dictionary in _sample._settings.settings_properties():
 		_check(_sample._settings_panel.widgets.has(StringName(property.name)),"Visible setting " + str(property.name))
-	var migrated: AstraeonLightingProfile = AstraeonLightingProfile.new()
-	var legacy: ConfigFile = ConfigFile.new()
-	legacy.set_value("lighting","water_ssr",true)
-	legacy.set_value("lighting","water_ssr_quality",2)
-	var legacy_path: String = _output.path_join("legacy.cfg")
-	legacy.save(legacy_path)
-	migrated.load_settings(legacy_path)
-	_check(migrated.water_reflection_mode == 1 and migrated.water_ssr_steps == 64,"Legacy SSR settings migrate")
-	legacy.set_value("lighting","water_reflection_mode",2)
-	legacy.set_value("lighting","water_ssr_steps",43)
-	legacy.save(legacy_path)
-	migrated.load_settings(legacy_path)
-	_check(migrated.water_reflection_mode == 2 and migrated.water_ssr_steps == 43,"Explicit new parameters override old presets")
+	var rejected: AstraeonLightingProfile = AstraeonLightingProfile.new()
+	var invalid: ConfigFile = ConfigFile.new()
+	invalid.set_value("lighting", "format", "unsupported")
+	var invalid_path: String = _output.path_join("unsupported.cfg")
+	invalid.save(invalid_path)
+	_check(rejected.load_settings(invalid_path) == ERR_FILE_UNRECOGNIZED, "Unsupported config rejected")
 	# A bright underwater marker must never enter the capture color buffer.
 	var marker: MeshInstance3D = MeshInstance3D.new()
 	var box: BoxMesh = BoxMesh.new()
@@ -152,6 +145,7 @@ func _render_checks() -> void:
 	_sample._settings.show_fps = false
 	_sample._apply_lighting()
 	var scroll: ScrollContainer = _sample._panel.get_parent() as ScrollContainer
+	_sample._settings_panel.show_setting(&"planar_fog")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"planar_fog"])
 	await _capture("planar-controls")
 	for size: Vector2i in [Vector2i(2560,1440),Vector2i(3840,2160),Vector2i(2560,1080)]:

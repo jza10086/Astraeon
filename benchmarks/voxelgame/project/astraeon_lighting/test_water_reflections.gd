@@ -30,11 +30,11 @@ func _render_checks() -> void:
 	_sample._settings.water_roughness = 0.0
 	_sample._settings.show_fps = false
 	_sample._view(Vector3(20, 4, -5), Vector3(20, 1.0, -20))
-	_sample._settings.water_ssr = false
+	_sample._settings.water_reflection_mode = 0
 	_sample._apply_lighting()
 	await _capture("water-ssr-off")
 	var off: Image = _render.get_texture().get_image()
-	_sample._settings.water_ssr = true
+	_sample._settings.water_reflection_mode = 1
 	_sample._apply_lighting()
 	await _capture("water-ssr-on")
 	var on: Image = _render.get_texture().get_image()
@@ -60,7 +60,7 @@ func _render_checks() -> void:
 	_check(difference < 0.1, "SSR zero intensity restores baseline pixels")
 	_sample._settings.water_ssr_strength = 1.0
 	for quality: int in range(3):
-		_sample._settings.water_ssr_quality = quality
+		_sample._settings.water_ssr_steps = 16 << quality
 		_sample._apply_lighting()
 		await _capture("water-quality-%d" % quality)
 	_sample._settings.water_quality = 0
@@ -101,8 +101,10 @@ func _render_checks() -> void:
 	_sample._settings.cloud_speed = 0.0
 	_sample._apply_lighting()
 	var scroll: ScrollContainer = _sample._panel.get_parent() as ScrollContainer
+	_sample._settings_panel.show_setting(&"water_reflection_mode")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"water_reflection_mode"])
 	await _capture("water-controls")
+	_sample._settings_panel.show_setting(&"water_ssr_edge_fade")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"water_ssr_edge_fade"])
 	await _capture("water-ssr-controls")
 	for size: Vector2i in [Vector2i(2560,1440),Vector2i(3840,2160),Vector2i(2560,1080)]:
@@ -113,10 +115,10 @@ func _render_checks() -> void:
 	picker.color_changed.emit(Color(0.2,0.4,0.6))
 	var quality: SpinBox = _sample._settings_panel.widgets[&"water_ssr_steps"] as SpinBox
 	quality.value_changed.emit(64.0)
-	_check(_sample._settings.water_shallow_color == Color(0.2,0.4,0.6) and _sample._settings.water_ssr_quality == 2,"Color and quality UI bindings")
+	_check(_sample._settings.water_shallow_color == Color(0.2,0.4,0.6) and _sample._settings.water_ssr_steps == 64,"Color and quality UI bindings")
 	var saved: AstraeonLightingProfile = AstraeonLightingProfile.new()
-	_check(saved.load_settings(_sample.settings_path) == OK and saved.water_shallow_color == Color(0.2,0.4,0.6) and saved.water_ssr_quality == 2,"Non-default water settings persist")
+	_check(saved.load_settings(_sample.settings_path) == OK and saved.water_shallow_color == Color(0.2,0.4,0.6) and saved.water_ssr_steps == 64,"Non-default water settings persist")
 	_sample._reset_settings()
-	_check(_sample._settings.water_ssr_quality == 1 and _sample._settings.water_shallow_color == Color(0.06,0.4,0.36),"Water defaults restore")
+	_check(_sample._settings.water_ssr_steps == 32 and _sample._settings.water_shallow_color == Color(0.06,0.4,0.36),"Water defaults restore")
 	_sample.queue_free()
 	await _frames(3)

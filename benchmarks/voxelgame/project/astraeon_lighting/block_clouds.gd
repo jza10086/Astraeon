@@ -117,7 +117,7 @@ func _build(coverage: float) -> void:
 		receiver.set_shader_parameter("block_cloud_mask",mask)
 
 func apply(settings: AstraeonLightingProfile, horizon: Color, toward_light: Vector3) -> void:
-	visible = settings.clouds_enabled and settings.cloud_type == 1
+	visible = settings.clouds_enabled
 	if visible and not is_equal_approx(_coverage,settings.cloud_coverage):
 		_build(settings.cloud_coverage)
 	material.set_shader_parameter("cloud_horizon",horizon)

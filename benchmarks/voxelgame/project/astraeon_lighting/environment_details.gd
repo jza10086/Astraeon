@@ -81,7 +81,7 @@ func apply(settings: AstraeonLightingProfile, sky_color: Color, horizon: Color) 
 		node.visible = settings.water_enabled
 		node.extra_cull_margin = settings.wave_strength
 	for material: ShaderMaterial in water_materials:
-		var desired_shader: Shader = SSR_SHADER if settings.water_enabled and settings.water_ssr and settings.water_ssr_strength > 0.0 else WATER_SHADER
+		var desired_shader: Shader = SSR_SHADER if settings.water_enabled and settings.water_reflection_mode == 1 and settings.water_ssr_strength > 0.0 else WATER_SHADER
 		if settings.water_enabled and settings.water_reflection_mode == 2 and settings.planar_strength > 0.0:
 			desired_shader = PLANAR_SHADER
 		if material.shader != desired_shader:

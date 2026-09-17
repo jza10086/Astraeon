@@ -35,7 +35,6 @@ extends Resource
 @export_range(0.0, 2.0, 0.1) var avatar_travel: float = 1.0
 @export_range(0.5, 3.0, 0.1) var avatar_scale: float = 1.4
 @export_group("局部光源参数")
-@export var local_lights_enabled: bool = true
 @export_range(0.0, 12.0, 0.1) var local_light_energy: float = 4.0
 @export_range(2.0, 24.0, 1.0) var local_light_range: float = 12.0
 @export var indirect_enabled: bool = true
@@ -108,12 +107,9 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var translucency_strength: float = 0.25
 @export_group("P2 · 云")
 @export var clouds_enabled: bool = true
-@export_enum("写实简化体积云", "方块体积云") var cloud_type: int = 1
 @export var block_cloud_shadows: bool = true
 @export_range(0.0, 1.0, 0.05) var cloud_shadow_strength: float = 0.55
 @export_range(0.0, 1.0, 0.05) var cloud_shadow_softness: float = 0.3
-@export_range(8, 48, 4) var cloud_steps: int = 24
-@export var cloud_morph: bool = false
 @export_range(0.0, 1.0, 0.05) var cloud_coverage: float = 0.45
 @export_range(0.0, 0.2, 0.005) var cloud_speed: float = 0.015
 @export_group("P2 · Bloom")
@@ -126,14 +122,6 @@ extends Resource
 @export_group("传播预算")
 @export_range(256, 32768) var work_cells: int = 4096
 @export_range(250, 8000) var work_usec: int = 2000
-
-# Legacy script API. New settings use explicit reflection mode and sample counts.
-var water_ssr: bool:
-	get: return water_reflection_mode == 1
-	set(value): water_reflection_mode = 1 if value else 0
-var water_ssr_quality: int:
-	get: return 0 if water_ssr_steps <= 16 else (1 if water_ssr_steps <= 32 else 2)
-	set(value): water_ssr_steps = 16 << clampi(value, 0, 2)
 
 ## Primary voxel lighting and the optional weak fill have separate controls.
 func effective_block_strength() -> float:
@@ -156,18 +144,17 @@ func load_settings(path: String = "user://settings.cfg") -> Error:
 	var error: Error = config.load(path)
 	if error != OK:
 		return error
-	if not config.has_section_key("lighting", "water_reflection_mode") and config.has_section_key("lighting", "water_ssr"):
-		var old_enabled: Variant = config.get_value("lighting", "water_ssr")
-		if old_enabled is bool:
-			water_ssr = old_enabled
-	if not config.has_section_key("lighting", "water_ssr_steps") and config.has_section_key("lighting", "water_ssr_quality"):
-		var old_quality: Variant = config.get_value("lighting", "water_ssr_quality")
-		if old_quality is int:
-			water_ssr_quality = old_quality
+	if config.get_value("lighting", "format", "") != "astraeon-lighting-20260917":
+		return ERR_FILE_UNRECOGNIZED
+	var known: Array[String] = ["format"]
+	for property: Dictionary in settings_properties():
+		known.append(property.name)
+	for key: String in config.get_section_keys("lighting"):
+		if key not in known:
+			return ERR_FILE_UNRECOGNIZED
 	for property: Dictionary in settings_properties():
 		var key: String = property.name
-		var fallback: Variant = config.get_value("lighting_p0", key, get(key))
-		var value: Variant = config.get_value("lighting", key, fallback)
+		var value: Variant = config.get_value("lighting", key, get(key))
 		var expected: int = property.type
 		if expected == TYPE_FLOAT or expected == TYPE_INT:
 			if not (value is float or value is int) or not is_finite(float(value)):
@@ -188,6 +175,13 @@ func save_settings(path: String = "user://settings.cfg") -> Error:
 	var error: Error = config.load(path)
 	if error != OK and error != ERR_FILE_NOT_FOUND:
 		return error # Do not overwrite an unreadable file.
+	if config.has_section("lighting"):
+		config.erase_section("lighting")
+	config.set_value("lighting", "format", "astraeon-lighting-20260917")
 	for property: Dictionary in settings_properties():
 		config.set_value("lighting", property.name, get(property.name))
-	return config.save(path)
+	var temporary: String = path + ".tmp"
+	error = config.save(temporary)
+	if error != OK:
+		return error
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary), ProjectSettings.globalize_path(path))

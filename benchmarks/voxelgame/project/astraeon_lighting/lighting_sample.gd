@@ -10,7 +10,6 @@ const PLAIN_SKY_SHADER: Shader = preload("res://astraeon_lighting/background_sky
 const LocalLights: Script = preload("res://astraeon_lighting/local_lights.gd")
 const Details: Script = preload("res://astraeon_lighting/environment_details.gd")
 const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd")
-const SKY_SHADER: Shader = preload("res://astraeon_lighting/sample_sky.gdshader")
 @export var profile: AstraeonLightingProfile
 @export var settings_path: String = "user://settings.cfg"
 var _avatar: TestAvatar
@@ -24,9 +23,8 @@ var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _environment: Environment
 var _sky_material: ShaderMaterial
-var _volume_sky_material: ShaderMaterial
-var _plain_sky_material: ShaderMaterial
 var _block_clouds: BlockClouds
+var _settings_notice: String = ""
 var _status: Label
 var _panel: VBoxContainer
 var _controls: VBoxContainer
@@ -103,6 +101,11 @@ func _make_ui() -> void:
 	var title: Label = Label.new()
 	title.text = "ASTRAEON · 模块化光照样板"
 	_panel.add_child(title)
+	if not _settings_notice.is_empty():
+		var notice: Label = Label.new()
+		notice.text = _settings_notice
+		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_panel.add_child(notice)
 	_status = Label.new()
 	_status.text = "尚未创建体素世界"
 	_panel.add_child(_status)
@@ -153,9 +156,27 @@ func _make_ui() -> void:
 		if not _lamp_enabled:
 			_toggle_lamp()
 		_view(Vector3(5, 4, 1), Vector3(-3, 3, -4)))
-	_button("恢复默认设置", _reset_settings)
+	var actions: VBoxContainer = VBoxContainer.new()
+	for child: Node in _controls.get_children():
+		_controls.remove_child(child)
+		actions.add_child(child)
+	var page: OptionButton = OptionButton.new()
+	page.add_item("参数设置")
+	page.add_item("场景操作与观察")
+	_controls.add_child(page)
+	var parameters: VBoxContainer = VBoxContainer.new()
+	_controls.add_child(parameters)
+	_controls.add_child(actions)
+	actions.hide()
+	page.item_selected.connect(func(index: int) -> void:
+		parameters.visible = index == 0
+		actions.visible = index == 1)
 	_settings_panel = SettingsPanel.new()
-	_settings_panel.build(_controls, _settings, _settings_changed)
+	_settings_panel.build(parameters, _settings, _settings_changed)
+	var reset: Button = Button.new()
+	reset.text = "恢复默认设置"
+	reset.pressed.connect(_reset_settings)
+	_controls.add_child(reset)
 	var hint: Label = Label.new()
 	hint.text = "右键按住环视 · WASD 移动 · Q/E 升降\nEsc 释放鼠标 · 仅样板操作，不写入存档"
 	_controls.add_child(hint)
@@ -169,13 +190,6 @@ func _button(title: String, callback: Callable) -> void:
 	button.text = title
 	_controls.add_child(button)
 	button.pressed.connect(callback)
-
-func _toggle(title: String, value: bool, callback: Callable) -> void:
-	var button: CheckButton = CheckButton.new()
-	button.text = title
-	button.button_pressed = value
-	_controls.add_child(button)
-	button.toggled.connect(callback)
 
 func _start() -> void:
 	if _started:
@@ -211,20 +225,7 @@ func _start() -> void:
 	_environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	_environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	_sky_material = ShaderMaterial.new()
-	_sky_material.shader = SKY_SHADER
-	var noise: FastNoiseLite = FastNoiseLite.new()
-	noise.seed = 72419
-	noise.frequency = 0.008
-	noise.fractal_octaves = 4
-	var noise_texture: NoiseTexture2D = NoiseTexture2D.new()
-	noise_texture.width = 512
-	noise_texture.height = 512
-	noise_texture.seamless = true
-	noise_texture.noise = noise
-	_sky_material.set_shader_parameter("cloud_noise", noise_texture)
-	_volume_sky_material = _sky_material
-	_plain_sky_material = ShaderMaterial.new()
-	_plain_sky_material.shader = PLAIN_SKY_SHADER
+	_sky_material.shader = PLAIN_SKY_SHADER
 	var sky: Sky = Sky.new()
 	sky.sky_material = _sky_material
 	_environment.sky = sky
@@ -284,10 +285,8 @@ func _process(delta: float) -> void:
 	_details.tick(delta, _settings, _sections.materials[3])
 	if _settings.clouds_enabled and _settings.cloud_speed > 0.0:
 		_cloud_clock += delta * _settings.cloud_speed
-		if _settings.cloud_type == 0:
-			_volume_sky_material.set_shader_parameter("cloud_clock", _cloud_clock)
 	_block_clouds.tick(_cloud_clock, _camera.position)
-	var wet: bool = _details.is_underwater(_camera.position) and _settings.underwater_enabled
+	var wet: bool = _settings.water_enabled and _details.is_underwater(_camera.position) and _settings.underwater_enabled
 	if wet != _underwater:
 		_underwater = wet
 		_apply_fog()
@@ -319,10 +318,6 @@ func _apply_lighting() -> void:
 	_apply_display()
 	if _sun == null:
 		return
-	var chosen: ShaderMaterial = _volume_sky_material if _settings.clouds_enabled and _settings.cloud_type == 0 else _plain_sky_material
-	if _sky_material != chosen:
-		_sky_material = chosen
-		_environment.sky.sky_material = chosen
 	var solar_angle: float = (_settings.hour - 6.0) * PI / 12.0
 	var altitude: float = sin(solar_angle)
 	var day: float = smoothstep(-0.12, 0.3, altitude)
@@ -430,7 +425,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_camera.rotation.x = clampf(_camera.rotation.x - motion.relative.y * 0.003, -1.5, 1.5)
 
 func _load_settings() -> void:
-	_settings.load_settings(settings_path)
+	var error: Error = _settings.load_settings(settings_path)
+	if error != OK and error != ERR_FILE_NOT_FOUND:
+		_settings_notice = "设置格式不支持或读取失败，已使用默认值。\n调整设置后保存当前格式。"
+		push_warning("Unsupported or invalid lighting settings; using defaults: " + error_string(error))
 
 func _save_settings() -> void:
 	var error: Error = _settings.save_settings(settings_path)
@@ -473,10 +471,6 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_environment.glow_enabled = _settings.bloom_enabled
 	_environment.glow_intensity = _settings.bloom_strength
 	_environment.glow_hdr_threshold = 1.0
-	_sky_material.set_shader_parameter("clouds_enabled", _settings.clouds_enabled)
-	_sky_material.set_shader_parameter("cloud_coverage", _settings.cloud_coverage)
-	_sky_material.set_shader_parameter("cloud_steps", _settings.cloud_steps)
-	_sky_material.set_shader_parameter("cloud_morph", _settings.cloud_morph)
 	var materials: Array[ShaderMaterial] = _sections.materials.duplicate()
 	materials.append(_details.grass_material)
 	materials.append_array(_details.marker_materials)
@@ -500,7 +494,7 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 		material.set_shader_parameter("translucency", _settings.translucency_strength if _settings.translucency_enabled else 0.0)
 	_avatar.apply(_settings)
 	_details.apply(_settings, sky_color, horizon)
-	_underwater = _details.is_underwater(_camera.position) and _settings.underwater_enabled
+	_underwater = _settings.water_enabled and _details.is_underwater(_camera.position) and _settings.underwater_enabled
 	_apply_fog()
 	if _planar != null:
 		_planar.apply(_settings, _environment)

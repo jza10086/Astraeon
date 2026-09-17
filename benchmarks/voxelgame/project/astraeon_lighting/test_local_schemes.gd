@@ -131,6 +131,7 @@ func _render_checks() -> void:
 	var loaded: AstraeonLightingProfile = AstraeonLightingProfile.new()
 	_check(loaded.load_settings(_sample.settings_path)==OK and loaded.local_lighting_mode==4 and is_equal_approx(loaded.ambient_minimum,0.035),"New settings persist through UI")
 	var scroll: ScrollContainer = _sample._panel.get_parent() as ScrollContainer
+	_sample._settings_panel.show_setting(&"lamp_emission_strength")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"lamp_emission_strength"])
 	await _capture("local-mode-controls")
 	for size: Vector2i in [Vector2i(2560,1440),Vector2i(3840,2160),Vector2i(2560,1080)]:
@@ -142,7 +143,7 @@ func _render_checks() -> void:
 	await _frames(3)
 
 func _press(title: String) -> void:
-	for child: Node in _sample._controls.get_children():
+	for child: Node in _sample._controls.find_children("*", "Button", true, false):
 		if child is Button and (child as Button).text == title:
 			(child as Button).pressed.emit()
 			return

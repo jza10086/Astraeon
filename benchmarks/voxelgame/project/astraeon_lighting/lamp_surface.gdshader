@@ -7,6 +7,6 @@ varying vec3 world_position;
 void vertex() { world_position = (MODEL_MATRIX * vec4(VERTEX,1.0)).xyz; }
 void fragment() {
 	if (reflection_clipped(world_position, CAMERA_VISIBLE_LAYERS)) discard;
-	ALBEDO = lamp_color;
-	EMISSION = lamp_color*lamp_emission_strength;
+	// Unshaded rendering outputs ALBEDO directly; EMISSION is not the brightness control.
+	ALBEDO = lamp_color * lamp_emission_strength;
 }

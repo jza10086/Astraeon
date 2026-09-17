@@ -43,6 +43,7 @@ func _settings_checks() -> void:
 	var file: String = _output.path_join("settings-test.cfg")
 	var config: ConfigFile = ConfigFile.new()
 	config.set_value("unrelated", "keep", "preserved")
+	config.set_value("lighting", "format", "astraeon-lighting-20260917")
 	config.set_value("lighting", "ao_strength", 500.0)
 	config.set_value("lighting", "fog_density", -1)
 	config.set_value("lighting", "aa_mode", 40)
@@ -56,8 +57,6 @@ func _settings_checks() -> void:
 	defaults.shadow_blur = 0.35
 	defaults.shadow_resolution = 1
 	defaults.water_quality = 0
-	defaults.cloud_steps = 16
-	defaults.cloud_morph = true
 	defaults.indirect_strength = 0.02
 	defaults.clouds_enabled = false
 	defaults.bloom_enabled = true
@@ -114,13 +113,13 @@ func _render_checks() -> void:
 			(node as Button).pressed.emit()
 			break
 	await _settle()
-	var ui_ao: CheckButton = _sample._settings_panel.widgets[&"ao_enabled"] as CheckButton
-	ui_ao.button_pressed = false
+	var ui_ao: OptionButton = _sample._settings_panel.widgets[&"ao_enabled"] as OptionButton
+	ui_ao.item_selected.emit(0)
 	_check(not _sample._settings.ao_enabled, "UI toggle applies")
 	var persisted: AstraeonLightingProfile = AstraeonLightingProfile.new()
 	persisted.load_settings(_sample.settings_path)
 	_check(not persisted.ao_enabled, "UI toggle persists")
-	ui_ao.button_pressed = true
+	ui_ao.item_selected.emit(1)
 	var revision: int = _sample._volume.revision
 	var mesh_count: int = _sample._sections.rebuilt_sections
 	await _capture("p12-default")
@@ -167,7 +166,7 @@ func _render_checks() -> void:
 	_sample._apply_lighting()
 	await _capture("p12-no-bloom-night")
 	# All-off: feature clocks stop and basic world light survives.
-	for key: StringName in [&"local_lights_enabled", &"indirect_enabled", &"sky_enhanced", &"direct_enabled", &"ao_enabled", &"fog_enabled", &"shadows_enabled", &"clouds_enabled", &"wind_enabled", &"translucency_enabled", &"bloom_enabled", &"water_enabled", &"underwater_enabled", &"water_reflection", &"waves_enabled"]:
+	for key: StringName in [&"indirect_enabled", &"sky_enhanced", &"direct_enabled", &"ao_enabled", &"fog_enabled", &"shadows_enabled", &"clouds_enabled", &"wind_enabled", &"translucency_enabled", &"bloom_enabled", &"water_enabled", &"underwater_enabled", &"water_reflection", &"waves_enabled"]:
 		_sample._settings.set(key, false)
 	_sample._settings.aa_mode = 0
 	_sample._apply_lighting()
@@ -229,9 +228,7 @@ func _updated_module_checks() -> void:
 	_sample._view(Vector3(20, 2, 25), Vector3(20, 30, -20))
 	_sample._apply_lighting()
 	await _capture("update-clouds")
-	_sample._settings.cloud_morph = true
 	_sample._apply_lighting()
-	await _capture("update-clouds-morph")
 	_sample._settings.clouds_enabled = false
 	_sample._apply_lighting()
 	await _capture("update-clouds-off")
@@ -266,7 +263,7 @@ func _updated_module_checks() -> void:
 	_sample._edit({Vector3i(-1,2,3): _sample.Volume.WOOD})
 	await _settle()
 	await _capture("update-local-sealed")
-	_sample._settings.local_lights_enabled = false
+	_sample._settings.local_lighting_mode = 0
 	_sample._apply_lighting()
 	_check(_sample._local_lights.emitters[Vector3i(-1,1,2)].light_energy == 0.0, "Local direct switch independent")
 	_sample._edit({Vector3i(-1,1,2): _sample.Volume.AIR})

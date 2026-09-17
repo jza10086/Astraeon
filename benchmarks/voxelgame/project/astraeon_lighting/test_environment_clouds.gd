@@ -25,7 +25,7 @@ func _render_checks() -> void:
 	var revision: int = _sample._volume.revision
 	var meshes: int = _sample._sections.rebuilt_sections
 	_sample._settings.direct_enabled = false
-	_sample._settings.local_lights_enabled = false
+	_sample._settings.local_lighting_mode = 0
 	_sample._settings.indirect_enabled = false
 	_sample._settings.fog_enabled = false
 	_sample._settings.block_grid_strength = 0.0
@@ -57,17 +57,11 @@ func _render_checks() -> void:
 	await _settle()
 	_sample._reset_settings()
 	_sample._view(Vector3(20,2,25),Vector3(20,30,-20))
-	_check(_sample._settings.cloud_type == 1 and _sample._sky_material == _sample._plain_sky_material,"Block branch bypasses raymarch sky")
+	_check(_sample._sky_material.shader == _sample.PLAIN_SKY_SHADER,"Block branch bypasses raymarch sky")
 	_check(_sample._block_clouds.geometry.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,"Cloud mesh excluded from directional shadow atlas")
 	var rebuilds: int = _sample._block_clouds.rebuilds
 	await _capture("cloud-blocks")
 	_check(_sample._block_clouds.rebuilds == rebuilds,"Cloud movement does not rebuild mesh")
-	_sample._settings.cloud_type = 0
-	_sample._apply_lighting()
-	_check(not _sample._block_clouds.visible and _sample._sky_material == _sample._volume_sky_material,"Realistic branch hides block mesh")
-	_check(not _sample._sections.materials[0].get_shader_parameter("cloud_shadow_enabled"),"Realistic branch does not enable block shadows")
-	await _capture("cloud-realistic")
-	_sample._settings.cloud_type = 1
 	_sample._settings.cloud_coverage = 1.0
 	_sample._settings.cloud_speed = 0.0
 	_sample._settings.cloud_shadow_strength = 0.8
@@ -102,7 +96,7 @@ func _render_checks() -> void:
 	_check(_sample._block_clouds.cells.count(1) == 0,"Zero coverage clears mask")
 	_sample._settings.clouds_enabled = false
 	_sample._apply_lighting()
-	_check(_sample._sky_material == _sample._plain_sky_material and not _sample._block_clouds.visible,"Clouds off bypass both branches")
+	_check(_sample._sky_material.shader == _sample.PLAIN_SKY_SHADER and not _sample._block_clouds.visible,"Clouds off bypass both branches")
 	_check(not _sample._details.water_materials[0].get_shader_parameter("cloud_shadow_enabled"),"Water cloud shadow disabled with cloud module")
 	await _capture("cloud-off")
 	_sample._reset_settings()
@@ -136,8 +130,10 @@ func _render_checks() -> void:
 	_sample._reset_settings()
 	_sample._view(Vector3(20,12,25),Vector3(4,0,0))
 	var scroll: ScrollContainer = _sample._panel.get_parent() as ScrollContainer
+	_sample._settings_panel.show_setting(&"ambient_curve")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"ambient_curve"])
 	await _capture("ambient-controls")
+	_sample._settings_panel.show_setting(&"cloud_shadow_softness")
 	scroll.ensure_control_visible(_sample._settings_panel.widgets[&"cloud_shadow_softness"])
 	await _capture("cloud-controls")
 	for size: Vector2i in [Vector2i(2560,1440),Vector2i(3840,2160),Vector2i(2560,1080)]:

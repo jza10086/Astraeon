@@ -1,3 +1,5 @@
+> 历史实现与验证记录：其中写实简化体积云已于 2026-09-18 从代码中删除，当前菜单和配置见 [最新说明](lighting_settings_menu_20260918.md)。
+
 # 光照样板：已确认方案与调试控件更新
 
 日期：2026-09-14。后续更新：[2026-09-15 环境光平滑与方块云分支](lighting_environment_clouds_20260915.md)；本文保留本轮实现记录。仅涉及 benchmarks/voxelgame/project/astraeon_lighting/；主游戏和原性能基准保持原状。
