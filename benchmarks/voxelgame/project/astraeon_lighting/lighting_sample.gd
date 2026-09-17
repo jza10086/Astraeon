@@ -12,6 +12,7 @@ const Details: Script = preload("res://astraeon_lighting/environment_details.gd"
 const SettingsPanel: Script = preload("res://astraeon_lighting/settings_panel.gd")
 @export var profile: AstraeonLightingProfile
 @export var settings_path: String = "user://settings.cfg"
+var benchmark_mode: bool = false
 var _avatar: TestAvatar
 var _test_lamps_original: Dictionary[Vector3i, int] = {}
 var _planar: PlanarReflection
@@ -262,7 +263,7 @@ func _start() -> void:
 func _process(delta: float) -> void:
 	if _settings == null:
 		return
-	if _settings.show_fps:
+	if _settings.show_fps and not benchmark_mode:
 		_fps_elapsed += delta
 		_fps_frames += 1
 		if _fps_elapsed >= 0.5:
@@ -305,7 +306,7 @@ func _process(delta: float) -> void:
 		_upload_usec = Time.get_ticks_usec() - begin
 		_uploaded_revision = _volume.settled_revision
 	_frame_counter += 1
-	if _frame_counter % 10 == 0:
+	if _frame_counter % 10 == 0 and not benchmark_mode:
 		_status.text = ("时间 %.2f · 光照版本 %d/%d\n传播队列 %d · 网格队列 %d\n传播步 %.2f ms · 最近收敛 %.1f ms\n打包 %.2f ms · 上传提交 %.2f ms"
 			% [_settings.hour, _uploaded_revision, _volume.revision, _volume.pending_count(),
 			_sections.pending_count(), _volume.last_step_usec / 1000.0, _converge_usec / 1000.0,
@@ -446,7 +447,8 @@ func _reset_settings() -> void:
 	_save_settings()
 
 func _apply_modules(sky_color: Color, horizon: Color) -> void:
-	_settings_panel.sync(_settings)
+	if not benchmark_mode:
+		_settings_panel.sync(_settings)
 	_horizon = horizon
 	_block_clouds.apply(_settings, horizon, _sun.global_basis.z.normalized())
 	_block_clouds.tick(_cloud_clock, _camera.position)
