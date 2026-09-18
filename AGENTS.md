@@ -2,7 +2,7 @@
 
 ## Scope and priorities
 - Build an indie-scale 3D voxel survival and building game. Complete small playable loops before expanding systems.
-- Use simple, direct implementations and feature-oriented folders. Avoid speculative frameworks and premature optimization.
+- Use simple, direct implementations and feature-oriented folders. Avoid speculative frameworks and premature optimization. See docs/project_structure.md for the proposed module layout; only its explicitly completed moves are implemented.
 - The project is in the prototype stage. Maintain only the current contract: do not retain or add backward-compatibility aliases, adapters, legacy branches, old-format readers, version-range fallbacks, or migration converters. Update callers, assets, tests, and documentation together when a contract changes; reject unsupported save/config formats explicitly. Historical benchmarks may remain isolated as comparison evidence, never as production compatibility paths. Recoverable writes within the current format remain required.
 - Treat the current README and implemented features as the source of project status. Camera perspective, voxel representation, world limits, multiplayer, and progression require explicit design decisions; update these rules as decisions are approved.
 - Do not import GodotParty activities, its SDK, party-game rules, player limits, or networking assumptions.
@@ -27,7 +27,7 @@
 ## Language boundaries and scenes
 - Use C++ with Voxel Tools GDExtension as the approved production voxel backend; see docs/native_voxel_backend.md. Use GDScript for gameplay orchestration, UI, scene integration, and test drivers. In GDScript, never use :=; explicitly type variables, arguments, return values, signals, arrays, and dictionaries where supported.
 - Use explicit Variant only when multiple types are intentional.
-- The user explicitly approved C++ voxel infrastructure and secondary development of Voxel Tools beyond the isolated benchmark. Put production voxel storage, generation, streaming/task scheduling, meshing, collision-data generation, and persistence hot paths in C++; avoid per-voxel GDScript/native calls. Existing GDScript experiments are isolated comparison baselines, not a required compatibility backend. This decision does not authorize a C# migration or establish an unmeasured performance guarantee.
+- The user explicitly approved C++ voxel infrastructure and secondary development of Voxel Tools beyond the isolated benchmark. Put production voxel storage, generation, streaming/task scheduling, meshing, collision-data generation, and persistence hot paths in C++; avoid per-voxel GDScript/native calls. The old GDScript voxel implementations and their dedicated runners have been removed; retain only historical measurement evidence. Static authoring Resources under game/data are not a runtime voxel backend. This decision does not authorize a C# migration or establish an unmeasured performance guarantee.
 - Use snake_case for files, functions, variables, resources, and signals; PascalCase for nodes, enums, and class_name; UPPER_SNAKE_CASE for constants.
 - Register class_name only for shared components, custom resources, and reusable data types.
 - Prefer composition. Use @export for configurable resources and replaceable node references; validate required references at startup.

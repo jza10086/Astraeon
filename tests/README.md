@@ -1,11 +1,7 @@
 # 自动检查
 
-方块数据回归：`blocks/test_block_data.gd`，覆盖三种存储后端的等价性、区块坐标和资源注册边界。
+- native_world/test_native_world.gd：当前 C++ 生成、存档、恢复合约检查。
+- native_world/runtime_probe.gd：原生世界移动、碰撞、保存和帧时采样；由 tools/test_native_voxel.py 驱动。
+- entities/test_player.gd：原有角色测试，仍假定旧固定地面测试场；目前不应对原生主场景直接执行，后续需要独立实体测试场景。
 
-可选微基准：`blocks/benchmark_block_storage.gd`，显式执行后输出 JSON，不自动选择后端。命令、指标和验收边界见 [方块数据文档](../docs/block_data.md)。
-
-初始化与冷启动环境检查仍使用 `tools/check.ps1`；已有编辑器连接时优先 MCP 导入与诊断，避免第二个编辑器并发导入。
-
-限时选型测试：tools/run_block_storage_suite.py 驱动 blocks/benchmark_block_selection.gd，每后端独立进程采集实际内存并比较同一轨迹。见 [初筛报告](../docs/block_storage_results_20260916.md)。
-
-地图综合实验：world/world_data_suite.gd 与 world/world_benchmark.tscn，驱动 tools/run_world_suite.py。默认待命，显式 --run 才执行。2026-09-17 已执行正确性及综合测量，另有 world/test_runtime_lifecycle.gd 覆盖异步保存与请求生命周期。见 [地图实验说明](../docs/world_lab.md) 和 [本轮结果](../docs/world_suite_results_20260917.md)。
+旧 GDScript 体素后端的 tests/blocks、tests/world 及专属运行器已删除。旧报告仅供历史参考。已有编辑器连接时不要启动第二个编辑器导入；使用现有编辑器刷新和诊断。

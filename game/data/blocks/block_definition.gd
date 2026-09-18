@@ -1,7 +1,7 @@
 class_name AstraeonBlockDefinition
 extends Resource
-## Shared authoring template. Registries copy gameplay fields; never mutate this for a voxel.
-const STATE_DEFINITION: Script = preload("res://game/world/blocks/block_state_definition.gd")
+## Shared authoring template. Authoring only; the native runtime does not consume this template yet.
+const STATE_DEFINITION: Script = preload("res://game/data/blocks/block_state_definition.gd")
 @export var key: StringName
 @export var display_name: String = ""
 @export var hardness: float = 1.0
