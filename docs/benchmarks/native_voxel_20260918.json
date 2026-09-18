@@ -1,0 +1,210 @@
+{
+  "engine": "4.7.stable.official.5b4e0cb0f",
+  "contract": {
+    "checks": 17,
+    "directory": "res://tmp/native-tests/515616",
+    "failures": []
+  },
+  "runs": [
+    {
+      "failures": [],
+      "frame_count": 3245,
+      "frame_max_ms": 7.085,
+      "frame_p50_ms": 5.537,
+      "frame_p95_ms": 6.003,
+      "frame_p99_ms": 6.257,
+      "options": {
+        "output": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/p0_fresh.json",
+        "prediction": "0",
+        "seconds": "1.5",
+        "world": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/world_0"
+      },
+      "renderer": "forward_plus",
+      "near_mesh_ready": 57,
+      "near_collision_ready": 57,
+      "sample_count": 60,
+      "final_io": {
+        "load_requests": 4880,
+        "load_usec": 982290,
+        "loaded_blocks": 725,
+        "save_requests": 4175,
+        "save_usec": 4872131,
+        "saved_blocks": 4175
+      },
+      "final_generation": {
+        "blocks": 4216,
+        "usec": 303106
+      },
+      "peak_tasks": {
+        "generation": 21,
+        "gpu": 0,
+        "main_thread": 0,
+        "meshing": 16,
+        "streaming": 501
+      },
+      "region_files": 190,
+      "logical_file_bytes": 163712512,
+      "graphics_device": "D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3060 Laptop GPU"
+    },
+    {
+      "failures": [],
+      "frame_count": 3245,
+      "frame_max_ms": 8.007,
+      "frame_p50_ms": 5.556,
+      "frame_p95_ms": 6.01,
+      "frame_p99_ms": 6.256,
+      "options": {
+        "output": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/p0_reload.json",
+        "prediction": "0",
+        "seconds": "1.5",
+        "world": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/world_0"
+      },
+      "renderer": "forward_plus",
+      "near_mesh_ready": 58,
+      "near_collision_ready": 58,
+      "sample_count": 61,
+      "final_io": {
+        "load_requests": 5056,
+        "load_usec": 2104665,
+        "loaded_blocks": 5046,
+        "save_requests": 30,
+        "save_usec": 35265,
+        "saved_blocks": 30
+      },
+      "final_generation": {
+        "blocks": 72,
+        "usec": 1270
+      },
+      "peak_tasks": {
+        "generation": 0,
+        "gpu": 0,
+        "main_thread": 0,
+        "meshing": 16,
+        "streaming": 60
+      },
+      "region_files": 190,
+      "logical_file_bytes": 163712512,
+      "graphics_device": "D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3060 Laptop GPU"
+    },
+    {
+      "failures": [],
+      "frame_count": 3244,
+      "frame_max_ms": 7.755,
+      "frame_p50_ms": 5.522,
+      "frame_p95_ms": 6.053,
+      "frame_p99_ms": 6.26,
+      "options": {
+        "output": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/p1_fresh.json",
+        "prediction": "1",
+        "seconds": "1.5",
+        "world": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/world_1"
+      },
+      "renderer": "forward_plus",
+      "near_mesh_ready": 57,
+      "near_collision_ready": 57,
+      "sample_count": 60,
+      "final_io": {
+        "load_requests": 4968,
+        "load_usec": 1024644,
+        "loaded_blocks": 745,
+        "save_requests": 4243,
+        "save_usec": 4997329,
+        "saved_blocks": 4243
+      },
+      "final_generation": {
+        "blocks": 4284,
+        "usec": 307846
+      },
+      "peak_tasks": {
+        "generation": 27,
+        "gpu": 0,
+        "main_thread": 0,
+        "meshing": 20,
+        "streaming": 523
+      },
+      "region_files": 190,
+      "logical_file_bytes": 164746720,
+      "graphics_device": "D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3060 Laptop GPU"
+    },
+    {
+      "failures": [],
+      "frame_count": 3248,
+      "frame_max_ms": 6.958,
+      "frame_p50_ms": 5.565,
+      "frame_p95_ms": 6.018,
+      "frame_p99_ms": 6.33,
+      "options": {
+        "output": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/p1_reload.json",
+        "prediction": "1",
+        "seconds": "1.5",
+        "world": "F:/GodotProjects/Astraeon/tmp/native-probe/1789711578/world_1"
+      },
+      "renderer": "forward_plus",
+      "near_mesh_ready": 57,
+      "near_collision_ready": 57,
+      "sample_count": 60,
+      "final_io": {
+        "load_requests": 4968,
+        "load_usec": 2077872,
+        "loaded_blocks": 4968,
+        "save_requests": 20,
+        "save_usec": 23710,
+        "saved_blocks": 20
+      },
+      "final_generation": {
+        "blocks": 61,
+        "usec": 319
+      },
+      "peak_tasks": {
+        "generation": 0,
+        "gpu": 0,
+        "main_thread": 0,
+        "meshing": 20,
+        "streaming": 60
+      },
+      "region_files": 190,
+      "logical_file_bytes": 164746720,
+      "graphics_device": "D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3060 Laptop GPU"
+    }
+  ],
+  "binary": {
+    "source_sha256": "4439f821d5393aaa222a7113fff428eb1ada047d3042d8429b46f29f3cd8abb7",
+    "godot_cpp_sha256": "545057bcaf2af8870ff611b04b8296f3e20ee0d79b6db5812057db363f023e14",
+    "command": [
+      "C:\\Python314\\python.exe",
+      "-m",
+      "SCons",
+      "platform=windows",
+      "target=editor",
+      "arch=x86_64",
+      "dev_build=no",
+      "use_static_cpp=yes",
+      "voxel_tests=no",
+      "-j12"
+    ],
+    "sha256": "eab34bf40097049648ab11df2f6c5babe9b4e29db7e436e160dcb0e3e93725ca",
+    "dependencies": {
+      "voxel_tools": {
+        "upstream": "https://github.com/Zylann/godot_voxel",
+        "commit": "75d3c6d996ed2331c80edcd8c3ebc947afc0f041",
+        "source": "voxel_tools",
+        "local_patch": "tools/voxel_patches/horizontal_circle.patch"
+      },
+      "godot_cpp": {
+        "upstream": "https://github.com/godotengine/godot-cpp",
+        "commit": "b4ce22a76b56bb5f734a5161d6105eb4b8d1021d",
+        "source": "deps/godot-cpp"
+      },
+      "scons_version": "4.10.1",
+      "engine": "4.7.stable",
+      "bootstrap": "Copied existing pinned source trees, including the Astraeon circular streaming patch; future builds must not restore or overwrite this workspace.",
+      "project_changes": [
+        "astraeon native generator and current region stream",
+        "directional data-only prefetch viewer",
+        "FIFO task priority ties",
+        "3 ms main-thread commit budget"
+      ]
+    }
+  },
+  "driver_sha256": "6660448ad1f1083e878c149bef600499d8ccbf28476e2f254130eb44d1dcb185"
+}

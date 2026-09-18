@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://epv58epfjwno"]
 
-[ext_resource type="Script" uid="uid://ca0kead6hnv8v" path="res://game/entities/character_motor.gd" id="3_3ytb3"]
+[ext_resource type="Script" uid="uid://c7mkp8wmtf5s1" path="res://game/world/native/native_world.gd" id="1_3ytb3"]
+[ext_resource type="VoxelBlockyLibrary" uid="uid://dgbd5du2gbny0" path="res://game/world/native/block_library.tres" id="2_alrnb"]
 [ext_resource type="PackedScene" uid="uid://c31qulq3dcjsp" path="res://game/player/player.tscn" id="Player"]
-[ext_resource type="Script" uid="uid://btddek1l5ae3f" path="res://game/core/character_playground.gd" id="Playground"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -12,18 +12,12 @@ ambient_light_color = Color(0.65, 0.75, 0.9, 1)
 ambient_light_energy = 0.65
 tonemap_mode = 2
 
-[sub_resource type="StandardMaterial3D" id="Material_ground"]
-albedo_color = Color(0.22, 0.34, 0.3, 1)
-
-[sub_resource type="BoxMesh" id="Mesh_ground"]
-material = SubResource("Material_ground")
-size = Vector3(12, 0.5, 12)
-
-[sub_resource type="BoxShape3D" id="Shape_ground"]
-size = Vector3(12, 0.5, 12)
-
-[node name="Main" type="Node3D" unique_id=1995222286]
-script = ExtResource("Playground")
+[node name="Main" type="Node3D" unique_id=1995222286 node_paths=PackedStringArray("player", "camera", "controller")]
+script = ExtResource("1_3ytb3")
+player = NodePath("Player")
+camera = NodePath("Player/CameraPivot/SpringArm/Camera")
+controller = NodePath("Player/Controller")
+block_library = ExtResource("2_alrnb")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1951898018]
 environment = SubResource("Environment_main")
@@ -31,15 +25,6 @@ environment = SubResource("Environment_main")
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1497029570]
 transform = Transform3D(0.8660254, 0.40957603, -0.28678823, 0, 0.57357645, 0.81915206, 0.5, -0.7094065, 0.49673176, 0, 0, 0)
 shadow_enabled = true
-
-[node name="PrototypeGround" type="StaticBody3D" parent="." unique_id=434873193]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
-
-[node name="Mesh" type="MeshInstance3D" parent="PrototypeGround" unique_id=1608390521]
-mesh = SubResource("Mesh_ground")
-
-[node name="Collision" type="CollisionShape3D" parent="PrototypeGround" unique_id=1586083103]
-shape = SubResource("Shape_ground")
 
 [node name="PreviewCamera" type="Camera3D" parent="." unique_id=425364074]
 transform = Transform3D(0.76604444, -0.3213938, 0.55667037, 0, 0.8660254, 0.5, -0.6427876, -0.38302222, 0.66341394, 10, 9, 12)
@@ -72,8 +57,5 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "WASD: Move | Mouse: Look | Space: Jump | Esc: Release | Click: Capture"
 
-[node name="Player" type="CharacterBody3D" parent="." unique_id=1927386287 instance=ExtResource("Player")]
+[node name="Player" parent="." unique_id=1927386287 instance=ExtResource("Player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 3)
-collision_layer = 2
-floor_snap_length = 0.15
-script = ExtResource("3_3ytb3")

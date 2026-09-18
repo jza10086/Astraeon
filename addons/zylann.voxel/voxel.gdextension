@@ -1,0 +1,8 @@
+[configuration]
+entry_symbol = "voxel_library_init"
+compatibility_minimum = "4.7"
+
+[libraries]
+windows.editor.x86_64 = "res://addons/zylann.voxel/bin/libvoxel.windows.editor.x86_64.eab34bf40097.dll"
+windows.debug.x86_64 = "res://addons/zylann.voxel/bin/libvoxel.windows.editor.x86_64.eab34bf40097.dll"
+windows.release.x86_64 = "res://addons/zylann.voxel/bin/libvoxel.windows.template_release.x86_64.bdb4b617f55c.dll"

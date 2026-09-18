@@ -20,30 +20,54 @@
 - 当前格式内的校验、可恢复写入和损坏记录恢复属于数据可靠性要求，继续保留。
 - 旧实验可保留为独立性能对照和历史证据，不接入生产代码作为兼容路径。
 
-## 当前实际目录
+## 当前实现与目录
 
-以下路径相对于 Astraeon 项目根目录。
+主场景已接入原生地形、原有角色控制与动画、左键挖掘和右键放置石块。每 30 秒自动保存，关闭窗口等待保存。尚无背包扣除、掉落物、水体模拟或玩家位置存档。
 
-| 内容 | 路径 |
-|---|---|
-| 已解压并应用圆形范围补丁的 C++ 源码 | `tmp/voxel-circular-build/godot_voxel-75d3c6d996ed2331c80edcd8c3ebc947afc0f041/` |
-| 独立基准工程中安装的 GDExtension | `benchmarks/voxelgame/project/addons/zylann.voxel/` |
-| voxelgame 示例工程 | `benchmarks/voxelgame/project/` |
-| 已纳入版本控制的本地补丁 | `tools/voxel_patches/horizontal_circle.patch` |
-| 固定版本的本机构建脚本 | `tools/build_voxel_circular.py` |
+| 内容 | 目录 |
+| --- | --- |
+| 可编辑 Voxel Tools 源码 | `native/voxel_tools/` |
+| 项目 C++ 生成器、存档、预测 viewer | `native/voxel_tools/astraeon/` |
+| 固定 godot-cpp 源码 | `native/deps/godot-cpp/` |
+| 固定依赖与本地修改记录 | `native/dependency_lock.json` |
+| 主工程扩展 | `addons/zylann.voxel/` |
+| 世界编排与方块库 | `game/world/native/` |
+| 构建与短测 | `tools/build_native_voxel.py`、`tools/test_native_voxel.py` |
+| 测试驱动 | `tests/native_world/` |
 
-当前固定的上游源码提交为 `75d3c6d996ed2331c80edcd8c3ebc947afc0f041`。插件目录主要包含扩展描述、二进制和许可证，不是完整 C++ 开发源码目录。
+上游 Voxel Tools 提交 `75d3c6d996ed2331c80edcd8c3ebc947afc0f041`，godot-cpp 提交 `b4ce22a76b56bb5f734a5161d6105eb4b8d1021d`。构建在 `tmp/native-build/` 进行，不覆盖可编辑源码。嵌套基准工程仍仅用于独立对照。
 
-**当前源码在临时构建目录中，不适合作为长期二次开发工作区。**现有构建脚本每次从固定版本压缩包恢复源文件，再应用补丁；直接编辑该目录可能被下次构建覆盖。正式开发应先建立受版本管理的持久源码目录或固定版本的 fork，并调整构建入口。此步骤尚未执行。
+## 原生实现
 
-重点阅读源码中的 `storage/`、`meshers/`、`terrain/fixed_lod/`、`engine/`、`util/tasks/`、`streams/` 与 `generators/`。保留上游许可证和来源记录，沿用上游 C++ 风格。
+- `AstraeonNativeGenerator` 直接填充原生 TYPE 通道，提供平原、沙漠、山地、海洋。固定六种方块：air、stone、dirt、grass、sand、water。支持自然噪声与测试条带布局、可配置种子，世界高度 [-64,192)，海平面 32，仅支持 LOD0。
+- 复用 `VoxelTerrain`、`VoxelMesherBlocky` 的原生存储、网格、碰撞与任务系统。不保留 GDScript 体素镜像；单次交互调用原生编辑接口。必要的原生保存快照仍存在。
+- 默认水平圆形半径 64、垂直半径 32；可视与碰撞 viewer 分开，碰撞水平半径 32。出生点必须取得真实物理射线命中后才能移动。
+- `AstraeonPrefetchViewer` 请求前方数据，不额外请求网格/碰撞。预测时间 0.75 秒、水平偏移上限 48；停止、反向及大于 128 体素的位移重置预测。世界属性 `prediction_enabled` 可开关比较。
+- 保留上游过期任务取消；同优先级任务改为 FIFO，避免连续保存排序反转。主线程分散任务预算默认 3ms，是软预算，单个任务和其他主线程工作仍可能超时。
+- 生成、读写计数和累计微秒通过 `get_metrics()` 获取。状态查询使用独立锁，避免主线程等待磁盘 I/O 锁；计数器使用原子变量。读写耗时包含方法中的锁等待和 I/O，不包含进入方法前的任务排队。
 
-## 迁移与验证边界
+## 当前存档格式
 
-1. 建立持久源码工作区和可复现构建，保留已有水平圆形范围补丁；分别验证编辑器与游戏导出所需扩展。
-2. 通过区域级接口接入当前方块定义与状态映射，实现四类地形生成；验证负坐标、生成确定性和编辑后数据一致性。
-3. 验证后台网格输入准备、任务取消、优先级、提交预算，以及高速移动时的前方预加载和碰撞就绪。
-4. 按版本化、稳定状态标识、可恢复写入原则实现当前保存格式；不提供旧 GDScript 实验存档的兼容读取或转换。
-5. 用同种子、同地形、同视距、同画面和碰撞设置比较运行时结果；记录请求到可见延迟、队列增长、前方缺失距离和 P99 帧时间。旧原生测试与新实验参数不同，不能直接用 FPS 证明迁移收益。
+游戏目录 `user://worlds/native_prototype/`。每个 Region 覆盖 4×4×4 个 16³ 区段，文件名为负坐标安全的 `rx_ry_rz.avr`。64 字节头严格匹配格式版本 1、生成版本 1、种子、布局及固定方块键表。元数据在 Region 第一次被访问时校验，不支持旧格式猜测、转换或回退。
 
-已有实验结果见 [综合测试报告](world_suite_results_20260917.md) 和 [原生圆形加载报告](voxelgame_circular_performance_20260913.md)。不自动将旧实验中获胜的内存布局或编码方案认定为原生实现的最佳方案。
+每区段两条固定位置记录，各 8208 字节，包含序号、体素数、保留字段、8192 字节 little-endian UInt16 TYPE 数据与 CRC32。读取校验两条记录并选最新有效副本；写入较旧副本，fflush 与操作系统持久化调用成功后才记为完成。最新副本损坏可恢复上一完整记录；双副本均坏或头部损坏则明确报错，不允许重新生成覆盖玩家修改。
+
+双副本和无压缩优先满足固定地址读取，文件较大。空槽可形成空洞，测试中的逻辑文件长度不等于实际磁盘分配量。首版每条记录独立落盘，尚无批量落盘、Region 缓存或多进程同时写同一世界的支持。首次创建文件的头部未完整落盘时将拒绝读取；不能恢复一个从未完整创建的文件。
+
+关闭窗口停止角色移动，等待流式与生成任务稳定空闲，再等待显式保存 tracker，并检查原生错误。失败或 60 秒超时留在游戏显示错误，不显示保存成功。编辑器的强制停止不等价于游戏窗口的正常关闭流程。
+
+## 构建与验证
+
+需要 Windows x64、MSVC C++ 工具链、Python、Godot 4.7 stable；SCons 固定为 4.10.1。无本机缓存时构建工具会通过 pip 安装到项目 tmp。
+
+```powershell
+python tools/build_native_voxel.py --target editor --install
+python tools/build_native_voxel.py --target template_release --install
+python tools/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe"
+```
+
+不要同时运行两个构建命令。DLL 不入库，新检出先构建再打开编辑器。日志、源码和 DLL 指纹位于 `tmp/native-build/`。安装文件名带内容哈希，描述文件仅指向当前构建，不提供旧版本回退。已打开的编辑器仍映射旧 DLL，重启后更新原生 API；新游戏进程使用当前描述文件的 DLL。
+
+短测执行合约检查及四次图形运行：预加载关/开 × 新地图/重读，覆盖 16/32/64 体素每秒、直行、反向、转向、传送。输出 P50/P95/P99/最大帧时、近处网格与真实碰撞采样、任务队列峰值、生成/读写累计耗时和文件大小。结果在 `tmp/native-probe/`，归档见 [首版接入结果](native_voxel_results_20260918.md)。
+
+短测不替代持续压力测试、逐请求到可见延迟追踪、连续碰撞覆盖证明、断电测试或导出包验收。没有确定最终最优存储/预加载方案；旧基准参数不同，不能直接以 FPS 声称迁移收益倍数。

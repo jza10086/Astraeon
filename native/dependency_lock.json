@@ -1,0 +1,22 @@
+{
+  "voxel_tools": {
+    "upstream": "https://github.com/Zylann/godot_voxel",
+    "commit": "75d3c6d996ed2331c80edcd8c3ebc947afc0f041",
+    "source": "voxel_tools",
+    "local_patch": "tools/voxel_patches/horizontal_circle.patch"
+  },
+  "godot_cpp": {
+    "upstream": "https://github.com/godotengine/godot-cpp",
+    "commit": "b4ce22a76b56bb5f734a5161d6105eb4b8d1021d",
+    "source": "deps/godot-cpp"
+  },
+  "scons_version": "4.10.1",
+  "engine": "4.7.stable",
+  "bootstrap": "Copied existing pinned source trees, including the Astraeon circular streaming patch; future builds must not restore or overwrite this workspace.",
+  "project_changes": [
+    "astraeon native generator and current region stream",
+    "directional data-only prefetch viewer",
+    "FIFO task priority ties",
+    "3 ms main-thread commit budget"
+  ]
+}
