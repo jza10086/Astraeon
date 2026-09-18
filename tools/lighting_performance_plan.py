@@ -13,7 +13,9 @@ PRIORS = {"ao_enabled":"极低", "fog_enabled":"极低", "direct_enabled":"中",
 
 def properties() -> dict:
     text = (LAB / "lighting_profile.gd").read_text(encoding="utf-8")
-    labels = dict(re.findall(r'&"(\w+)": "([^"\n]+)"', (LAB / "settings_panel.gd").read_text(encoding="utf-8")))
+    panel = (LAB / "settings_panel.gd").read_text(encoding="utf-8")
+    label_block = panel.split("var labels: Dictionary[StringName, String] = {", 1)[1].split("var tips:", 1)[0]
+    labels = dict(re.findall(r'&"(\w+)": "([^"\n]+)"', label_block))
     result = {}
     for hint, key, typ, raw in re.findall(r'^(@export[^\n]*?) var (\w+): (\w+) = ([^\n]+)', text, re.M):
         if typ == "Color":

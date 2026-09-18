@@ -15,6 +15,7 @@ var current_lamps: int = -1
 var camera_origin: Vector3
 var camera_target: Vector3
 var failed: bool = false
+var completed_pairs: int = 0
 var segment_serial: int = 0
 var edit_pending: bool = false
 var edit_started: int = 0
@@ -44,8 +45,9 @@ func _initialize() -> void:
 func _elapsed() -> float:
 	return (Time.get_ticks_usec() - started_usec) / 1000000.0
 
-func _expired(limit: float = 3480.0) -> bool:
-	return failed or _elapsed() >= limit
+func _expired(limit: float = -1.0) -> bool:
+	var deadline: float = float(plan.stop_sampling_seconds) if limit < 0.0 else limit
+	return failed or _elapsed() >= deadline
 
 func _log(record: Dictionary) -> void:
 	record["elapsed_seconds"] = _elapsed()
@@ -223,21 +225,26 @@ func _capture(job: Dictionary, state: String, round_index: int, seconds: float) 
 
 func _pair(job: Dictionary, round_index: int) -> bool:
 	var records: Array[Dictionary] = []
-	var order: Array[String] = ["A","B","B","A"] if round_index == 0 else ["B","A","A","B"]
+	var order: Array[String] = ["A","B","B","A"]
+	if round_index != 0: order.assign(["B","A","A","B"])
 	for state: String in order:
 		if _expired(): return false
 		if not await _prepare(job,state):
 			_log({"event":"skipped","case":job.id,"reason":"convergence timeout or budget"})
 			return true
 		records.append(await _capture(job,state,round_index,float(plan.sample_seconds)))
-	if records.size() < 4 or records.any(func(r: Dictionary) -> bool: return r.is_empty()): return false
-	var ref_indices: Array[int] = [0,3] if round_index == 0 else [1,2]
-	var test_indices: Array[int] = [1,2] if round_index == 0 else [0,3]
+	if records.size() < 4 or records.any(func(r: Dictionary) -> bool: return r.is_empty() or not r.get("complete",false)): return false
+	var ref_indices: Array[int] = [0,3]
+	var test_indices: Array[int] = [1,2]
+	if round_index != 0:
+		ref_indices.assign([1,2])
+		test_indices.assign([0,3])
 	var a0: float = records[ref_indices[0]].frame_median
 	var a1: float = records[ref_indices[1]].frame_median
 	var delta0: float = records[test_indices[0]].frame_median-a0
 	var delta1: float = records[test_indices[1]].frame_median-a1
 	var drift: float = absf(a1-a0)/maxf(a0,0.001)
+	completed_pairs += 1
 	_log({"event":"pair","case":job.id,"round":round_index,"baseline_drift":drift,
 		"delta_ms":[delta0,delta1]})
 	return drift > 0.05 or delta0*delta1 < 0.0 or absf(delta0-delta1) > 0.15
@@ -284,10 +291,21 @@ func _run() -> void:
 		if _expired(float(plan.primary_deadline_seconds)): break
 		if root.size != Vector2i(1920,1080) or not root.has_focus():
 			_log({"event":"fatal","reason":"window resized or lost focus"}); failed = true; break
-		if await _pair(job,0): retry.append(job)
+		var before: int = completed_pairs
+		var needs_retry: bool = await _pair(job,0)
+		if completed_pairs == before and not _expired():
+			failed = true
+			_log({"event":"fatal", "reason":"pair returned without complete samples", "case":job.id})
+			break
+		if needs_retry or bool(plan.get("force_retry",false)): retry.append(job)
 	for job: Dictionary in retry:
 		if _expired(float(plan.retry_deadline_seconds)): break
+		var before: int = completed_pairs
 		await _pair(job,1)
+		if completed_pairs == before and not _expired():
+			failed = true
+			_log({"event":"fatal", "reason":"retry returned without complete samples", "case":job.id})
+			break
 	# Two explicitly labelled sustained combinations; no claim of full thermal equilibrium.
 	for cap: int in [0,120]:
 		if _expired(float(plan.stop_sampling_seconds)-65): break
@@ -296,7 +314,8 @@ func _run() -> void:
 			"water_enabled":true,"water_reflection_mode":2,"shadows_enabled":true,"clouds_enabled":true,
 			"avatar_visible":true,"avatar_animate":true,"max_fps":cap},true)}
 		if await _prepare(combo,"A"): await _capture(combo,"A",0,float(plan.sustained_seconds))
-	_log({"event":"finish","failed":failed,"deadline_reached":_elapsed()>=float(plan.primary_deadline_seconds)})
+	if completed_pairs == 0: failed = true
+	_log({"event":"finish","completed_pairs":completed_pairs,"failed":failed,"deadline_reached":_elapsed()>=float(plan.primary_deadline_seconds)})
 	drive = false
 	sample.queue_free()
 	await process_frame

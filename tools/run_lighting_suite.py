@@ -64,6 +64,7 @@ class Telemetry:
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--smoke',action='store_true',help='Short validation; requires --run to execute')
     parser.add_argument('--run',action='store_true',help='Explicitly authorize a real rendering run')
     parser.add_argument('--godot',help='Godot 4.7 stable executable')
     parser.add_argument('--gpu',default='0',help='nvidia-smi GPU index or UUID; must match rendered adapter')
@@ -76,9 +77,24 @@ def main():
         if not folder.is_relative_to((ROOT/'tmp').resolve()):parser.error('Report directory must be under checkout/tmp')
         write_report(folder);print(folder/'report.md');return
     plan=make_plan()
+    if args.smoke:
+        cases=plan['cases']
+        selected=[]
+        predicates=[lambda c:c['key']=='ao_enabled',
+                    lambda c:c['key']=='water_reflection_mode' and c['b']==2,
+                    lambda c:c['key']=='clouds_enabled',
+                    lambda c:c['key']=='local_lighting_mode' and c['b']==4 and c['lamps']==16,
+                    lambda c:c['key']=='work_cells' and c['kind']=='edit_place',
+                    lambda c:c['key']=='work_cells' and c['kind']=='edit_remove']
+        for predicate in predicates:selected.append(next(c for c in cases if predicate(c)))
+        plan.update(cases=selected,initial_warm_seconds=10,settle_seconds=0.5,sample_seconds=1.5,
+                    primary_deadline_seconds=180,retry_deadline_seconds=300,stop_sampling_seconds=330,
+                    hard_stop_seconds=360,sustained_seconds=2,force_retry=True,mode='smoke')
+        plan['coverage']={k:[c['id'] for c in selected if c['key']==k] for k in plan['properties']}
+        plan['nominal_primary_seconds']=10+8*len(selected)
     print(f"1080p | {len(plan['properties'])} exported settings | {len(plan['cases'])} paired comparisons")
-    print(f"Nominal first pass {plan['nominal_primary_seconds']/60:.1f} min; primary cutoff 49 min; retry cutoff 54 min; sampling cutoff 58 min; process watchdog 59 min.")
-    print('ABBA per comparison: 1.5 s stabilization + 3 s capture per segment. Main schemes and first probe of each field precede extra sweep points. Partial coverage reported explicitly.')
+    print(f"Nominal first pass {plan['nominal_primary_seconds']/60:.1f} min; deadlines primary/retry/sample/process: {plan['primary_deadline_seconds']}/{plan['retry_deadline_seconds']}/{plan['stop_sampling_seconds']}/{plan['hard_stop_seconds']} seconds")
+    print(f"ABBA per comparison: {plan['settle_seconds']} s stabilization + {plan['sample_seconds']} s capture per segment; smoke={args.smoke}")
     if not args.run:
         print('PLAN ONLY: no files, engine, telemetry or benchmark started. Use --run only after authorization.')
         return
@@ -100,9 +116,18 @@ def main():
         telemetry.start()
         with (folder/'process.log').open('w',encoding='utf-8') as log:
             proc=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,cwd=ROOT,creationflags=CREATE_HIDDEN)
-            try:metadata['exit_code']=proc.wait(timeout=3540)
-            except subprocess.TimeoutExpired:
-                metadata['watchdog']='59 minute process deadline';proc.kill();proc.wait();metadata['exit_code']=124
+            try:
+                deadline=time.monotonic()+plan['hard_stop_seconds']
+                with (folder/'process.log').open(encoding='utf-8',errors='replace') as monitor:
+                    while proc.poll() is None:
+                        new=monitor.read()
+                        if any(token in new for token in ('SCRIPT ERROR','SHADER ERROR','ERROR:')):
+                            metadata['abort_reason']='Runtime error detected; terminated immediately'
+                            proc.terminate();proc.wait(timeout=10);break
+                        if time.monotonic()>=deadline:
+                            metadata['watchdog']='Process deadline';proc.kill();proc.wait();break
+                        time.sleep(0.5)
+                metadata['exit_code']=proc.returncode
             except KeyboardInterrupt:
                 interrupted=True;proc.terminate();proc.wait(timeout=10);metadata['exit_code']=130
     finally:
@@ -114,7 +139,20 @@ def main():
         for name in ('process.log','godot.log'):
             if (folder/name).exists():
                 errors.extend(line for line in (folder/name).read_text(encoding='utf-8',errors='replace').splitlines() if any(token in line for token in ('SCRIPT ERROR','SHADER ERROR','ERROR:')))
-        metadata['errors']=errors
+        metadata['errors']=list(dict.fromkeys(errors))
+        event_file=folder/'events.jsonl'
+        records=[]
+        if event_file.exists():
+            for line in event_file.read_text(encoding='utf-8').splitlines():
+                try:records.append(json.loads(line))
+                except json.JSONDecodeError:pass
+        pairs=[r for r in records if r.get('event')=='pair']
+        finish=next((r for r in reversed(records) if r.get('event')=='finish'),{})
+        metadata['completed_pairs']=len(pairs)
+        metadata['validation_ok']=bool(pairs) and bool(finish) and not finish.get('failed',True) and not metadata['errors']
+        if args.smoke:
+            metadata['validation_ok']=metadata['validation_ok'] and len(pairs)==2*len(plan['cases'])
+        if not metadata['validation_ok'] and metadata.get('exit_code')==0:metadata['exit_code']=1
         (folder/'host.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
         # Recover completed segments even if the driver was interrupted or crashed.
         write_report(folder)
