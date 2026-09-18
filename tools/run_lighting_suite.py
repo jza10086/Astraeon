@@ -65,18 +65,32 @@ class Telemetry:
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--smoke',action='store_true',help='Short validation; requires --run to execute')
+    parser.add_argument('--cases',nargs='+',help='Run only these current case IDs; omit sustained combinations')
     parser.add_argument('--run',action='store_true',help='Explicitly authorize a real rendering run')
     parser.add_argument('--godot',help='Godot 4.7 stable executable')
     parser.add_argument('--gpu',default='0',help='nvidia-smi GPU index or UUID; must match rendered adapter')
     parser.add_argument('--output',type=Path,help='New result directory under this checkout/tmp')
     parser.add_argument('--report-only',type=Path,help='Generate report from existing current-format results, without running Godot')
     args=parser.parse_args()
+    if args.cases and (args.smoke or args.report_only):parser.error('--cases cannot be combined with --smoke or --report-only')
     if args.report_only:
         if args.run:parser.error('--report-only and --run are mutually exclusive')
         folder=args.report_only.resolve()
         if not folder.is_relative_to((ROOT/'tmp').resolve()):parser.error('Report directory must be under checkout/tmp')
         write_report(folder);print(folder/'report.md');return
     plan=make_plan()
+    if args.cases:
+        requested=set(args.cases)
+        unknown=requested-{c['id'] for c in plan['cases']}
+        if unknown:parser.error('Unknown current case IDs: '+', '.join(sorted(unknown)))
+        selected=[c for c in plan['cases'] if c['id'] in requested]
+        primary=180+24*len(selected)+120
+        retry=primary+24*len(selected)
+        plan.update(cases=selected,mode='selected',sustained_seconds=0,
+                    primary_deadline_seconds=primary,retry_deadline_seconds=retry,
+                    stop_sampling_seconds=retry+30,hard_stop_seconds=retry+90,
+                    budget_seconds=retry+150,nominal_primary_seconds=180+18*len(selected))
+        plan['coverage']={k:[c['id'] for c in selected if c['key']==k] for k in plan['properties']}
     if args.smoke:
         cases=plan['cases']
         selected=[]
@@ -152,6 +166,8 @@ def main():
         metadata['validation_ok']=bool(pairs) and bool(finish) and not finish.get('failed',True) and not metadata['errors']
         if args.smoke:
             metadata['validation_ok']=metadata['validation_ok'] and len(pairs)==2*len(plan['cases'])
+        if args.cases:
+            metadata['validation_ok']=metadata['validation_ok'] and {r['case'] for r in pairs if r['round']==0}=={c['id'] for c in plan['cases']}
         if not metadata['validation_ok'] and metadata.get('exit_code')==0:metadata['exit_code']=1
         (folder/'host.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
         # Recover completed segments even if the driver was interrupted or crashed.

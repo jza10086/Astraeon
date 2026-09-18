@@ -15,6 +15,9 @@ python tools/run_lighting_suite.py
 # 短时实际验证：6 个用例强制 ABBA + BAAB，另含两个短组合
 python tools/run_lighting_suite.py --run --smoke
 
+# 指定当前用例 ID 补测：保留预热与 ABBA/必要 BAAB，省略持续组合
+python tools/run_lighting_suite.py --run --cases c126 c127
+
 # 等用户另行授权后使用：真实运行，目标约 50–60 分钟
 python tools/run_lighting_suite.py --run
 
@@ -26,6 +29,8 @@ python tools/run_lighting_suite.py --report-only tmp/lighting-cost-YYYYMMDD-HHMM
 ```
 
 需要 Python 3.10+ 标准库与项目当前 Godot 4.7 stable、已导入的嵌套工程和 Voxel Tools 二进制。入口不会自动导入、下载引擎或安装分析工具。若缺少依赖，停止并保留错误记录。测试前关闭该嵌套工程的编辑器，不同时执行其他性能任务。
+
+`--cases` 仅选择当前矩阵中的 ID，不改变该用例配置；不存在的 ID 直接报错，不与 `--smoke` 或 `--report-only` 混用。选定用例的首轮必须全部产生完整配对，否则本次运行判为失败。结果写入新目录，不跨运行合并原始帧或复测差值；结合旧结果评价时需标明来源和热状态。补测保留 180 秒预热、1.5 秒稳定、3 秒采样；按用例数缩小截止预算，并省略已完成的持续组合。默认不加 `--run` 仍只预览。
 
 ## 时间预算与顺序
 

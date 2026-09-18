@@ -308,6 +308,7 @@ func _run() -> void:
 			break
 	# Two explicitly labelled sustained combinations; no claim of full thermal equilibrium.
 	for cap: int in [0,120]:
+		if float(plan.sustained_seconds) <= 0.0: break
 		if _expired(float(plan.stop_sampling_seconds)-65): break
 		var combo: Dictionary = {"id":"combo-%d" % cap,"key":"max_fps","a":cap,"b":cap,
 			"scene":"water_close","lamps":16,"kind":"sustained","settings":plan.base.merged({

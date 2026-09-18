@@ -142,7 +142,7 @@ def write_report(folder: Path):
           '60 秒组合仅做持续表现抽查，不足以宣称整机已达到热平衡。', '', '## 参数覆盖','', '| 设置 | 已完成对照／规划对照 | 状态 |','|---|---:|---|']
     for key,ids in manifest['coverage'].items():
         count=sum(i in completed for i in ids)
-        status=manifest['policies'].get(key,'完成' if count==len(ids) else '部分完成／待测')
+        status=manifest['policies'].get(key,'本轮未选择' if not ids else ('完成' if count==len(ids) else '部分完成／待测'))
         out.append(f"| {safe(manifest['properties'][key]['label'])} `{key}` | {count}／{len(ids)} | {status} |")
     out+=['','写实体积云：已删除，仅保留人工历史预判“中”，没有当前测量结果。','',f"用例完成 {len(completed)}／{len(manifest['cases'])}；未采集内容不会用历史数值补齐。"]
     (folder/'report.md').write_text('\n'.join(out)+'\n',encoding='utf-8')
