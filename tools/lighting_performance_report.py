@@ -131,7 +131,8 @@ def write_report(folder: Path):
         elif min(gpu_diffs)<=0<=max(gpu_diffs) or abs(g)<=max(.03,(max(gpu_diffs)-min(gpu_diffs))/2) or drift>.05 or clock_drift:gpu_grade='待定'
         title=manifest['properties'][case['key']]
         def value(v):return title['titles'][v] if title['titles'] and isinstance(v,int) else str(v)
-        out.append(f"| {safe(case['name'])} `{case['id']}` | {safe(value(case['a']))} → {safe(value(case['b']))} | {case['scene']}／{case['lamps']} | {a_fps:.1f} | {b_fps:.1f} | {b_fps-a_fps:+.1f}／{(b_fps/a_fps-1)*100:+.1f}% | {d:+.3f} [{min(diffs):+.3f}, {max(diffs):+.3f}] | {fmt(g)} | {fmt(med(delta('update')))} | {fmt(med(delta('render_cpu')))} | {fmt(med(delta('p99')))} | {grade}／{gpu_grade} | {verdict} | {safe(case['prior'])} |")
+        lamps=f"{case['a']}→{case['b']}" if case['kind']=='cardinality' else str(case['lamps'])
+        out.append(f"| {safe(case['name'])} `{case['id']}` | {safe(value(case['a']))} → {safe(value(case['b']))} | {case['scene']}／{lamps} | {a_fps:.1f} | {b_fps:.1f} | {b_fps-a_fps:+.1f}／{(b_fps/a_fps-1)*100:+.1f}% | {d:+.3f} [{min(diffs):+.3f}, {max(diffs):+.3f}] | {fmt(g)} | {fmt(med(delta('update')))} | {fmt(med(delta('render_cpu')))} | {fmt(med(delta('p99')))} | {grade}／{gpu_grade} | {verdict} | {safe(case['prior'])} |")
         details.append(dict(case=case['id'],delta_frame_ms=d,delta_gpu_estimate_ms=g,grade=grade,gpu_grade=gpu_grade,verdict=verdict))
     out+=['','评级：极低 <0.10ms；低 <0.50ms；中 <1.00ms；高 <2.50ms；极高 ≥2.50ms。负值记为改善。噪声或明显漂移时不强行评级。','',
           '## 更新、编辑与组合','', '| 用例 | 类型／状态 | FPS | P95／P99 ms | >8.33ms帧% | >11.11ms帧% | >16.67ms帧% | 编辑提交／完成 ms | 反射捕捉 Hz | GPU温度／频率／功耗 |','|---|---|---:|---|---:|---:|---:|---|---:|---|']
