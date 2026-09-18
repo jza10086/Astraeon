@@ -47,6 +47,13 @@ def main():
     WORK.mkdir(parents=True, exist_ok=True)
     (ROOT / "tmp/.gdignore").touch()
     source_hash = stage(ROOT / "native/voxel_tools", WORK / "voxel_tools")
+    module_hashes = {}
+    project_sources = []
+    for native_dir in sorted((ROOT / "game").glob("*/native")):
+        module = native_dir.parent.name
+        module_hashes[module] = stage(native_dir, WORK / "voxel_tools/astraeon" / module)
+        project_sources += ["astraeon/" + module + "/" + path.relative_to(native_dir).as_posix() for path in sorted(native_dir.rglob("*.cpp"))]
+    (WORK / "voxel_tools/astraeon_sources.json").write_text(json.dumps(project_sources), encoding="utf8")
     cpp_hash = stage(ROOT / "native/deps/godot-cpp", WORK / "godot-cpp")
     packages = ROOT / "tmp/voxel-circular-build/python"
     if not (packages / "SCons").exists():
@@ -58,7 +65,7 @@ def main():
     with log_path.open("w", encoding="utf8") as log:
         subprocess.run(command, cwd=WORK / "voxel_tools", env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     binary = WORK / "voxel_tools/project/addons/zylann.voxel/bin" / ("libvoxel.windows." + args.target + ".x86_64.dll")
-    manifest = {"source_sha256": source_hash, "godot_cpp_sha256": cpp_hash, "command": command, "sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "dependencies": json.loads((ROOT / "native/dependency_lock.json").read_text(encoding="utf-8-sig"))}
+    manifest = {"project_module_sha256": module_hashes, "source_sha256": source_hash, "godot_cpp_sha256": cpp_hash, "command": command, "sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "dependencies": json.loads((ROOT / "native/dependency_lock.json").read_text(encoding="utf-8-sig"))}
     (WORK / (args.target + "_manifest.json")).write_text(json.dumps(manifest, indent=2), encoding="utf8")
     if args.install:
         addon = ROOT / "addons/zylann.voxel"

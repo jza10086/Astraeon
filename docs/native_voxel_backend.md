@@ -27,11 +27,11 @@
 | 内容 | 目录 |
 | --- | --- |
 | 可编辑 Voxel Tools 源码 | `native/voxel_tools/` |
-| 项目 C++ 生成器、存档、预测 viewer | `native/voxel_tools/astraeon/` |
+| 项目 C++ 生成器、存档、预测 viewer | `game/world/native/` |
 | 固定 godot-cpp 源码 | `native/deps/godot-cpp/` |
 | 固定依赖与本地修改记录 | `native/dependency_lock.json` |
 | 主工程扩展 | `addons/zylann.voxel/` |
-| 世界编排与方块库 | `game/world/native/` |
+| 世界编排与方块库 | `game/world/gdscript/`、`game/world/resources/` |
 | 构建与短测 | `tools/build_native_voxel.py`、`tools/test_native_voxel.py` |
 | 测试驱动 | `tests/native_world/` |
 
@@ -71,3 +71,5 @@ python tools/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_
 短测执行合约检查及四次图形运行：预加载关/开 × 新地图/重读，覆盖 16/32/64 体素每秒、直行、反向、转向、传送。输出 P50/P95/P99/最大帧时、近处网格与真实碰撞采样、任务队列峰值、生成/读写累计耗时和文件大小。结果在 `tmp/native-probe/`，归档见 [首版接入结果](native_voxel_results_20260918.md)。
 
 短测不替代持续压力测试、逐请求到可见延迟追踪、连续碰撞覆盖证明、断电测试或导出包验收。没有确定最终最优存储/预加载方案；旧基准参数不同，不能直接以 FPS 声称迁移收益倍数。
+
+项目 C++ 已按功能放入 game/world/native；上游代码留在 native。构建清单从 game/*/native 生成。完整规范见 project_structure.md 与根 AGENTS.md。统一测试迁移目标为 test/，现有测试尚待模块 agent 迁移。

@@ -1,6 +1,6 @@
 #include "astraeon_native_stream.h"
-#include "../storage/voxel_buffer.h"
-#include "../util/godot/core/class_db.h"
+#include "storage/voxel_buffer.h"
+#include "util/godot/core/class_db.h"
 #include <godot_cpp/classes/project_settings.hpp>
 #include <array>
 #include <cstdio>

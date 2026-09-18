@@ -3,7 +3,7 @@ Godot 4.7 体素生存建造游戏。
 
 ## 当前状态
 已初始化开发环境：MCP 编辑器插件、Codex 配置、项目技能、开发规范、功能目录和 F5 可启动的原生体素主场景。
-静态方块 Resource 类型与编辑示例位于 `game/data/blocks/`，尚未接入原生注册表。旧 GDScript 体素后端及专属测试已删除，仅保留历史测试报告。模块与目录规划见 [项目结构](docs/project_structure.md)。
+静态方块 Resource 类型与编辑示例位于 `game/data/blocks/gdscript/` 与 `resources/`，尚未接入原生注册表。旧 GDScript 体素后端及专属测试已删除，仅保留历史测试报告。模块与目录规划见 [项目结构](docs/project_structure.md)。
 主场景已接入玩家实体：WASD 移动、鼠标观察、空格跳跃、碰撞和 HK416 的 Idle/Run/Jump 动画。主场景现使用 C++ 原生四生物群系地形，支持左键挖掘、右键放置石块和地形保存；尚未接入背包、玩家状态存档或生存规则。第三人称测试相机不代表最终游戏视角。模块说明见 [角色实体](docs/character_entities.md)，资产交付约定见 [模型约定](docs/character_asset_contract.md)。
 历史地图实验的实现与专属运行器已删除；历史记录见 [综合测试报告](docs/world_suite_results_20260917.md)。当前世界仅使用 C++ 后端。
 
@@ -22,9 +22,9 @@ Godot 4.7 体素生存建造游戏。
 
 ## 目录
 - game/core/：应用入口与场景组装。
-- game/world/、player/、survival/、inventory/、building/、crafting/、ui/：按功能组织场景、脚本和专用资源。
+- game/data/、world/、entities/、shading/、gameplay/、ui/：按功能组织；GDScript 与项目 C++ 分别位于模块内 gdscript/、native/。
 - shared/、autoload/、assets/：实际需要的共享代码、全局服务和共享资源。
-- addons/：第三方插件；tests/：后续功能测试；docs/：设计和环境文档。
+- addons/：第三方插件；test/：统一测试目标目录（现有测试由模块 agent 后续迁移）；docs/：设计和环境文档。
 - .agents/skills/：项目内技能；.codex/config.toml 和 .mcp.json：MCP 客户端配置。
 - tools/：开发脚本；tmp/：Git 忽略且 Godot 不导入的临时输出。
 

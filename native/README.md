@@ -1,3 +1,3 @@
-# Astraeon native voxel backend
+# Native dependencies
 
-Editable, version-controlled Voxel Tools source with the existing circular streaming patch. Project C++ additions belong in voxel_tools/astraeon/. godot-cpp is pinned under deps/. Build outputs belong in tmp/native-build; do not overwrite these sources from downloaded archives.
+Pinned upstream Voxel Tools and godot-cpp sources live here. Project-authored C++ belongs in game/<module>/native/. The build stages those modules into tmp/native-build and compiles the explicit source manifest into the same extension. Keep upstream integration patches here; do not restore downloaded archives over editable sources.

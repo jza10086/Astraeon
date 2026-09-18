@@ -92,7 +92,11 @@ configure_warnings(env)
 is_editor_build = (env["target"] == "editor")
 
 sources = common.get_sources(env, is_editor_build)
-sources += Glob("astraeon/*.cpp")
+# Project files are staged from game/<module>/native; the manifest is the only source list.
+import json
+with open("astraeon_sources.json", encoding="utf8") as project_sources:
+    sources += json.load(project_sources)
+env.Append(CPPPATH=["#"])
 
 if env["voxel_sqlite"]:
     # TODO Enhancement: the way SQLite is integrated should not be duplicated between Godot and GodotCpp targets.

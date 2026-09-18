@@ -1,5 +1,5 @@
 #pragma once
-#include "../terrain/voxel_viewer.h"
+#include "terrain/voxel_viewer.h"
 namespace zylann::voxel {
 // Attach to the player. This viewer requests data ahead; visual/collision viewers stay at the player.
 class AstraeonPrefetchViewer : public VoxelViewer {

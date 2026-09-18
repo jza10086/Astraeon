@@ -21,7 +21,7 @@
 
 ## 当前 HK416
 源目录 F:/AstraBlender/Projects/HK416_Voxel。
-使用 HK416_Godot_Animated.glb 的不改动副本 game/entities/models/hk416.glb。
+使用 HK416_Godot_Animated.glb 的不改动副本 game/entities/player/assets/hk416.glb。
 已有 42 根骨骼、1 个蒙皮网格、27 个材质表面；文档标注高 1.8 米。
 Idle 2.4 秒循环、Run 0.8 秒循环、Jump 1.2 秒单次。动画及骨架本轮不修改。
 Run 参考移动速度约 1.1 m/s，初版控制器采用此速度。

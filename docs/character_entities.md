@@ -1,10 +1,10 @@
 # 玩家与生物实体初版
 
 本轮只实现可控制玩家，不含生物 AI、感知、寻路、战斗或持久化。
-- game/entities/character_motor.gd：共享 CharacterBody3D 运动组件，接受世界空间移动意图与单次跳跃请求，由拥有者每物理帧调用 step。
-- game/entities/character_visual.gd：独立动画与模型朝向，接受实际运动状态。
-- game/player/player_controller.gd：玩家输入、临时第三人称相机、掉出世界复位。
-- game/player/player.tscn：可复用玩家场景，@export 引用连接组件。
+- game/entities/common/gdscript/character_motor.gd：共享 CharacterBody3D 运动组件，接受世界空间移动意图与单次跳跃请求，由拥有者每物理帧调用 step。
+- game/entities/common/gdscript/character_visual.gd：独立动画与模型朝向，接受实际运动状态。
+- game/entities/player/gdscript/player_controller.gd：玩家输入、临时第三人称相机、掉出世界复位。
+- game/entities/player/scenes/player.tscn：可复用玩家场景，@export 引用连接组件。
 - game/core/main.tscn：F5 可运行固定碰撞试验场，不依赖地图实验方案。
 
 操作：WASD 移动，鼠标转相机，空格跳跃，Esc 释放鼠标，左键重新捕获。

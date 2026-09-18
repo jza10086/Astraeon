@@ -1,6 +1,6 @@
 #include "astraeon_native_generator.h"
-#include "../thirdparty/fast_noise/FastNoiseLite.h"
-#include "../util/godot/core/class_db.h"
+#include "thirdparty/fast_noise/FastNoiseLite.h"
+#include "util/godot/core/class_db.h"
 #include <algorithm>
 #include <cmath>
 #include <chrono>

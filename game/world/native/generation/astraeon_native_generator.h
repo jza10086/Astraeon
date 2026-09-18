@@ -1,7 +1,7 @@
 #pragma once
-#include "../generators/voxel_generator.h"
-#include "../storage/voxel_buffer.h"
-#include "../util/thread/rw_lock.h"
+#include "generators/voxel_generator.h"
+#include "storage/voxel_buffer.h"
+#include "util/thread/rw_lock.h"
 #include <atomic>
 
 namespace zylann::voxel {

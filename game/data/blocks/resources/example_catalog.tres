@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="AstraeonBlockCatalog" load_steps=11 format=3]
 
-[ext_resource type="Script" path="res://game/data/blocks/block_catalog.gd" id="1"]
-[ext_resource type="Script" path="res://game/data/blocks/block_definition.gd" id="2"]
-[ext_resource type="Script" path="res://game/data/blocks/block_state_definition.gd" id="3"]
+[ext_resource type="Script" path="res://game/data/blocks/gdscript/block_catalog.gd" id="1"]
+[ext_resource type="Script" path="res://game/data/blocks/gdscript/block_definition.gd" id="2"]
+[ext_resource type="Script" path="res://game/data/blocks/gdscript/block_state_definition.gd" id="3"]
 
 [sub_resource type="Resource" id="Air"]
 script = ExtResource("2")

@@ -1,6 +1,6 @@
-#include "astraeon/astraeon_prefetch_viewer.h"
-#include "astraeon/astraeon_native_stream.h"
-#include "astraeon/astraeon_native_generator.h"
+#include "astraeon/world/streaming/astraeon_prefetch_viewer.h"
+#include "astraeon/world/persistence/astraeon_native_stream.h"
+#include "astraeon/world/generation/astraeon_native_generator.h"
 #ifdef ZN_GODOT
 // Module specific
 #include "register_types.h"

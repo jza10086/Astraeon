@@ -1,5 +1,5 @@
 #include "astraeon_prefetch_viewer.h"
-#include "../util/godot/core/class_db.h"
+#include "util/godot/core/class_db.h"
 #include <algorithm>
 namespace zylann::voxel {
 AstraeonPrefetchViewer::AstraeonPrefetchViewer() {

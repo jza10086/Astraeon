@@ -2,7 +2,7 @@
 
 ## Scope and priorities
 - Build an indie-scale 3D voxel survival and building game. Complete small playable loops before expanding systems.
-- Use simple, direct implementations and feature-oriented folders. Avoid speculative frameworks and premature optimization. See docs/project_structure.md for the proposed module layout; only its explicitly completed moves are implemented.
+- Use simple, direct implementations and feature-oriented folders. Avoid speculative frameworks and premature optimization. Follow the current module layout in docs/project_structure.md and the directory rules below.
 - The project is in the prototype stage. Maintain only the current contract: do not retain or add backward-compatibility aliases, adapters, legacy branches, old-format readers, version-range fallbacks, or migration converters. Update callers, assets, tests, and documentation together when a contract changes; reject unsupported save/config formats explicitly. Historical benchmarks may remain isolated as comparison evidence, never as production compatibility paths. Recoverable writes within the current format remain required.
 - Treat the current README and implemented features as the source of project status. Camera perspective, voxel representation, world limits, multiplayer, and progression require explicit design decisions; update these rules as decisions are approved.
 - Do not import GodotParty activities, its SDK, party-game rules, player limits, or networking assumptions.
@@ -23,6 +23,16 @@
 - Discover only needed MCP groups and reset them after the task.
 - Repository rules override generic companion-skill advice. Maintain project-specific adaptations in .agents/skills/; preserve the upstream copies under addons/godot_mcp_toolkit/CompanionSkills/.
 - Vendored third-party code is exempt from project-authored style rules. New project-authored extensions, including those under addons/, follow explicit typing and naming rules.
+
+## Modules and directories
+- Organize production code by function under game/: data, world, entities, shading, gameplay, core, and ui. Use shading as the module name; do not introduce a lighting module or compatibility alias.
+- Put project-authored C++ in game/<module>/native/ and GDScript in the nearby gdscript/ directory. Split large modules into feature subdirectories first (for example entities/player/gdscript/). Keep scenes/, resources/, assets/, and shaders/ with the owning feature; do not mix .cpp/.h files with GDScript or put native implementations in a global project-code bucket.
+- Current world native features are game/world/native/generation/, persistence/, and streaming/. Native directories carry .gdignore. The build stages game/*/native into tmp and compiles an explicit current source manifest into the existing Voxel Tools GDExtension; never compile old staged sources by a broad fallback glob.
+- Keep upstream Voxel Tools and godot-cpp sources under native/voxel_tools/ and native/deps/godot-cpp/. Upstream integration patches remain there; standalone project features belong in game/<module>/native/. Build outputs belong in tmp/ and deployed binaries in addons/zylann.voxel/bin/ (ignored by Git).
+- data owns static authoring definitions; world owns authoritative voxel state, generation, streaming, meshing/collision and persistence; entities owns instance behavior and animation; shading owns rendering/environment effects; gameplay owns interaction and game rules; core assembles modules and ui presents them. Share static templates read-only, and do not create a second authoritative voxel mirror.
+- The root test/ directory, alongside game/, is the target for ALL test-purpose content: test code, test scenes, demonstrations, benchmarks, fixtures, test-only assets/resources, runners and versioned reports. Group it by module (test/world, test/entities, test/shading, etc.), separating native/ and gdscript/ when both are needed. Disposable logs, generated worlds, transient results and binaries still go to tmp/.
+- test/ has only been established and documented in this change. Existing tests/, benchmarks/ and other test-only content will be migrated by the agent responsible for each module at the user's direction; do not perform that bulk migration as part of this production-folder cleanup. No legacy path aliases or duplicate compatibility copies.
+- Preserve resource UID and import settings when moving files; update scene/script references, build source manifests, active documentation and tests together. Avoid speculative empty feature directories.
 
 ## Language boundaries and scenes
 - Use C++ with Voxel Tools GDExtension as the approved production voxel backend; see docs/native_voxel_backend.md. Use GDScript for gameplay orchestration, UI, scene integration, and test drivers. In GDScript, never use :=; explicitly type variables, arguments, return values, signals, arrays, and dictionaries where supported.

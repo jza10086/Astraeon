@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b8qtjk5jryhqb"
-path="res://.godot/imported/hk416.glb-3238e7446117e6dfe705d858075cf710.scn"
+path="res://.godot/imported/hk416.glb-33f89c85d53c1b63036bf2f37fa3256d.scn"
 
 [deps]
 
-source_file="res://game/entities/models/hk416.glb"
-dest_files=["res://.godot/imported/hk416.glb-3238e7446117e6dfe705d858075cf710.scn"]
+source_file="res://game/entities/player/assets/hk416.glb"
+dest_files=["res://.godot/imported/hk416.glb-33f89c85d53c1b63036bf2f37fa3256d.scn"]
 
 [params]
 

@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://epv58epfjwno"]
 
-[ext_resource type="Script" uid="uid://c7mkp8wmtf5s1" path="res://game/world/native/native_world.gd" id="1_3ytb3"]
-[ext_resource type="VoxelBlockyLibrary" uid="uid://dgbd5du2gbny0" path="res://game/world/native/block_library.tres" id="2_alrnb"]
-[ext_resource type="PackedScene" uid="uid://c31qulq3dcjsp" path="res://game/player/player.tscn" id="Player"]
+[ext_resource type="Script" uid="uid://c7mkp8wmtf5s1" path="res://game/world/gdscript/native_world.gd" id="1_3ytb3"]
+[ext_resource type="VoxelBlockyLibrary" uid="uid://dgbd5du2gbny0" path="res://game/world/resources/block_library.tres" id="2_alrnb"]
+[ext_resource type="PackedScene" uid="uid://c31qulq3dcjsp" path="res://game/entities/player/scenes/player.tscn" id="Player"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1

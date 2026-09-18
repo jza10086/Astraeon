@@ -1,5 +1,5 @@
 #pragma once
-#include "../streams/voxel_stream.h"
+#include "streams/voxel_stream.h"
 #include <mutex>
 #include <atomic>
 #include <string>
