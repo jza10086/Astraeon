@@ -44,7 +44,7 @@ func _run() -> void:
     while not tracker.is_complete() and Time.get_ticks_msec() < deadline:
         await process_frame
     var reader: AstraeonNativeStream = AstraeonNativeStream.new()
-    reader.open_world(world.get("world_directory"), int(world.get("seed")), 1)
+    reader.open_world(world.get("world_directory"), int(world.get("seed")), 1, (world.get("content") as AstraeonWorldContent).state_keys)
     var stored: VoxelBuffer = VoxelBuffer.new()
     stored.create(16, 16, 16)
     var section: Vector3i = Vector3i(floori(anchor.x / 16.0), floori(anchor.y / 16.0), floori(anchor.z / 16.0))
@@ -100,7 +100,7 @@ func _follow_surface(player: CharacterMotor) -> void:
     generator.generate_block(column, Vector3(floorf(player.position.x), -64, floorf(player.position.z)), 0)
     for y: int in range(255, -1, -1):
         var block: int = column.get_voxel(0, y, 0)
-        if block != 0 and block != 5:
+        if block == (world.get("content") as AstraeonWorldContent).grass_id or block == (world.get("content") as AstraeonWorldContent).dirt_id:
             player.position.y = y - 64 + 2.0
             return
 

@@ -3,8 +3,8 @@ Godot 4.7 体素生存建造游戏。
 
 ## 当前状态
 已初始化开发环境：MCP 编辑器插件、Codex 配置、项目技能、开发规范、功能目录和 F5 可启动的原生体素主场景。
-静态方块 Resource 类型与编辑示例位于 `game/data/block/gdscript/` 与 `resources/`，已关联 game/shading/blocks 下的共享外观 Resource（六面材质、标准朝向、自发光及独立光源描述），尚未接入原生注册表或渲染；见 [方块材质规格](docs/voxel_chunks.md#方块属性与材质契约)。旧 GDScript 体素后端及专属测试已删除，仅保留历史测试报告。模块与目录规划见 [项目结构](docs/project_structure.md)。
-主场景已接入玩家实体：WASD 移动、鼠标观察、空格跳跃、碰撞和 HK416 的 Idle/Run/Jump 动画。主场景现使用 C++ 原生四生物群系地形，支持左键挖掘、右键放置石块和地形保存；尚未接入背包、玩家状态存档或生存规则。第三人称测试相机不代表最终游戏视角。模块说明见 [角色实体](docs/character_entities.md)，资产交付约定见 [模型约定](docs/character_asset_contract.md)。
+静态方块 Resource 类型与编辑示例位于 `game/data/block/gdscript/` 与 `resources/`，已关联 game/shading/blocks 下的共享外观 Resource（六面材质、标准朝向、自发光及独立光源描述），正式目录已接入原生生成与基础渲染，编辑示例不参与注册；见 [方块材质规格](docs/voxel_chunks.md#方块属性与材质契约)。旧 GDScript 体素后端及专属测试已删除，仅保留历史测试报告。模块与目录规划见 [项目结构](docs/project_structure.md)。
+主场景已接入玩家实体：WASD 移动、鼠标观察、空格跳跃、碰撞和 HK416 的 Idle/Run/Jump 动画。主场景现使用 C++ 原生四生物群系地形，支持左键挖掘、右键放置泥土和地形保存；尚未接入背包、玩家状态存档或生存规则。第三人称测试相机不代表最终游戏视角。模块说明见 [角色实体](docs/character_entities.md)，资产交付约定见 [模型约定](docs/character_asset_contract.md)。
 历史地图实验的实现与专属运行器已删除；历史记录见 [综合测试报告](docs/world_suite_results_20260917.md)。当前世界仅使用 C++ 后端。
 
 生产体素底层已确定采用 **C++／Voxel Tools GDExtension 二次开发**，GDScript 用于玩法编排、UI、场景接入和测试驱动。首版原生生成、网格/碰撞、预测预加载与双副本 Region 保存已接入主场景；旧 GDScript 实验已删除，仅保留历史测量资料。源码位置和职责见 [C++ 体素底层](docs/native_voxel_backend.md)。
@@ -56,3 +56,5 @@ Godot 4.7 体素生存建造游戏。
 最新设置界面采用一级分类和二级模块菜单，方案切换仅显示有效参数；方块自发光倍率已修复，写实简化体积云已删除。当前配置不读取旧格式。见 [设置菜单与自发光修正](test/shader/reports/lighting_settings_menu_20260918.md)。
 
 1080p 光影设置成本测试已完成首轮及附加档位补测：分别耗时 56 分 8 秒、8 分 4 秒，覆盖 98 个可评级设置、166/166 对照用例，累计 18 组复测。测试期间存在温控限频，多数细小差异仍为待定，详见 [结果与完整表格](test/shader/reports/lighting_performance_results_20260918.md)。脚本默认仅预览，矩阵、指标、时间预算及启动方式见 [光影性能测试方案](test/shader/reports/lighting_performance_suite.md)。
+
+当前地图使用平原、森林、河流、海洋生成版本 2，正式 data/block 与 data/fluid 目录已接入原生生成、共享外观编译和存档校验。详见 [地图生成](docs/world_generation.md)。

@@ -17,8 +17,8 @@
 
 ## 已批准的方块材质设计
 
-方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；现有光影样板与原生世界渲染尚未接入这些资源。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
+方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/block_library_builder.gd 接入当前纯色不透明方块及三轴朝向；独立光影样板尚未改接，其他贴图/发光等效果仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
 
 验证：Godot 4.7 headless 执行 `--script res://test/shader/gdscript/test_block_appearance.gd`，360 项检查通过。测试不包含图形或性能验收。
 
-独立水体材质资源已实现于 water/，提供默认资源、校验及参数接口，后续接入边界见 [水体材质说明](water/README.md)。当前样板与正式世界尚未改接。
+独立水体材质资源已实现于 water/，提供默认资源、校验及参数接口，后续接入边界见 [水体材质说明](water/README.md)。正式世界已接入统一水色回退；独立样板尚未改接，动态水面效果仍待实现。

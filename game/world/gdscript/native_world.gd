@@ -3,10 +3,12 @@ extends Node3D
 @export var player: CharacterMotor
 @export var camera: Camera3D
 @export var controller: Node
-@export var block_library: VoxelBlockyLibrary
+@export var block_catalog: AstraeonBlockCatalog
+@export var water_definition: AstraeonFluidDefinition
+var content: AstraeonWorldContent
 @export var seed: int = 20260916
 @export var biome_layout: int = 0
-@export var world_directory: String = "user://worlds/native_prototype"
+@export var world_directory: String = "user://worlds/landscape_v2"
 @export var horizontal_distance: int = 64
 @export var vertical_distance: int = 32
 @export var prediction_enabled: bool = true
@@ -21,25 +23,31 @@ var _elapsed: float = 0.0
 var _autosave_elapsed: float = 0.0
 
 func _ready() -> void:
-    if player == null or camera == null or controller == null or block_library == null:
-        push_error("NativeWorld requires player, camera, controller and block library.")
+    if player == null or camera == null or controller == null or block_catalog == null or water_definition == null:
+        push_error("NativeWorld requires player, camera, controller and content definitions.")
         set_process(false)
         return
     controller.set_physics_process(false)
     get_tree().auto_accept_quit = false
     _status = get_node("Overlay/Layout/Content/Subtitle") as Label
     _status.text = "Loading native terrain..."
+    content = AstraeonWorldContent.new()
+    if not content.build(block_catalog, water_definition):
+        _status.text = "Invalid world content definitions"
+        return
     generator = AstraeonNativeGenerator.new()
+    if not generator.configure_content(content.state_keys):
+        _status.text = "Missing required generator content"
+        return
     generator.seed = seed
     generator.biome_layout = biome_layout
     stream = AstraeonNativeStream.new()
-    if not stream.open_world(world_directory, seed, biome_layout):
+    if not stream.open_world(world_directory, seed, biome_layout, content.state_keys):
         _status.text = stream.get_last_error()
         return
     stream.save_generator_output = true
     var mesher: VoxelMesherBlocky = VoxelMesherBlocky.new()
-    block_library.bake()
-    mesher.library = block_library
+    mesher.library = content.library
     terrain = VoxelTerrain.new()
     terrain.name = "Terrain"
     terrain.generator = generator
@@ -59,7 +67,7 @@ func _ready() -> void:
     generator.generate_block(column, Vector3(0, -64, 3), 0)
     for y: int in range(255, -1, -1):
         var block: int = column.get_voxel(0, y, 0)
-        if block != 0 and block != 5:
+        if block == content.grass_id or block == content.dirt_id:
             player.position = Vector3(0.5, y - 64 + 2.0, 3.5)
             break
     controller.set("respawn_position", player.position)
@@ -129,7 +137,7 @@ func _unhandled_input(event: InputEvent) -> void:
         var player_box: AABB = AABB(player.position - Vector3(0.35, 0.0, 0.35), Vector3(0.7, 1.8, 0.7))
         if block_box.intersects(player_box):
             return
-    voxel_tool.set_voxel(position_in_voxels, 0 if event.is_action_pressed("mine_block") else 1)
+    voxel_tool.set_voxel(position_in_voxels, 0 if event.is_action_pressed("mine_block") else content.dirt_id)
     get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:

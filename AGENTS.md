@@ -35,7 +35,7 @@
 - Preserve resource UID and import settings when moving files; update scene/script references, build source manifests, active documentation and tests together. Avoid speculative empty feature directories.
 
 ## Block appearance contract
-- Follow docs/voxel_chunks.md for the approved 1-unit (1-meter) block and material design. BlockAppearance, BlockSurface, and BlockLightAppearance are implemented shared authoring Resources owned by shading, read-only by consumer contract; native rendering integration is still pending.
+- Follow docs/voxel_chunks.md for the approved 1-unit (1-meter) block and material design. BlockAppearance, BlockSurface, and BlockLightAppearance are implemented shared authoring Resources owned by shading, read-only by consumer contract; native rendering consumes the current opaque solid-color block subset and uniform-color water fallback; other appearance features remain pending.
 - Static logic definitions reference appearance resources. World/gameplay own instance coordinates, current orientation, and mining state; shading must not duplicate these authoritative states or mutate shared templates for per-instance changes.
 - Keep surface emission independent from surrounding illumination. Block canonical axes are up +Y, front -Z, right +X; apply authoring correction before instance orientation, including faces, normals, and light offsets. This does not override character asset axes.
 - Compile shared appearances for batched rendering; never create a Resource, Material, or light node per production voxel. Lighting schemes and budgets remain global rendering policy; visual transparency does not implicitly set logical light opacity or collision.

@@ -1,7 +1,8 @@
 [gd_scene format=3 uid="uid://epv58epfjwno"]
 
 [ext_resource type="Script" uid="uid://c7mkp8wmtf5s1" path="res://game/world/gdscript/native_world.gd" id="1_3ytb3"]
-[ext_resource type="VoxelBlockyLibrary" uid="uid://dgbd5du2gbny0" path="res://game/world/resources/block_library.tres" id="2_alrnb"]
+[ext_resource type="Resource" path="res://game/data/block/resources/block_catalog.tres" id="2_alrnb"]
+[ext_resource type="Resource" path="res://game/data/fluid/resources/astraeon_water.tres" id="Water"]
 [ext_resource type="PackedScene" uid="uid://c31qulq3dcjsp" path="res://game/entities/player/scenes/player.tscn" id="Player"]
 
 [sub_resource type="Environment" id="Environment_main"]
@@ -17,7 +18,8 @@ script = ExtResource("1_3ytb3")
 player = NodePath("Player")
 camera = NodePath("Player/CameraPivot/SpringArm/Camera")
 controller = NodePath("Player/Controller")
-block_library = ExtResource("2_alrnb")
+block_catalog = ExtResource("2_alrnb")
+water_definition = ExtResource("Water")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1951898018]
 environment = SubResource("Environment_main")

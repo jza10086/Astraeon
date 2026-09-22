@@ -14,7 +14,7 @@
 #endif
 namespace zylann::voxel {
 namespace {
-constexpr size_t HEADER = 64, RECORD = 8208;
+constexpr size_t HEADER = 128, RECORD = 8208;
 using Record = std::array<unsigned char, RECORD>;
 uint32_t crc(const unsigned char *data, size_t size) {
     uint32_t c = 0xffffffffu;
@@ -47,9 +47,17 @@ int floor4(int v) { return v >= 0 ? v / 4 : (v + 1) / 4 - 1; }
 bool valid(const Record &r) { return get32(r.data()) != 0 && get32(r.data() + 4) == 4096 && get32(r.data() + RECORD - 4) == crc(r.data(), RECORD - 4); }
 bool empty(const Record &r) { for (auto v : r) if (v) return false; return true; }
 }
-bool AstraeonNativeStream::open_world(String directory, int seed, int biome_layout) {
+bool AstraeonNativeStream::open_world(String directory, int seed, int biome_layout, PackedStringArray state_keys) {
     std::lock_guard<std::mutex> guard(_mutex);
     if (!_directory.empty()) { fail("A stream cannot be reopened; create a new stream."); return false; }
+    if (biome_layout < 0 || biome_layout > 1 || state_keys.size() < 2 || state_keys.size() > 65536 || state_keys[0] != "astraeon_air/default") { fail("Invalid content table or layout."); return false; }
+    String encoded;
+    for (int i = 0; i < state_keys.size(); ++i) {
+        if (state_keys[i].is_empty() || state_keys[i].contains("\n")) { fail("Invalid state key."); return false; }
+        for (int j = 0; j < i; ++j) if (state_keys[i] == state_keys[j]) { fail("Duplicate state key."); return false; }
+        encoded += state_keys[i] + "\n";
+    }
+    _state_hash = encoded.sha256_text(); _state_count = state_keys.size();
     const String absolute = ::godot::ProjectSettings::get_singleton()->globalize_path(directory);
     std::error_code ec;
     const auto path = std::filesystem::u8path(absolute.utf8().get_data());
@@ -91,12 +99,12 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
     struct Close { FILE *f; ~Close() { fclose(f); } } close{file};
     std::array<unsigned char, HEADER> expected{};
     memcpy(expected.data(), "ASTRAEON", 8);
-    put32(expected.data()+8, 1); // Exact format version.
-    put32(expected.data()+12, 1); // Exact generator version.
+    put32(expected.data()+8, 2); // Exact format version.
+    put32(expected.data()+12, 2); // Exact generator version.
     put32(expected.data()+16, uint32_t(_seed));
-    put32(expected.data()+52, uint32_t(_biome_layout));
-    constexpr char block_keys[] = "air;stone;dirt;grass;sand;water";
-    memcpy(expected.data()+20, block_keys, sizeof(block_keys) - 1);
+    put32(expected.data()+20, uint32_t(_biome_layout));
+    put32(expected.data()+24, uint32_t(_state_count));
+    memcpy(expected.data()+32, _state_hash.utf8().get_data(), 64);
     if (!exists) {
         if (fwrite(expected.data(), 1, HEADER, file) != HEADER || !sync_file(file)) { fail("Region header write failed."); return; }
     } else {
@@ -120,7 +128,7 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
         for (int z = 0; z < 16; ++z) for (int x = 0; x < 16; ++x) for (int y = 0; y < 16; ++y) {
             const size_t i = 12 + 2 * (y + 16 * (x + 16 * z));
             const unsigned value = unsigned(record[i]) | (unsigned(record[i+1]) << 8);
-            if (value > 5) { fail("Section contains an unsupported block ID."); return; }
+            if (value >= uint64_t(_state_count)) { fail("Section contains an unsupported block ID."); return; }
             q.voxel_buffer.set_voxel(value, x, y, z, VoxelBuffer::CHANNEL_TYPE);
         }
         q.voxel_buffer.compress_uniform_channels(); ++_loaded; q.result = RESULT_BLOCK_FOUND; return;
@@ -131,7 +139,7 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
     put32(next.data(), sequence); put32(next.data()+4, 4096);
     for (int z = 0; z < 16; ++z) for (int x = 0; x < 16; ++x) for (int y = 0; y < 16; ++y) {
         const uint64_t value = q.voxel_buffer.get_voxel(x, y, z, VoxelBuffer::CHANNEL_TYPE);
-        if (value > 5) { fail("Cannot persist an unsupported block ID."); return; }
+        if (value >= uint64_t(_state_count)) { fail("Cannot persist an unsupported block ID."); return; }
         const size_t i = 12 + 2 * (y + 16 * (x + 16 * z));
         next[i] = static_cast<unsigned char>(value); next[i+1] = static_cast<unsigned char>(value >> 8);
     }
@@ -151,7 +159,7 @@ Dictionary AstraeonNativeStream::get_metrics() const {
 }
 void AstraeonNativeStream::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_metrics"), &AstraeonNativeStream::get_metrics);
-    ClassDB::bind_method(D_METHOD("open_world", "directory", "seed", "biome_layout"), &AstraeonNativeStream::open_world);
+    ClassDB::bind_method(D_METHOD("open_world", "directory", "seed", "biome_layout", "state_keys"), &AstraeonNativeStream::open_world);
     ClassDB::bind_method(D_METHOD("get_last_error"), &AstraeonNativeStream::get_last_error);
     ClassDB::bind_method(D_METHOD("get_saved_blocks"), &AstraeonNativeStream::get_saved_blocks);
     ClassDB::bind_method(D_METHOD("get_loaded_blocks"), &AstraeonNativeStream::get_loaded_blocks);

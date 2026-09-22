@@ -15,6 +15,9 @@ func buffer() -> VoxelBuffer:
 
 func _initialize() -> void:
     var generator: AstraeonNativeGenerator = AstraeonNativeGenerator.new()
+    var content: AstraeonWorldContent = AstraeonWorldContent.new()
+    expect(content.build(load("res://game/data/block/resources/block_catalog.tres"), load("res://game/data/fluid/resources/astraeon_water.tres")), "Build actual content")
+    expect(generator.configure_content(content.state_keys), "Configure generator IDs")
     generator.biome_layout = 1
     var a: VoxelBuffer = buffer()
     var b: VoxelBuffer = buffer()
@@ -26,7 +29,7 @@ func _initialize() -> void:
             for y: int in range(16):
                 identical = identical and a.get_voxel(x, y, z) == b.get_voxel(x, y, z)
     expect(identical, "Deterministic negative-coordinate generation")
-    for pair: Vector2i in [Vector2i(0, 3), Vector2i(320, 4), Vector2i(600, 3), Vector2i(850, 5)]:
+    for pair: Vector2i in [Vector2i(0, content.grass_id), Vector2i(640, content.water_id), Vector2i(850, content.water_id)]:
         var column: VoxelBuffer = VoxelBuffer.new()
         column.create(1, 256, 1)
         generator.generate_block(column, Vector3(pair.x, -64, 0), 0)
@@ -38,7 +41,7 @@ func _initialize() -> void:
         expect(top == pair.y, "Biome top at x=" + str(pair.x))
     var directory: String = "res://tmp/native-tests/" + str(Time.get_ticks_usec())
     var stream: AstraeonNativeStream = AstraeonNativeStream.new()
-    expect(stream.open_world(directory, 42, 0), "Open current world")
+    expect(stream.open_world(directory, 42, 0, content.state_keys), "Open current world")
     expect(stream.load_voxel_block(b, Vector3i(-1, -1, -1), 0) == VoxelStream.RESULT_BLOCK_NOT_FOUND, "Missing section")
     a.fill(1, 0)
     a.set_voxel(4, 15, 0, 15)
@@ -47,23 +50,23 @@ func _initialize() -> void:
     a.set_voxel(3, 15, 0, 15)
     stream.save_voxel_block(a, Vector3i(-1, -1, -1), 0)
     var reader: AstraeonNativeStream = AstraeonNativeStream.new()
-    expect(reader.open_world(directory, 42, 0), "Reopen world")
+    expect(reader.open_world(directory, 42, 0, content.state_keys), "Reopen world")
     expect(reader.load_voxel_block(b, Vector3i(-1, -1, -1), 0) == VoxelStream.RESULT_BLOCK_FOUND, "Reload section")
     expect(b.get_voxel(15, 0, 15) == 3, "Latest edit survives reload")
     var path: String = directory + "/-1_-1_-1.avr"
     var file: FileAccess = FileAccess.open(path, FileAccess.READ_WRITE)
-    file.seek(64 + 63 * 8208 * 2 + 8208 + 100)
+    file.seek(128 + 63 * 8208 * 2 + 8208 + 100)
     file.store_8(255)
     file.flush()
     file.close()
     expect(reader.load_voxel_block(b, Vector3i(-1, -1, -1), 0) == VoxelStream.RESULT_BLOCK_FOUND, "Recover older record after checksum failure")
     expect(b.get_voxel(15, 0, 15) == 4, "Recovered exact previous edit")
     var wrong_seed: AstraeonNativeStream = AstraeonNativeStream.new()
-    expect(wrong_seed.open_world(directory, 43, 0), "Open for metadata rejection check")
+    expect(wrong_seed.open_world(directory, 43, 0, content.state_keys), "Open for metadata rejection check")
     expect(wrong_seed.load_voxel_block(b, Vector3i(-1, -1, -1), 0) == VoxelStream.RESULT_ERROR, "Reject mismatching seed")
     expect(not wrong_seed.get_last_error().is_empty(), "Surface metadata error")
     file = FileAccess.open(path, FileAccess.READ_WRITE)
-    file.seek(64 + 63 * 8208 * 2 + 100)
+    file.seek(128 + 63 * 8208 * 2 + 100)
     file.store_8(255)
     file.close()
     expect(reader.load_voxel_block(b, Vector3i(-1, -1, -1), 0) == VoxelStream.RESULT_ERROR, "Reject both corrupt records")

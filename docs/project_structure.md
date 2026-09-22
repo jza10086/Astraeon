@@ -12,7 +12,7 @@ Astraeon/
 │  ├─ data/fluid/                       # 流体类型与静态水定义
 │  ├─ world/
 │  │  ├─ gdscript/native_world.gd        # 当前世界编排
-│  │  ├─ resources/block_library.tres    # 原生块外观库
+│  │  ├─ gdscript/world_content.gd      # 从正式定义构建共享 ID 与外观库
 │  │  └─ native/                        # .gdignore，仅项目 C++
 │  │     ├─ generation/
 │  │     ├─ persistence/
@@ -54,7 +54,7 @@ Astraeon/
 
 core 装配模块；gameplay 调用 world 和 entities；世界、实体和光影读取 data。加载决定哪些区段驻留，读取是 persistence 的磁盘操作；缺失才生成，损坏必须报错。世界数据是唯一权威源，网格/碰撞/光影都是派生内容。动画只消费实体状态，不直接决定地形修改或持久化。
 
-尚未实现的职责不等于已经独立组件化：当前挖掘/放置、简单提示仍在 native_world.gd 内，后续可提取到 gameplay/interaction/gdscript 与 ui/gdscript；本次未改变玩法行为。数据 Resource 示例尚未驱动原生注册表；光影正式接入仍待开发。只为已实现功能增加代码，不为目录完整预建空框架。
+尚未实现的职责不等于已经独立组件化：当前挖掘/放置、简单提示仍在 native_world.gd 内，后续可提取到 gameplay/interaction/gdscript 与 ui/gdscript；本次未改变玩法行为。正式数据目录已接入原生生成与基础外观编译；完整光影效果仍待开发。只为已实现功能增加代码，不为目录完整预建空框架。
 
 ## 同模块语言分层
 
@@ -82,8 +82,10 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 
 ## 已批准的方块外观边界
 
-材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。Resource 类型、校验和方向接口已实现于 game/shading/blocks，测试归入 test/shader；原生渲染接入和批量材质编译待实现。
+材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。Resource 类型、校验和方向接口已实现于 game/shading/blocks，测试归入 test/shader；纯色不透明方块和统一水色已接入启动期共享编译；其他外观特性仍待接入。
 
 ## 当前方块与流体数据
 
 静态定义使用 game/data/block 与 game/data/fluid，ID 为 astraeon_xxx。方块目录收录草、泥土、树叶、三轴木头，流体目录定义水；外观类型与共享材质仍归 shading。木头状态保存允许的旋转，世界实例只选择状态。具体入口和当前接入边界见 game/data/README.md。
+
+地图生成版本 2 及数据接入边界见 [地图生成](world_generation.md)。

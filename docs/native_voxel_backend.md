@@ -22,7 +22,7 @@
 
 ## 当前实现与目录
 
-主场景已接入原生地形、原有角色控制与动画、左键挖掘和右键放置石块。每 30 秒自动保存，关闭窗口等待保存。尚无背包扣除、掉落物、水体模拟或玩家位置存档。
+主场景已接入原生地形、原有角色控制与动画、左键挖掘和右键放置泥土。每 30 秒自动保存，关闭窗口等待保存。尚无背包扣除、掉落物、水体模拟或玩家位置存档。
 
 | 内容 | 目录 |
 | --- | --- |
@@ -31,7 +31,7 @@
 | 固定 godot-cpp 源码 | `native/deps/godot-cpp/` |
 | 固定依赖与本地修改记录 | `native/dependency_lock.json` |
 | 主工程扩展 | `addons/zylann.voxel/` |
-| 世界编排与方块库 | `game/world/gdscript/`、`game/world/resources/` |
+| 世界编排与方块库 | `game/world/gdscript/`、`game/data/block/`、`game/data/fluid/` |
 | 构建与短测 | `tools/build_native_voxel.py`、`tools/test_native_voxel.py` |
 | 测试驱动 | `tests/native_world/` |
 
@@ -39,7 +39,7 @@
 
 ## 原生实现
 
-- `AstraeonNativeGenerator` 直接填充原生 TYPE 通道，提供平原、沙漠、山地、海洋。固定六种方块：air、stone、dirt、grass、sand、water。支持自然噪声与测试条带布局、可配置种子，世界高度 [-64,192)，海平面 32，仅支持 LOD0。
+- `AstraeonNativeGenerator` 直接填充原生 TYPE 通道，提供平原、森林、河流、海洋。ID 从正式数据状态表解析，使用草、泥土、树叶、竖直木头与水；其他木头轴向也纳入渲染和保存表。支持自然噪声与测试条带布局、可配置种子，世界高度 [-64,192)，海平面 32，仅支持 LOD0。
 - 复用 `VoxelTerrain`、`VoxelMesherBlocky` 的原生存储、网格、碰撞与任务系统。不保留 GDScript 体素镜像；单次交互调用原生编辑接口。必要的原生保存快照仍存在。
 - 默认水平圆形半径 64、垂直半径 32；可视与碰撞 viewer 分开，碰撞水平半径 32。出生点必须取得真实物理射线命中后才能移动。
 - `AstraeonPrefetchViewer` 请求前方数据，不额外请求网格/碰撞。预测时间 0.75 秒、水平偏移上限 48；停止、反向及大于 128 体素的位移重置预测。世界属性 `prediction_enabled` 可开关比较。
@@ -48,7 +48,7 @@
 
 ## 当前存档格式
 
-游戏目录 `user://worlds/native_prototype/`。每个 Region 覆盖 4×4×4 个 16³ 区段，文件名为负坐标安全的 `rx_ry_rz.avr`。64 字节头严格匹配格式版本 1、生成版本 1、种子、布局及固定方块键表。元数据在 Region 第一次被访问时校验，不支持旧格式猜测、转换或回退。
+游戏目录 `user://worlds/landscape_v2/`。每个 Region 覆盖 4×4×4 个 16³ 区段，文件名为负坐标安全的 `rx_ry_rz.avr`。128 字节头严格匹配格式版本 2、生成版本 2、种子、布局、状态数与有序状态表 SHA-256。元数据在 Region 第一次被访问时校验，不支持旧格式猜测、转换或回退。
 
 每区段两条固定位置记录，各 8208 字节，包含序号、体素数、保留字段、8192 字节 little-endian UInt16 TYPE 数据与 CRC32。读取校验两条记录并选最新有效副本；写入较旧副本，fflush 与操作系统持久化调用成功后才记为完成。最新副本损坏可恢复上一完整记录；双副本均坏或头部损坏则明确报错，不允许重新生成覆盖玩家修改。
 
@@ -73,3 +73,7 @@ python tools/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_
 短测不替代持续压力测试、逐请求到可见延迟追踪、连续碰撞覆盖证明、断电测试或导出包验收。没有确定最终最优存储/预加载方案；旧基准参数不同，不能直接以 FPS 声称迁移收益倍数。
 
 项目 C++ 已按功能放入 game/world/native；上游代码留在 native。构建清单从 game/*/native 生成。完整规范见 project_structure.md 与根 AGENTS.md。统一测试迁移目标为 test/，现有测试尚待模块 agent 迁移。
+
+## 当前地图契约更新
+
+当前生成版本与存档格式均为 2，使用平原、森林、河流、海洋及正式数据目录。区域头部为 128 字节，状态表用 SHA-256 校验；文中引用的旧测量只作历史证据，当前行为见 [地图生成](world_generation.md)。

@@ -14,4 +14,4 @@
 
 状态 orientation 是允许状态的只读旋转模板，标准轴为上 +Y、前 -Z、右 +X。世界实例选择状态，渲染调用 appearance 的方向接口时传入该状态的 orientation，先应用 authoring_orientation 再应用状态旋转。不得修改共享模板。木头两端沿所选轴；正负轴对当前对称原木等价。普通方块 states 为空时使用隐式 default/单位旋转。
 
-本批数据尚未接入原生注册表、生成器、网格或存档；当前实际生效库仍为 `game/world/resources/block_library.tres`。`example_catalog.tres` 是既有编辑示例，不与正式目录合并注册。测试位于 `test/data/`，临时输出归 tmp；不迁移其他模块测试。详见 `../../docs/project_structure.md`。
+正式目录已由 WorldContent 在启动时编译为共享 ID 表和渲染库，并用于原生生成与存档校验。当前接入纯色方块与统一水色，详见 `../../docs/world_generation.md`。`example_catalog.tres` 是既有编辑示例，不与正式目录合并注册。测试位于 `test/data/`，临时输出归 tmp；不迁移其他模块测试。详见 `../../docs/project_structure.md`。
