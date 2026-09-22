@@ -121,3 +121,9 @@ r=16时选择812个水平区块列；原盒形为1024列，减少20.70%。这是
 针对性验证入口：`godot --headless --path benchmarks/voxelgame/project --script res://astraeon_benchmark/test_circular_loading.gd`（使用项目指定Godot 4.7）。实际原生数据集合与独立的圆盘加邻居集合逐段比较；覆盖负坐标、垂直移动、远距传送、上下边界、半径改变、碰撞标志切换及观察者移除。该检查不代替图形性能矩阵。
 
 实现入口：game/shading/blocks/gdscript；示例为同功能 resources/ 下的 stone.tres、lamp.tres、log.tres。校验调用 validate()，返回带字段上下文的错误列表，不修改或静默修正资源。字典键使用 Face 枚举 TOP/BOTTOM/FRONT/BACK/LEFT/RIGHT（0–5）；未覆盖的面使用 default_surface。UV 先镜像后绕中心旋转，面切线满足 U×V=外法线，法线贴图解码后的向量通过 face_tangent_basis() 变换；向量的绿色通道转换由具体贴图导入契约负责。
+
+## 水体材质资源
+
+已实现独立的 AstraeonWaterAppearance，位于 game/shading/water/gdscript，默认资源为同功能 resources/default_water.tres。它与普通方块表面资源并列，描述水色、每米吸收系数、透明度、粗糙度、高光、波纹强度/空间尺度/速度、天空与场景反射响应、水下颜色和距离。资源共享只读，不保存水位、体积边界、流动状态、相机状态或反射纹理。
+
+水材质提供 validate()、surface_parameters()、scene_reflection_parameters(planar) 供后续集成。全局光影配置继续拥有开关、渲染方案和质量预算；材质不自动开启 SSR、平面反射或水下效果。详细字段、参数映射及旧着色器测试池边界限制见 [水体材质说明](../game/shading/water/README.md)。资源层 49 项检查通过；正式世界和光影样板均尚未改接此资源。
