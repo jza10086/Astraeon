@@ -16,19 +16,33 @@ func configure(volume: Volume, parent: Node3D, texture: ImageTexture3D) -> void:
 	_volume = volume
 	_parent = parent
 	var models: Array[VoxelBlockyModel] = [VoxelBlockyModelEmpty.new()]
-	var colors: Array[Color] = [Color(0.58, 0.62, 0.65), Color(1.0, 0.72, 0.32), Color(0.55, 0.33, 0.15), Color(0.25, 0.48, 0.2)]
-	for i: int in range(colors.size()):
+	var catalog: AstraeonBlockCatalog = preload("res://test/shading/resources/blocks/catalog.tres")
+	var keys: Array[StringName] = [&"shading_test_stone", &"shading_test_lamp", &"shading_test_wood", &"shading_test_leaves"]
+	for i: int in range(keys.size()):
+		var definition: AstraeonBlockDefinition
+		for candidate: AstraeonBlockDefinition in catalog.definitions:
+			if candidate.key == keys[i]:
+				definition = candidate
+		assert(definition != null, "Missing shading fixture definition")
+		var model: VoxelBlockyModelCube = AstraeonBlockLibraryBuilder.build_block(definition, Basis.IDENTITY)
+		assert(model != null, "Invalid shading fixture appearance")
+		var compiled: ORMMaterial3D = model.get_material_override(0)
 		var material: ShaderMaterial = ShaderMaterial.new()
 		material.shader = PLANT_SHADER if i == 3 else LIGHT_SHADER
-		material.set_shader_parameter("base_color", colors[i])
+		material.set_shader_parameter("base_color", Color.WHITE)
+		material.set_shader_parameter("use_block_atlas", true)
+		material.set_shader_parameter("block_atlas", compiled.albedo_texture)
+		material.set_shader_parameter("block_cutout", definition.appearance.default_surface.alpha_mode == AstraeonBlockSurface.AlphaMode.CUTOUT)
+		material.set_shader_parameter("block_alpha_cutoff", definition.appearance.default_surface.alpha_cutoff)
 		material.set_shader_parameter("volume_origin", Vector3(volume.origin))
 		material.set_shader_parameter("volume_size", Vector3(volume.size))
 		material.set_shader_parameter("light_volume", texture)
-		material.set_shader_parameter("self_emission", 1.5 if i == 1 else 0.0)
+		material.set_shader_parameter("self_emission", definition.appearance.default_surface.emission_energy)
+		material.set_shader_parameter("material_roughness", definition.appearance.default_surface.roughness)
+		material.set_shader_parameter("material_specular", definition.appearance.default_surface.specular)
 		materials.append(material)
-		var model: VoxelBlockyModelCube = VoxelBlockyModelCube.new()
-		model.atlas_size_in_tiles = Vector2i.ONE
 		model.set_material_override(0, material)
+		# Lamp surfaces are drawn by the local-light fixture to avoid self-shadowing.
 		models.append(VoxelBlockyModelEmpty.new() if i == 1 else model)
 	var library: VoxelBlockyLibrary = VoxelBlockyLibrary.new()
 	library.models = models
@@ -70,13 +84,11 @@ func step() -> void:
 	var buffer: VoxelBuffer = VoxelBuffer.new()
 	buffer.create(extent, extent, extent)
 	var section_origin: Vector3i = section * 16
-	for z: int in range(extent):
-		for y: int in range(extent):
-			for x: int in range(extent):
-				var p: Vector3i = section_origin + Vector3i(x, y, z) - Vector3i.ONE * minimum
-				# Exterior faces remain visible; illumination still treats outside as unknown.
-				var value: int = _volume.voxel_at(p) if _volume.contains(p) else Volume.AIR
-				buffer.set_voxel(value, x, y, z, VoxelBuffer.CHANNEL_TYPE)
+	buffer.set_channel_depth(VoxelBuffer.CHANNEL_TYPE, VoxelBuffer.DEPTH_16_BIT)
+	var source_min: Vector3i = section_origin - Vector3i.ONE * minimum - _volume.origin
+	var clipped_min: Vector3i = source_min.max(Vector3i.ZERO)
+	var clipped_max: Vector3i = (source_min + Vector3i.ONE * extent).min(_volume.size)
+	buffer.copy_channel_from_area(_volume.voxels, clipped_min, clipped_max, clipped_min - source_min, VoxelBuffer.CHANNEL_TYPE)
 	var mesh: Mesh = _mesher.build_mesh(buffer, [])
 	if not _nodes.has(section):
 		var instance: MeshInstance3D = MeshInstance3D.new()

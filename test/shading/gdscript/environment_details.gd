@@ -17,6 +17,9 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 	for side: int in range(2):
 		var material: ShaderMaterial = ShaderMaterial.new()
 		material.shader = WATER_SHADER
+		var definition: AstraeonFluidDefinition = preload("res://test/shading/resources/blocks/shading_test_water.tres")
+		for parameter: StringName in definition.appearance.surface_parameters():
+			material.set_shader_parameter(parameter, definition.appearance.surface_parameters()[parameter])
 		water_materials.append(material)
 		var plane: PlaneMesh = PlaneMesh.new()
 		plane.size = Vector2(8, 16)

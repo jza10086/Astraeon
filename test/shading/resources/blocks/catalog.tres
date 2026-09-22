@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AstraeonBlockCatalog" format=3]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_catalog.gd" id="catalog"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
+[ext_resource type="Resource" path="res://test/shading/resources/blocks/shading_test_stone.tres" id="stone"]
+[ext_resource type="Resource" path="res://test/shading/resources/blocks/shading_test_lamp.tres" id="lamp"]
+[ext_resource type="Resource" path="res://test/shading/resources/blocks/shading_test_wood.tres" id="wood"]
+[ext_resource type="Resource" path="res://test/shading/resources/blocks/shading_test_leaves.tres" id="leaves"]
+[ext_resource type="Resource" path="res://test/shading/resources/blocks/shading_test_air.tres" id="air"]
+[resource]
+script = ExtResource("catalog")
+definitions = Array[ExtResource("definition")]([ExtResource("air"), ExtResource("stone"), ExtResource("lamp"), ExtResource("wood"), ExtResource("leaves")])

@@ -6,11 +6,18 @@ const STONE: int = 1
 const LAMP: int = 2
 const WOOD: int = 3
 const LEAVES: int = 4
+const STATE_KEYS: Array[StringName] = [&"shading_test_air", &"shading_test_stone", &"shading_test_lamp", &"shading_test_wood", &"shading_test_leaves"]
 const MAX_LIGHT: int = 15
 const DIRECTIONS: Array[Vector3i] = [Vector3i.LEFT, Vector3i.RIGHT, Vector3i.UP, Vector3i.DOWN, Vector3i.FORWARD, Vector3i.BACK]
 var origin: Vector3i
 var size: Vector3i
-var voxels: PackedByteArray = PackedByteArray()
+var voxels: VoxelBuffer = VoxelBuffer.new()
+
+func cell_count() -> int:
+	return size.x * size.y * size.z
+
+func voxel_by_index(index: int) -> int:
+	return voxels.get_voxel_v(position_of(index) - origin, VoxelBuffer.CHANNEL_TYPE)
 var sky: PackedByteArray = PackedByteArray()
 var block: PackedByteArray = PackedByteArray()
 var revision: int = 0
@@ -29,8 +36,8 @@ func configure(volume_origin: Vector3i, volume_size: Vector3i) -> void:
 	origin = volume_origin
 	size = volume_size
 	var count: int = size.x * size.y * size.z
-	voxels.resize(count)
-	voxels.fill(0)
+	voxels.create(size.x, size.y, size.z)
+	voxels.set_channel_depth(VoxelBuffer.CHANNEL_TYPE, VoxelBuffer.DEPTH_16_BIT)
 	sky.resize(count)
 	block.resize(count)
 	_direct.resize(count)
@@ -52,7 +59,7 @@ func position_of(index: int) -> Vector3i:
 func voxel_at(p: Vector3i) -> int:
 	if not contains(p):
 		return STONE # Unknown world never supplies light.
-	return voxels[index_of(p)]
+	return voxels.get_voxel_v(p - origin, VoxelBuffer.CHANNEL_TYPE)
 
 func light_at(p: Vector3i) -> Vector2i:
 	if not contains(p):
@@ -70,9 +77,9 @@ func apply_edits(edits: Dictionary[Vector3i, int]) -> Array[Vector3i]:
 		if not contains(p):
 			continue
 		var index: int = index_of(p)
-		if voxels[index] == value:
+		if voxel_by_index(index) == value:
 			continue
-		voxels[index] = value
+		voxels.set_voxel_v(value, p - origin, VoxelBuffer.CHANNEL_TYPE)
 		changed.append(p)
 		_columns[Vector2i(p.x, p.z)] = true
 		_enqueue(index)
@@ -94,8 +101,8 @@ func rebuild() -> void:
 		for x: int in range(origin.x, origin.x + size.x):
 			_columns[Vector2i(x, z)] = true
 	# Include emissive sources even when fully enclosed.
-	for index: int in range(voxels.size()):
-		if voxels[index] == LAMP:
+	for index: int in range(cell_count()):
+		if voxel_by_index(index) == LAMP:
 			_enqueue(index)
 	revision += 1
 	settled_revision = -1
@@ -127,8 +134,8 @@ func step(max_cells: int = 4096, budget_usec: int = 2000) -> bool:
 		_queued[index] = 0
 		var p: Vector3i = position_of(index)
 		var next_sky: int = _direct[index]
-		var next_block: int = MAX_LIGHT if voxels[index] == LAMP else 0
-		if voxels[index] == AIR:
+		var next_block: int = MAX_LIGHT if voxel_by_index(index) == LAMP else 0
+		if voxel_by_index(index) == AIR:
 			for direction: Vector3i in DIRECTIONS:
 				var neighbor: Vector3i = p + direction
 				if contains(neighbor):
@@ -158,7 +165,7 @@ func _refresh_column(column: Vector2i) -> void:
 	for y: int in range(origin.y + size.y - 1, origin.y - 1, -1):
 		var p: Vector3i = Vector3i(column.x, y, column.y)
 		var index: int = index_of(p)
-		if voxels[index] != AIR:
+		if voxel_by_index(index) != AIR:
 			open_sky = false
 		var value: int = MAX_LIGHT if open_sky else 0
 		if _direct[index] != value:
@@ -190,7 +197,7 @@ func make_images() -> Array[Image]:
 				var pixel: int = 4 * (x + size.x * y)
 				data[pixel] = sky[index] * 17
 				data[pixel + 1] = block[index] * 17
-				data[pixel + 2] = 255 if voxels[index] == AIR else 0
+				data[pixel + 2] = 255 if voxel_by_index(index) == AIR else 0
 				data[pixel + 3] = 255
 		images.append(Image.create_from_data(size.x, size.y, false, Image.FORMAT_RGBA8, data))
 	return images

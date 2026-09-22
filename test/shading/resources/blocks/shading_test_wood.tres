@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
+[sub_resource type="Resource" id="Surface"]
+script = ExtResource("surface")
+base_color = Color(0.55, 0.33, 0.15, 1)
+[sub_resource type="Resource" id="Appearance"]
+script = ExtResource("appearance")
+default_surface = SubResource("Surface")
+[resource]
+script = ExtResource("definition")
+key = &"shading_test_wood"
+display_name = "Shading test wood"
+appearance = SubResource("Appearance")

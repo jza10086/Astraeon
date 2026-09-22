@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AstraeonFluidDefinition" format=3]
+[ext_resource type="Script" path="res://game/data/fluid/gdscript/fluid_definition.gd" id="1"]
+[ext_resource type="Script" path="res://game/shading/water/gdscript/water_appearance.gd" id="2"]
+[sub_resource type="Resource" id="appearance"]
+script = ExtResource("2")
+[resource]
+script = ExtResource("1")
+key = &"shading_test_water"
+display_name = "Shading test water"
+appearance = SubResource("appearance")

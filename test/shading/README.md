@@ -82,3 +82,13 @@ Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script re
 - 屏幕光束依赖屏幕内的日月方向和不透明深度，不能代替真实体积遮挡；真实体积光可能出现时间累积拖影，需要人工调节。
 - 水面仍是固定平面，手持光只是视觉演示，没有火把物品、碰撞、背包或游戏规则。
 - 现有 P0 初始化、纹理打包，以及各新增 pass 的成本统一留到后续性能优化；不保证 120 FPS。
+
+## shading_sample 的主体接口接入
+
+保留房间、水池、地底走廊、树冠等固定布局。sample_world 使用原生 VoxelTool.do_box 批量填充；light_volume 的唯一方块存储改为 VoxelBuffer，光照数组是派生结果；section_meshes 使用原生区段批量复制和 VoxelMesherBlocky，并复用 AstraeonBlockLibraryBuilder 编译材质。样板光照求解与效果面板仍为测试实现，不属于正式流式世界的光照后端。
+
+独立定义位于 resources/blocks：shading_test_air、shading_test_stone、shading_test_lamp、shading_test_wood、shading_test_leaves；水单独使用 shading_test_water 流体定义。测试方块的外观子资源各自独立，仅棋盘纹理作为只读资产复用。它们不加入正式 block_catalog，不受正式世界 ID 前缀与生成角色约束。STATE_KEYS 显式对应缓冲内 0–4 的有限测试 ID，不是生产存档 ID。
+
+网格先经主体材质编译器生成共享图集，再由样板专用 ShaderMaterial 消费图集和体素光照纹理，以保留风动、AO、云影等开关。灯的表面仍由局部灯夹具绘制，避免自遮挡；测试 UI 可覆盖灯颜色/强度以及水面参数，原始资源保持只读。水池继续使用专用连续水面；草、彩色标杆、玻璃与金属展示物是效果夹具网格，不是体素方块。
+
+验证：原生存储光照一致性测试 61 项、实际 D3D12 场景检查 18 项通过。渲染检查覆盖原生网格完成、图集绑定、叶片裁剪、灯与窗口交互。截图 tmp/shading-native-sample/native-sample.png；未进行性能基准。GDScript 光照求解仍逐单元访问原生缓冲，后续性能优化需独立测量，当前不宣称无额外开销。

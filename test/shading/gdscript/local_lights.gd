@@ -14,10 +14,11 @@ func configure(volume: Volume) -> void:
 	_volume = volume
 	_material = ShaderMaterial.new()
 	_material.shader = preload("res://game/shading/shaders/lamp_surface.gdshader")
-	_material.set_shader_parameter("lamp_color", Color(1.0,0.72,0.32))
+	var definition: AstraeonBlockDefinition = preload("res://test/shading/resources/blocks/shading_test_lamp.tres")
+	_material.set_shader_parameter("lamp_color", definition.appearance.default_surface.emission_color)
 	var lamps: Array[Vector3i] = []
-	for index: int in range(volume.voxels.size()):
-		if volume.voxels[index] == Volume.LAMP:
+	for index: int in range(volume.cell_count()):
+		if volume.voxel_by_index(index) == Volume.LAMP:
 			lamps.append(volume.position_of(index))
 	sync_edits(lamps)
 

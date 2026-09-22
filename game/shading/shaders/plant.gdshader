@@ -1,5 +1,9 @@
 shader_type spatial;
 render_mode diffuse_lambert, cull_disabled;
+uniform bool use_block_atlas = false;
+uniform sampler2D block_atlas : source_color, filter_nearest, repeat_disable;
+uniform bool block_cutout = false;
+uniform float block_alpha_cutoff = 0.5;
 uniform sampler3D light_volume : filter_nearest, repeat_disable;
 uniform vec3 volume_origin;
 uniform vec3 volume_size;
@@ -42,6 +46,8 @@ void vertex() {
 
 #include "res://game/shading/shaders/reflection_clip.gdshaderinc"
 void fragment() {
+	vec4 block_texel = use_block_atlas ? texture(block_atlas, UV) : vec4(1.0);
+	if (block_cutout && block_texel.a < block_alpha_cutoff) discard;
 	if ((CAMERA_VISIBLE_LAYERS & 524288u) != 0u && !reflection_plants) discard;
 	if (reflection_clipped(world_position, CAMERA_VISIBLE_LAYERS)) discard;
 	vec2 p = abs(UV - vec2(0.5));
@@ -59,9 +65,10 @@ void fragment() {
 		? smooth_surface_light(world_position, normalize(world_normal)) : illumination;
 	float indirect = filtered.g;
 	float ambient = pow(max(mix(illumination.r, filtered.r, ambient_smoothing), 0.0), ambient_curve) * ambient_strength;
-	float edge = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
+	vec2 face_uv = use_block_atlas ? vec2(fract(UV.x * 6.0), UV.y) : UV;
+	float edge = min(min(face_uv.x, 1.0 - face_uv.x), min(face_uv.y, 1.0 - face_uv.y));
 	float pattern = mix(1.0, mix(0.85, 1.0, smoothstep(0.0, 0.035, edge)), block_grid_strength);
-	ALBEDO = base_color.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
+	ALBEDO = base_color.rgb * block_texel.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
 	float wet = surface_wetness(world_position, normalize(world_normal));
 	ALBEDO *= 1.0 - wet * wet_darken;
 	ROUGHNESS = mix(material_roughness, wet_roughness, wet);

@@ -28,7 +28,7 @@ func _oracle(volume: Volume) -> Array[PackedByteArray]:
 	var result: Array[PackedByteArray] = []
 	for channel: int in range(2):
 		var values: PackedByteArray = PackedByteArray()
-		values.resize(volume.voxels.size())
+		values.resize(volume.cell_count())
 		values.fill(0)
 		var queue: Array[int] = []
 		if channel == 0:
@@ -42,8 +42,8 @@ func _oracle(volume: Volume) -> Array[PackedByteArray]:
 						values[index] = 15
 						queue.append(index)
 		else:
-			for index: int in range(volume.voxels.size()):
-				if volume.voxels[index] == Volume.LAMP:
+			for index: int in range(volume.cell_count()):
+				if volume.voxel_by_index(index) == Volume.LAMP:
 					values[index] = 15
 					queue.append(index)
 		var head: int = 0

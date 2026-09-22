@@ -17,7 +17,7 @@
 
 ## 已批准的方块材质设计
 
-方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/block_library_builder.gd 接入不透明/裁剪方块、颜色贴图、常量自发光及三轴朝向；独立光影样板尚未改接，法线/ORM/发光贴图与混合透明仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
+方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/block_library_builder.gd 接入不透明/裁剪方块、颜色贴图、常量自发光及三轴朝向；独立光影样板已用 shading_test 方块复用材质编译器并保留测试光照着色器，法线/ORM/发光贴图与混合透明仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
 
 验证：Godot 4.7 headless 执行 `--script res://test/shading/gdscript/test_block_appearance.gd`，360 项检查通过。测试不包含图形或性能验收。
 
