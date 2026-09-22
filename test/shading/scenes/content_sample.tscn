@@ -1,0 +1,8 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="Script" path="res://test/shading/gdscript/content_sample.gd" id="script"]
+[ext_resource type="Resource" path="res://game/data/block/resources/block_catalog.tres" id="catalog"]
+[ext_resource type="Resource" path="res://game/data/fluid/resources/astraeon_water.tres" id="water"]
+[node name="ContentShadingSample" type="Node3D"]
+script = ExtResource("script")
+catalog = ExtResource("catalog")
+water = ExtResource("water")

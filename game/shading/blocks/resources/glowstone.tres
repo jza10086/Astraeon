@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAppearance" format=3]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="a"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="s"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="l"]
+[sub_resource type="Resource" id="surface"]
+script = ExtResource("s")
+base_color = Color(1, 1, 1, 1)
+emission_color = Color(1, 1, 1, 1)
+emission_energy = 3.0
+[sub_resource type="Resource" id="light"]
+script = ExtResource("l")
+color = Color(1, 1, 1, 1)
+energy = 3.0
+range = 10.0
+local_offset = Vector3(0, 0.6, 0)
+[resource]
+script = ExtResource("a")
+default_surface = SubResource("surface")
+light = SubResource("light")

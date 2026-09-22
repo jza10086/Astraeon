@@ -6,7 +6,7 @@
 - world：地图生成、数据接入和自然地图启动验证。
 - native_world：原生生成/存档契约、流式加载探针和专用运行器。
 - entities：实体测试及夹具（旧场景假设待实体模块修正）。
-- shader：光影测试、样板及专用工具。
+- shading：光影测试、样板及专用工具。
 
 每个测试项按需要使用 gdscript/、native/、scenes/、fixtures/、assets/、resources/、runners/、reports/；不预建空目录。一次性日志、测试存档、临时结果及编译输出写 tmp。
 

@@ -6,6 +6,8 @@
 [ext_resource type="Resource" path="res://game/data/block/resources/astraeon_leaves.tres" id="leaves"]
 [ext_resource type="Resource" path="res://game/data/block/resources/astraeon_log.tres" id="log"]
 
+[ext_resource type="Resource" path="res://game/data/block/resources/astraeon_glowstone.tres" id="glowstone"]
+
 [resource]
 script = ExtResource("1")
-definitions = Array[ExtResource("2")]([ExtResource("grass"), ExtResource("dirt"), ExtResource("leaves"), ExtResource("log")])
+definitions = Array[ExtResource("2")]([ExtResource("grass"), ExtResource("dirt"), ExtResource("leaves"), ExtResource("log"), ExtResource("glowstone")])

@@ -1,6 +1,6 @@
 # Shading 模块
 
-可复用的天空色彩、材质、环境和镜头效果位于本目录；组合样板、有限体素数据、测试夹具和性能工具位于 `test/shader/`。尚未接入正式流式世界，正式游戏入口不变。
+可复用的天空色彩、材质、环境和镜头效果位于本目录；组合样板、有限体素数据、测试夹具和性能工具位于 `test/shading/`。尚未接入正式流式世界，正式游戏入口不变。
 
 - `gdscript/shading_profile.gd`：运行时复制的配置资源，当前格式 `astraeon-shading-20260922`，共 227 个显式设置。
 - `gdscript/day_palette.gd`：四时段循环色彩；`camera_effects.gd`：SSAO、体积雾、主相机曝光和景深。
@@ -13,12 +13,12 @@
 
 `light_volume.gd` 等有限体素脚本只属于测试夹具，不是生产世界存储或光照后端。不得将其搬入本模块作为第二份权威体素数据。
 
-用法、验证状态及限制见 [独立样板说明](../../test/shader/README.md)。
+用法、验证状态及限制见 [独立样板说明](../../test/shading/README.md)。
 
 ## 已批准的方块材质设计
 
-方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/block_library_builder.gd 接入当前纯色不透明方块及三轴朝向；独立光影样板尚未改接，其他贴图/发光等效果仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
+方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/block_library_builder.gd 接入不透明/裁剪方块、颜色贴图、常量自发光及三轴朝向；独立光影样板尚未改接，法线/ORM/发光贴图与混合透明仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
 
-验证：Godot 4.7 headless 执行 `--script res://test/shader/gdscript/test_block_appearance.gd`，360 项检查通过。测试不包含图形或性能验收。
+验证：Godot 4.7 headless 执行 `--script res://test/shading/gdscript/test_block_appearance.gd`，360 项检查通过。测试不包含图形或性能验收。
 
 独立水体材质资源已实现于 water/，提供默认资源、校验及参数接口，后续接入边界见 [水体材质说明](water/README.md)。正式世界已接入统一水色回退；独立样板尚未改接，动态水面效果仍待实现。

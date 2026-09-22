@@ -1,6 +1,6 @@
 # 当前模块与目录规范
 
-生产内容按功能归入 game，光影模块统一命名 shading。项目 C++ 与 GDScript 同属业务模块，但放在分开的子目录。此结构已落实；光影样板及其工具、报告已迁入 test/shader，原 tests 目录已迁入 test 下的对应测试项并删除。
+生产内容按功能归入 game，光影模块统一命名 shading。项目 C++ 与 GDScript 同属业务模块，但放在分开的子目录。此结构已落实；光影样板及其工具、报告已迁入 test/shading，原 tests 目录已迁入 test 下的对应测试项并删除。
 
 ```text
 Astraeon/
@@ -68,7 +68,7 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 
 新目录 test/ 与 game/ 同级。今后所有测试代码、测试场景、样板/演示、基准、夹具、测试专属资源/资产、测试运行器和需版本化的报告都放在 test/<测试项名称>/。可按需要细分 gdscript/、native/、scenes/、fixtures/、resources/、assets/、runners/、reports/。
 
-光影样板、光影专属测试、运行器和历史报告已迁入 test/shader/，运行组件位于 game/shading/，不保留 astraeon_lighting 目录别名。原 tests 内容已迁入 test/native_world/gdscript 与 test/entities/gdscript，专用运行器位于 test/native_world/runners；原目录已删除。历史测量中的路径仅作为原始证据。
+光影样板、光影专属测试、运行器和历史报告已迁入 test/shading/，运行组件位于 game/shading/，不保留 astraeon_lighting 目录别名。原 tests 内容已迁入 test/native_world/gdscript 与 test/entities/gdscript，专用运行器位于 test/native_world/runners；原目录已删除。历史测量中的路径仅作为原始证据。
 
 临时结果、测试存档、日志与编译二进制仍写 tmp，不提交到 test。迁移需保留 UID、更新所有调用并验证，禁止保留旧路径兼容副本或别名。
 
@@ -82,7 +82,7 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 
 ## 已批准的方块外观边界
 
-材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。Resource 类型、校验和方向接口已实现于 game/shading/blocks，测试归入 test/shader；纯色不透明方块和统一水色已接入启动期共享编译；其他外观特性仍待接入。
+材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。Resource 类型、校验和方向接口已实现于 game/shading/blocks，测试归入 test/shading；不透明/裁剪方块、颜色贴图、常量自发光和统一水色已接入启动期共享编译；其他外观特性仍待接入。
 
 ## 当前方块与流体数据
 

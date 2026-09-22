@@ -23,4 +23,4 @@ surface_parameters() 返回新的 uniform 参数字典，调用方在创建或�
 
 ## 验证
 
-Godot 4.7：`--headless --path . --script res://test/shader/gdscript/test_water_appearance.gd`，49 项检查通过，覆盖无效值、共享资源隔离、参数映射和保存重载。尚未进行新水体接入、渲染或性能验收。
+Godot 4.7：`--headless --path . --script res://test/shading/gdscript/test_water_appearance.gd`，49 项检查通过，覆盖无效值、共享资源隔离、参数映射和保存重载。尚未进行新水体接入、渲染或性能验收。
