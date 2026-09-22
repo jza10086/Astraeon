@@ -34,6 +34,12 @@
 - test/ has only been established and documented in this change. Existing tests/, benchmarks/ and other test-only content will be migrated by the agent responsible for each module at the user's direction; do not perform that bulk migration as part of this production-folder cleanup. No legacy path aliases or duplicate compatibility copies.
 - Preserve resource UID and import settings when moving files; update scene/script references, build source manifests, active documentation and tests together. Avoid speculative empty feature directories.
 
+## Block appearance contract
+- Follow docs/voxel_chunks.md for the approved 1-unit (1-meter) block and material design. BlockAppearance, BlockSurface, and BlockLightAppearance are planned shared read-only Resources owned by shading; do not claim their runtime integration before implementation.
+- Static logic definitions reference appearance resources. World/gameplay own instance coordinates, current orientation, and mining state; shading must not duplicate these authoritative states or mutate shared templates for per-instance changes.
+- Keep surface emission independent from surrounding illumination. Block canonical axes are up +Y, front -Z, right +X; apply authoring correction before instance orientation, including faces, normals, and light offsets. This does not override character asset axes.
+- Compile shared appearances for batched rendering; never create a Resource, Material, or light node per production voxel. Lighting schemes and budgets remain global rendering policy; visual transparency does not implicitly set logical light opacity or collision.
+
 ## Language boundaries and scenes
 - Use C++ with Voxel Tools GDExtension as the approved production voxel backend; see docs/native_voxel_backend.md. Use GDScript for gameplay orchestration, UI, scene integration, and test drivers. In GDScript, never use :=; explicitly type variables, arguments, return values, signals, arrays, and dictionaries where supported.
 - Use explicit Variant only when multiple types are intentional.
