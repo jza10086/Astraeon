@@ -1,18 +1,16 @@
 [gd_resource type="Resource" script_class="AstraeonBlockAppearance" format=3 uid="uid://mvtom1t7ft5h"]
 
 [ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://f4lgnw7mdlxd" path="res://game/shading/blocks/assets/leaves_checker.svg" id="1_hv00c"]
 [ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2"]
 
-[ext_resource type="Texture2D" path="res://game/shading/blocks/assets/leaves_checker.svg" id="checker"]
-
-[sub_resource type="Resource" id="Surface"]
+[sub_resource type="Resource" id="Resource_ojm5r"]
 script = ExtResource("2")
-albedo_texture = ExtResource("checker")
-alpha_mode = 1
-alpha_cutoff = 0.5
-double_sided = true
 base_color = Color(0.18, 0.42, 0.12, 1)
+albedo_texture = ExtResource("1_hv00c")
+alpha_mode = 1.0
+double_sided = true
 
 [resource]
 script = ExtResource("1")
-default_surface = SubResource("Surface")
+default_surface = SubResource("Resource_ojm5r")
