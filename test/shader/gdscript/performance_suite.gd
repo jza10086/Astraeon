@@ -1,7 +1,7 @@
 extends SceneTree
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Opt-in fixed-resolution cost experiment. Never executes without --run-cost-suite.
-const Sample: Script = preload("res://test/shading/gdscript/shading_sample.gd")
+const Sample: Script = preload("res://test/shader/gdscript/shading_sample.gd")
 var sample: Sample
 var plan: Dictionary = {}
 var output: String = ""
@@ -263,7 +263,7 @@ func _run() -> void:
 	root.content_scale_size = Vector2i.ZERO
 	root.scaling_3d_scale = 1.0
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	sample = load("res://test/shading/scenes/shading_sample.tscn").instantiate() as Sample
+	sample = load("res://test/shader/scenes/shading_sample.tscn").instantiate() as Sample
 	sample.settings_path = output.path_join("isolated-settings.cfg")
 	sample.benchmark_mode = true
 	root.add_child(sample)

@@ -123,7 +123,7 @@ def main():
     (folder/'host.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
     telemetry=Telemetry(folder,args.gpu)
     command=[str(path),'--path',str(PROJECT),'--resolution','1920x1080','--rendering-method','forward_plus','--rendering-driver','d3d12',
-             '--script','res://test/shading/gdscript/performance_suite.gd','--log-file',str(folder/'godot.log'),'--',
+             '--script','res://test/shader/gdscript/performance_suite.gd','--log-file',str(folder/'godot.log'),'--',
              '--run-cost-suite','--manifest='+str(folder/'manifest.json'),'--output='+str(folder)]
     began=time.monotonic();proc=None;interrupted=False
     try:

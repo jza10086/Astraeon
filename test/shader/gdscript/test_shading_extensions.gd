@@ -1,4 +1,4 @@
-extends "res://test/shading/gdscript/test_lighting_modules.gd"
+extends "res://test/shader/gdscript/test_lighting_modules.gd"
 ## Short functional/render checks; no FPS measurements or one-hour suite.
 const Palette: Script = preload("res://game/shading/gdscript/day_palette.gd")
 const Budget: Script = preload("res://game/shading/gdscript/light_budget.gd")
@@ -43,7 +43,7 @@ func _render_checks() -> void:
 	display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	display.texture = _render.get_texture()
 	root.add_child(display)
-	_sample = (load("res://test/shading/scenes/shading_sample.tscn") as PackedScene).instantiate() as Sample
+	_sample = (load("res://test/shader/scenes/shading_sample.tscn") as PackedScene).instantiate() as Sample
 	_sample.settings_path = _output.path_join("extensions.cfg")
 	_render.add_child(_sample)
 	_sample._reset_settings()

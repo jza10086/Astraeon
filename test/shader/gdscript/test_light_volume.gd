@@ -1,8 +1,8 @@
 extends SceneTree
 ## CPU-only correctness tests; does not instantiate the sample or start rendering.
-const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
-const Fixtures: Script = preload("res://test/shading/gdscript/sample_world.gd")
-const Sections: Script = preload("res://test/shading/gdscript/section_meshes.gd")
+const Volume: Script = preload("res://test/shader/gdscript/light_volume.gd")
+const Fixtures: Script = preload("res://test/shader/gdscript/sample_world.gd")
+const Sections: Script = preload("res://test/shader/gdscript/section_meshes.gd")
 var _failures: int = 0
 var _checks: int = 0
 

@@ -1,6 +1,6 @@
 # 独立光影样板
 
-2026-09-22：样板已从嵌套评估工程迁移至根工程的 `test/shading/`。原 UID 保留，旧运行目录和工具路径不保留兼容副本。运行组件位于 `game/shading/`，根工程正式游戏入口保持原样。
+2026-09-22：样板已从嵌套评估工程迁移至根工程的 `test/shader/`。原 UID 保留，旧运行目录和工具路径不保留兼容副本。运行组件位于 `game/shading/`，根工程正式游戏入口保持原样。
 
 ## 启动
 
@@ -8,10 +8,10 @@
 
 ```powershell
 & 'F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe' --path F:/GodotProjects/Astraeon --import
-./test/shading/runners/lighting_sample.ps1 -Run
+./test/shader/runners/lighting_sample.ps1 -Run
 ```
 
-或在根工程编辑器打开 `test/shading/scenes/shading_sample.tscn`，按 F6；点击“创建光照样板”。F5 仍启动正式游戏。右键环视，WASD 移动，Q/E 升降；场景操作菜单内有洞口、玻璃彩影／金属样块、手持光、水面和地下观察点。
+或在根工程编辑器打开 `test/shader/scenes/shading_sample.tscn`，按 F6；点击“创建光照样板”。F5 仍启动正式游戏。右键环视，WASD 移动，Q/E 升降；场景操作菜单内有洞口、玻璃彩影／金属样块、手持光、水面和地下观察点。
 
 ## 新模块
 
@@ -47,11 +47,11 @@
 
 ```powershell
 # 无 GPU 样板的配置、UI、预算、湿润逻辑
-Godot_v4.7-stable_win64_console.exe --headless --path F:/GodotProjects/Astraeon --script res://test/shading/gdscript/test_shading_logic.gd
+Godot_v4.7-stable_win64_console.exe --headless --path F:/GodotProjects/Astraeon --script res://test/shader/gdscript/test_shading_logic.gd
 # D3D12 着色器编译探针，无需启动编辑器
-Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script res://test/shading/gdscript/test_shader_compile.gd
+Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script res://test/shader/gdscript/test_shader_compile.gd
 # 导入完成后的短时组合验证与截图
-Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script res://test/shading/gdscript/test_shading_extensions.gd -- --render --output=res://tmp/shading-extensions
+Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script res://test/shader/gdscript/test_shading_extensions.gd -- --render --output=res://tmp/shading-extensions
 ```
 
 运行状态见 [2026-09-22 验证记录](reports/shading_extensions_20260922.md)。这些检查不是性能基准。历史 2026-09-18 报告仍可作历史证据；新增模块没有经过原一小时矩阵，工具明确列为未覆盖，不产生误导性性能等级。现行性能 manifest 为 `astraeon-shading-cost-2`，旧 manifest 不可用于当前运行器。

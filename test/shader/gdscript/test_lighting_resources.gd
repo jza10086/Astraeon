@@ -1,8 +1,8 @@
 extends SceneTree
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Resource/component contract checks only; never starts the sample scene.
-const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
-const Sections: Script = preload("res://test/shading/gdscript/section_meshes.gd")
+const Volume: Script = preload("res://test/shader/gdscript/light_volume.gd")
+const Sections: Script = preload("res://test/shader/gdscript/section_meshes.gd")
 var _failures: int = 0
 
 func _initialize() -> void:
@@ -14,7 +14,7 @@ func _check(condition: bool, message: String) -> void:
 		push_error(message)
 
 func _run() -> void:
-	var scene: PackedScene = load("res://test/shading/scenes/shading_sample.tscn") as PackedScene
+	var scene: PackedScene = load("res://test/shader/scenes/shading_sample.tscn") as PackedScene
 	_check(scene != null and scene.can_instantiate(), "Sample scene resource must load")
 	var defaults: Profile = load("res://game/shading/resources/default_profile.tres") as Profile
 	var runtime: Profile = defaults.duplicate(true) as Profile

@@ -2,8 +2,8 @@ extends SceneTree
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Settings checks always run. --render opts into short GPU/interaction validation.
 ## FPS UI is verified, without collecting a performance benchmark. Artifacts use a separate output directory.
-const Sample: Script = preload("res://test/shading/gdscript/shading_sample.gd")
-const Details: Script = preload("res://test/shading/gdscript/environment_details.gd")
+const Sample: Script = preload("res://test/shader/gdscript/shading_sample.gd")
+const Details: Script = preload("res://test/shader/gdscript/environment_details.gd")
 var _failures: int = 0
 var _checks: int = 0
 var _output: String = "user://lighting_validation"
@@ -104,7 +104,7 @@ func _render_checks() -> void:
 	display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	display.texture = _render.get_texture()
 	root.add_child(display)
-	var scene: PackedScene = load("res://test/shading/scenes/shading_sample.tscn")
+	var scene: PackedScene = load("res://test/shader/scenes/shading_sample.tscn")
 	_sample = scene.instantiate() as Sample
 	_sample.settings_path = _output.path_join("sample-settings.cfg")
 	_render.add_child(_sample)

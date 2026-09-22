@@ -1,19 +1,19 @@
 extends Node3D
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
-const Extensions: Script = preload("res://test/shading/gdscript/shading_extensions.gd")
+const Extensions: Script = preload("res://test/shader/gdscript/shading_extensions.gd")
 const Palette: Script = preload("res://game/shading/gdscript/day_palette.gd")
 var _extensions: Extensions
 var _fog_color: Color
 ## Opt-in finite lighting lab; does not instantiate terrain in the editor.
-const TestAvatar: Script = preload("res://test/shading/gdscript/test_avatar.gd")
+const TestAvatar: Script = preload("res://test/shader/gdscript/test_avatar.gd")
 const PlanarReflection: Script = preload("res://game/shading/gdscript/planar_reflection.gd")
-const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
-const Fixtures: Script = preload("res://test/shading/gdscript/sample_world.gd")
-const Sections: Script = preload("res://test/shading/gdscript/section_meshes.gd")
+const Volume: Script = preload("res://test/shader/gdscript/light_volume.gd")
+const Fixtures: Script = preload("res://test/shader/gdscript/sample_world.gd")
+const Sections: Script = preload("res://test/shader/gdscript/section_meshes.gd")
 const BlockClouds: Script = preload("res://game/shading/gdscript/block_clouds.gd")
 const PLAIN_SKY_SHADER: Shader = preload("res://game/shading/shaders/background_sky.gdshader")
-const LocalLights: Script = preload("res://test/shading/gdscript/local_lights.gd")
-const Details: Script = preload("res://test/shading/gdscript/environment_details.gd")
+const LocalLights: Script = preload("res://test/shader/gdscript/local_lights.gd")
+const Details: Script = preload("res://test/shader/gdscript/environment_details.gd")
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
 @export var profile: Profile
 @export var settings_path: String = "user://settings.cfg"

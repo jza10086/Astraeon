@@ -1,6 +1,6 @@
 # 当前模块与目录规范
 
-生产内容按功能归入 game，光影模块统一命名 shading。项目 C++ 与 GDScript 同属业务模块，但放在分开的子目录。此结构已落实；光影样板及其工具、报告已迁入 test/shading，其余现有测试由对应模块逐步迁移。
+生产内容按功能归入 game，光影模块统一命名 shading。项目 C++ 与 GDScript 同属业务模块，但放在分开的子目录。此结构已落实；光影样板及其工具、报告已迁入 test/shader，其余现有测试由对应模块逐步迁移。
 
 ```text
 Astraeon/
@@ -67,7 +67,7 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 
 新目录 test/ 与 game/ 同级。今后所有测试代码、测试场景、样板/演示、基准、夹具、测试专属资源/资产、测试运行器和需版本化的报告都放在 test/<module>/。可按需要细分 gdscript/、native/、scenes/、fixtures/、resources/、assets/、runners/、reports/。
 
-光影样板、光影专属测试、运行器和历史报告已迁入 test/shading/，运行组件位于 game/shading/，不保留 astraeon_lighting 目录别名。其他 tests/、benchmarks/ 和角色测试暂未批量迁移；角色固定碰撞夹具仍位于 tests/entities/fixtures。
+光影样板、光影专属测试、运行器和历史报告已迁入 test/shader/，运行组件位于 game/shading/，不保留 astraeon_lighting 目录别名。其他 tests/、benchmarks/ 和角色测试暂未批量迁移；角色固定碰撞夹具仍位于 tests/entities/fixtures。
 
 临时结果、测试存档、日志与编译二进制仍写 tmp，不提交到 test。迁移需保留 UID、更新所有调用并验证，禁止保留旧路径兼容副本或别名。
 

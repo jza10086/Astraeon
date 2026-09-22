@@ -9,7 +9,7 @@
 ## 使用
 
 ~~~powershell
-./test/shading/runners/lighting_sample.ps1 -Run
+./test/shader/runners/lighting_sample.ps1 -Run
 ~~~
 
 点击创建光照样板。左侧“参数设置”页面使用一级分类和二级模块菜单；“场景操作与观察”页面提供时间、观察点与编辑按钮。方案选择包含关闭，当前方案无效的参数隐藏。“恢复默认设置”只恢复光影设置，不重置体素编辑。右键环视、WASD 移动、Q/E 升降。

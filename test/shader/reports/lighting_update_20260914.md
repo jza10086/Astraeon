@@ -8,7 +8,7 @@
 
 ## 面板使用
 
-使用 `./test/shading/runners/lighting_sample.ps1 -Run` 打开，点击“创建光照样板”。左侧向下滚动查看设置，右上角独立显示 FPS 与平均帧间隔（每 0.5 秒更新，包含限帧等待，并非纯 GPU 时间）。
+使用 `./test/shader/runners/lighting_sample.ps1 -Run` 打开，点击“创建光照样板”。左侧向下滚动查看设置，右上角独立显示 FPS 与平均帧间隔（每 0.5 秒更新，包含限帧等待，并非纯 GPU 时间）。
 
 | 设置 | 默认 | 范围与作用 |
 |---|---|---|

@@ -1,4 +1,4 @@
-extends "res://test/shading/gdscript/test_lighting_modules.gd"
+extends "res://test/shader/gdscript/test_lighting_modules.gd"
 ## Exercise real menu signals, scheme-dependent rows and rendered lamp brightness.
 func _render_checks() -> void:
 	_render = SubViewport.new()
@@ -11,7 +11,7 @@ func _render_checks() -> void:
 	display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	display.texture = _render.get_texture()
 	root.add_child(display)
-	var scene: PackedScene = load("res://test/shading/scenes/shading_sample.tscn")
+	var scene: PackedScene = load("res://test/shader/scenes/shading_sample.tscn")
 	_sample = scene.instantiate() as Sample
 	_sample.settings_path = _output.path_join("sample-settings.cfg")
 	_render.add_child(_sample)

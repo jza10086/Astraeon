@@ -2,7 +2,7 @@
 
 # 设置菜单、自发光与云分支清理
 
-2026-09-18，独立光照样板，Forward+ / D3D12。启动方式仍是 `./test/shading/runners/lighting_sample.ps1 -Run`，然后点击“创建光照样板”。
+2026-09-18，独立光照样板，Forward+ / D3D12。启动方式仍是 `./test/shader/runners/lighting_sample.ps1 -Run`，然后点击“创建光照样板”。
 
 ## 操作
 

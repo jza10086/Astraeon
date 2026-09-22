@@ -7,7 +7,7 @@ const Weather: Script = preload("res://game/shading/gdscript/weather_effects.gd"
 const Glass: Script = preload("res://game/shading/gdscript/colored_shadows.gd")
 const Moving: Script = preload("res://game/shading/gdscript/moving_light.gd")
 const Budget: Script = preload("res://game/shading/gdscript/light_budget.gd")
-const SurfaceMap: Script = preload("res://test/shading/gdscript/surface_map_adapter.gd")
+const SurfaceMap: Script = preload("res://test/shader/gdscript/surface_map_adapter.gd")
 var sample: Node3D
 var camera_effects: CameraEffects = CameraEffects.new()
 var motion: CameraPost = CameraPost.new()

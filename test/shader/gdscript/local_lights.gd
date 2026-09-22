@@ -1,7 +1,7 @@
 extends Node3D
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Finite lab emitters, indexed only on edits. Not a production light allocator.
-const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
+const Volume: Script = preload("res://test/shader/gdscript/light_volume.gd")
 var emitters: Dictionary[Vector3i, OmniLight3D] = {}
 var active_points: int = 0
 var active_shadows: int = 0

@@ -1,6 +1,6 @@
 extends RefCounted
 ## One native block mesh per 16^3 section. Light-only changes never rebuild geometry.
-const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
+const Volume: Script = preload("res://test/shader/gdscript/light_volume.gd")
 const LIGHT_SHADER: Shader = preload("res://game/shading/shaders/voxel_light.gdshader")
 const PLANT_SHADER: Shader = preload("res://game/shading/shaders/plant.gdshader")
 var materials: Array[ShaderMaterial] = []

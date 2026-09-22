@@ -1,6 +1,6 @@
 extends RefCounted
 ## Deterministic fixtures; no game saves or streaming ownership.
-const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
+const Volume: Script = preload("res://test/shader/gdscript/light_volume.gd")
 const ORIGIN: Vector3i = Vector3i(-32, -16, -32)
 const SIZE: Vector3i = Vector3i(64, 64, 64)
 const ROOF: AABB = AABB(Vector3(-8, 8, -8), Vector3(16, 1, 12))

@@ -8,26 +8,26 @@
 
 测量当前每个效果／参数在明确场景下的增量成本，输出设置名称、参考值、测试值、FPS 变化、毫秒增量、影响等级、波动与覆盖状态。最大 FPS 不用于评级。用户人工判断作为对照列保留，不用它生成测量值。
 
-入口 `test/shading/runners/run_lighting_suite.py` 默认只显示规划统计，不启动 Godot 或遥测，也不写结果目录。真正执行必须显式提供 `--run`。报告可以从已有原始数据单独重建。
+入口 `test/shader/runners/run_lighting_suite.py` 默认只显示规划统计，不启动 Godot 或遥测，也不写结果目录。真正执行必须显式提供 `--run`。报告可以从已有原始数据单独重建。
 
 ```powershell
 # 安全预览：只生成内存中的计划并打印数量
-python test/shading/runners/run_lighting_suite.py
+python test/shader/runners/run_lighting_suite.py
 
 # 短时实际验证：6 个用例强制 ABBA + BAAB，另含两个短组合
-python test/shading/runners/run_lighting_suite.py --run --smoke
+python test/shader/runners/run_lighting_suite.py --run --smoke
 
 # 指定当前用例 ID 补测：保留预热与 ABBA/必要 BAAB，省略持续组合
-python test/shading/runners/run_lighting_suite.py --run --cases c126 c127
+python test/shader/runners/run_lighting_suite.py --run --cases c126 c127
 
 # 等用户另行授权后使用：真实运行，目标约 50–60 分钟
-python test/shading/runners/run_lighting_suite.py --run
+python test/shader/runners/run_lighting_suite.py --run
 
 # 可选：明确指定 Godot 安装与 NVIDIA GPU 索引
-python test/shading/runners/run_lighting_suite.py --run --godot "F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64.exe" --gpu 0
+python test/shader/runners/run_lighting_suite.py --run --godot "F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64.exe" --gpu 0
 
 # 仅重建已有报告，不启动测试
-python test/shading/runners/run_lighting_suite.py --report-only tmp/lighting-cost-YYYYMMDD-HHMMSS
+python test/shader/runners/run_lighting_suite.py --report-only tmp/lighting-cost-YYYYMMDD-HHMMSS
 ```
 
 需要 Python 3.10+ 标准库与项目当前 Godot 4.7 stable、已导入的嵌套工程和 Voxel Tools 二进制。入口不会自动导入、下载引擎或安装分析工具。若缺少依赖，停止并保留错误记录。测试前关闭该嵌套工程的编辑器，不同时执行其他性能任务。

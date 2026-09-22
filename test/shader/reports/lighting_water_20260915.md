@@ -6,7 +6,7 @@
 
 ## 操作
 
-启动 `./test/shading/runners/lighting_sample.ps1 -Run`，创建样板后点击“水面倒影观察”。水池北岸新增三个彩色观察柱，与现有建筑一起用于对照倒影；观察柱仅为样板可视网格，不是可编辑体素或碰撞对象。
+启动 `./test/shader/runners/lighting_sample.ps1 -Run`，创建样板后点击“水面倒影观察”。水池北岸新增三个彩色观察柱，与现有建筑一起用于对照倒影；观察柱仅为样板可视网格，不是可编辑体素或碰撞对象。
 
 左侧滚动面板的“P2 · 水”“水面 · 屏幕空间反射”“水下”提供以下设置，自动写入嵌套项目的 `user://settings.cfg`。缺少的新字段采用默认值，已有偏好保留，恢复默认可整体重置。
 
@@ -41,7 +41,7 @@ Godot 内置 Environment SSR 不显示在 alpha 混合材质上，因此保留�
 
 Godot 4.7 stable / Forward+ / D3D12 / RTX 3060 Laptop GPU：完整导入通过，专用实际渲染检查 **112 项通过，0 失败**，日志无脚本 / shader 错误。检查包含 SSR 开关的可见像素差异、强度 0 恢复原水面像素、三档质量、独立天空反射、统一水色、默认 / 调色、水下进入退出、夜间、颜色和质量控件绑定、非默认设置保存重载与恢复默认。
 
-截图覆盖 1920×1080、2560×1440、3840×2160、2560×1080。可视检查确认彩色柱与建筑倒影、参数面板和水下状态正常。验证脚本为 `test/shading/gdscript/test_water_reflections.gd`；截图在 `tmp/water-ssr/`，日志为 `tmp/water-ssr-render.log` 和 `tmp/water-ssr-import.log`，不提交临时产物。
+截图覆盖 1920×1080、2560×1440、3840×2160、2560×1080。可视检查确认彩色柱与建筑倒影、参数面板和水下状态正常。验证脚本为 `test/shader/gdscript/test_water_reflections.gd`；截图在 `tmp/water-ssr/`，日志为 `tmp/water-ssr-render.log` 和 `tmp/water-ssr-import.log`，不提交临时产物。
 
 未运行正式性能基准；截图中的即时 FPS 不能作为 SSR 性能对照。后续统一优化再测水面屏幕覆盖率、分辨率、三档步数与屏幕颜色复制 / mip 成本。
 

@@ -11,7 +11,7 @@
 在项目根目录执行：
 
 ~~~powershell
-./test/shading/runners/lighting_sample.ps1 -Run
+./test/shader/runners/lighting_sample.ps1 -Run
 ~~~
 
 窗口打开后点击“创建光照样板”才创建体素数据和网格。也可以用 Godot 4.7 打开 `benchmarks/voxelgame/project`，对 `astraeon_lighting/lighting_sample.tscn` 按 F6。F5 仍是原性能基准的准备页面。
