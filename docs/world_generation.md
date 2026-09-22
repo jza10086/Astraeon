@@ -18,7 +18,7 @@ shading 的 BlockLibraryBuilder 在启动时将当前纯色不透明方块编译
 
 区域格式版本和生成版本均为 2；头部 128 字节，包含种子、布局、状态数和有序状态 key 的 SHA-256。双记录 CRC 与持久化恢复保持有效。旧版本或状态表不匹配明确拒绝，不迁移、不回退。默认新世界目录 user://worlds/landscape_v2，不删除旧存档。修改生成规则必须提升生成版本；新增/重排状态会导致现有存档拒绝加载。
 
-验证入口：test/world/gdscript/test_landscape.gd（自然群系、负坐标区段拼接、森林、种子、新状态保存及拒绝旧元数据），tests/native_world/test_native_world.gd（现有恢复契约）。视觉与长时间性能验收另行进行。
+验证入口：test/world/gdscript/test_landscape.gd（自然群系、负坐标区段拼接、森林、种子、新状态保存及拒绝旧元数据），test/native_world/gdscript/test_native_world.gd（现有恢复契约）。视觉与长时间性能验收另行进行。
 
 ## 本次自动验证
 

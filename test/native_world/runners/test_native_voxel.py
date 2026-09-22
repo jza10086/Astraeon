@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import time
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
             raise RuntimeError(name + " failed: " + text[-5000:])
         print(name + " passed", flush=True)
         return text
-    contract_log = run("contracts", base + ["--headless", "--script", "res://tests/native_world/test_native_world.gd"])
+    contract_log = run("contracts", base + ["--headless", "--script", "res://test/native_world/gdscript/test_native_world.gd"])
     contract = next(json.loads(line) for line in contract_log.splitlines() if line.startswith('{"checks"'))
     rows = []
     for prediction in (0, 1):
@@ -36,7 +36,7 @@ def main():
         for phase in ("fresh", "reload"):
             name = "p" + str(prediction) + "_" + phase
             report = out / (name + ".json")
-            log = run(name, base + ["--script", "res://tests/native_world/runtime_probe.gd", "--", "--prediction=" + str(prediction), "--seconds=" + str(args.seconds), "--world=" + world.as_posix(), "--output=" + report.as_posix()])
+            log = run(name, base + ["--script", "res://test/native_world/gdscript/runtime_probe.gd", "--", "--prediction=" + str(prediction), "--seconds=" + str(args.seconds), "--world=" + world.as_posix(), "--output=" + report.as_posix()])
             data = json.loads(report.read_text())
             if data["failures"]:
                 raise RuntimeError(str(data["failures"]))
@@ -52,7 +52,7 @@ def main():
             data["logical_file_bytes"] = sum(p.stat().st_size for p in regions)
             data["graphics_device"] = next((line for line in log.splitlines() if "Using Device" in line), "unknown")
             rows.append(data)
-    summary = {"engine": version, "contract": contract, "runs": rows, "binary": json.loads((ROOT / "tmp/native-build/editor_manifest.json").read_text()), "driver_sha256": hashlib.sha256((ROOT / "tests/native_world/runtime_probe.gd").read_bytes()).hexdigest()}
+    summary = {"engine": version, "contract": contract, "runs": rows, "binary": json.loads((ROOT / "tmp/native-build/editor_manifest.json").read_text()), "driver_sha256": hashlib.sha256((ROOT / "test/native_world/gdscript/runtime_probe.gd").read_bytes()).hexdigest()}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf8")
     print("Summary: " + str(out / "summary.json"), flush=True)
 

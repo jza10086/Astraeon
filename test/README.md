@@ -1,7 +1,13 @@
 # 测试统一目录
 
-与 game/ 同级，是今后所有测试用途内容的唯一目标目录，按 data、world、entities、shading、gameplay、core、ui 模块归类；shading 模块的测试目录使用 test/shader/。
+与 game/ 同级，测试用途内容统一放入 `test/<测试项名称>/`。
 
-每个模块按实际需要使用 gdscript/、native/、scenes/、fixtures/、assets/、resources/、runners/、reports/ 子目录；不预建空目录。测试样板、演示、基准程序、测试专属工具、夹具和测试专属资产均放在对应模块内。需要纳入版本控制的结果报告归入 reports/；一次性运行日志、测试存档、临时结果及编译输出仍写 tmp/，不入库。
+- data：静态数据定义验证。
+- world：地图生成、数据接入和自然地图启动验证。
+- native_world：原生生成/存档契约、流式加载探针和专用运行器。
+- entities：实体测试及夹具（旧场景假设待实体模块修正）。
+- shader：光影测试、样板及专用工具。
 
-光影测试已迁入 test/shader/。其余现有 tests/、benchmarks/ 和其他历史测试内容由对应模块 agent 按用户要求后续迁移；不要为迁移新增旧路径包装器、别名或双份实现。迁移时统一更新调用、资源路径、UID、构建清单与文档并验证。
+每个测试项按需要使用 gdscript/、native/、scenes/、fixtures/、assets/、resources/、runners/、reports/；不预建空目录。一次性日志、测试存档、临时结果及编译输出写 tmp。
+
+原 tests 目录内容已全部迁入并删除旧目录。不得新增旧路径包装器、别名或重复实现。历史基准报告中的原始源码路径与哈希保留作为证据，不作为当前运行入口。

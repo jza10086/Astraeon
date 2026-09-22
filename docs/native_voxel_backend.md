@@ -32,8 +32,8 @@
 | 固定依赖与本地修改记录 | `native/dependency_lock.json` |
 | 主工程扩展 | `addons/zylann.voxel/` |
 | 世界编排与方块库 | `game/world/gdscript/`、`game/data/block/`、`game/data/fluid/` |
-| 构建与短测 | `tools/build_native_voxel.py`、`tools/test_native_voxel.py` |
-| 测试驱动 | `tests/native_world/` |
+| 构建与短测 | `tools/build_native_voxel.py`、`test/native_world/runners/test_native_voxel.py` |
+| 测试驱动 | `test/native_world/gdscript/` |
 
 上游 Voxel Tools 提交 `75d3c6d996ed2331c80edcd8c3ebc947afc0f041`，godot-cpp 提交 `b4ce22a76b56bb5f734a5161d6105eb4b8d1021d`。构建在 `tmp/native-build/` 进行，不覆盖可编辑源码。嵌套基准工程仍仅用于独立对照。
 
@@ -63,7 +63,7 @@
 ```powershell
 python tools/build_native_voxel.py --target editor --install
 python tools/build_native_voxel.py --target template_release --install
-python tools/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe"
+python test/native_world/runners/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe"
 ```
 
 不要同时运行两个构建命令。DLL 不入库，新检出先构建再打开编辑器。日志、源码和 DLL 指纹位于 `tmp/native-build/`。安装文件名带内容哈希，描述文件仅指向当前构建，不提供旧版本回退。已打开的编辑器仍映射旧 DLL，重启后更新原生 API；新游戏进程使用当前描述文件的 DLL。
@@ -72,7 +72,7 @@ python tools/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_
 
 短测不替代持续压力测试、逐请求到可见延迟追踪、连续碰撞覆盖证明、断电测试或导出包验收。没有确定最终最优存储/预加载方案；旧基准参数不同，不能直接以 FPS 声称迁移收益倍数。
 
-项目 C++ 已按功能放入 game/world/native；上游代码留在 native。构建清单从 game/*/native 生成。完整规范见 project_structure.md 与根 AGENTS.md。统一测试迁移目标为 test/，现有测试尚待模块 agent 迁移。
+项目 C++ 已按功能放入 game/world/native；上游代码留在 native。构建清单从 game/*/native 生成。完整规范见 project_structure.md 与根 AGENTS.md。测试统一位于 test/<测试项名称>/，原 tests 目录已迁移并删除。
 
 ## 当前地图契约更新
 

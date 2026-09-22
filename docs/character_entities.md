@@ -17,9 +17,9 @@
 
 ## 验证记录（2026-09-17）
 Godot 4.7.stable.official.5b4e0cb0f，Forward+ / D3D12，RTX 3060 Laptop GPU。
-tests/entities/test_player.gd 在实际图形进程中完成 24 项检查，退出码 0，无 SCRIPT ERROR / ERROR。
+test/entities/gdscript/test_player.gd 在实际图形进程中完成 24 项检查，退出码 0，无 SCRIPT ERROR / ERROR。
 涵盖站稳、速度、斜向归一、制动、跳高与禁止二段跳、三种动画、墙体、低顶、跳上一米平台、斜坡、平台跌落、复位、骨架、输入和鼠标捕获。
 日志 tmp/entity_window_test.log。无界面运行跳过 6 项依赖鼠标捕获的窗口检查，不将其当作窗口验收。
-可运行：Godot --path <项目目录> --script res://tests/entities/test_player.gd；脚本 60 秒超时会返回失败。
+测试现位于 res://test/entities/gdscript/test_player.gd；以上为历史验证。当前脚本仍假定旧固定地面场景，需要接入独立实体夹具后再执行，不能将历史通过视为当前地图验收。
 主场景实际截图与 MCP 输入模拟已检查；手动手感、极端动画混合、多分辨率及流式世界接受度尚未验收。
 资产 SHA-256：8446EBCE45EB312CABC6222520DD99D21F003999145E4F435B54234156C848EF，项目副本与原 GLB 一致。
