@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AstraeonBlockCatalog" format=3]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_catalog.gd" id="1"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="2"]
+[ext_resource type="Resource" path="res://game/data/block/resources/astraeon_grass.tres" id="grass"]
+[ext_resource type="Resource" path="res://game/data/block/resources/astraeon_dirt.tres" id="dirt"]
+[ext_resource type="Resource" path="res://game/data/block/resources/astraeon_leaves.tres" id="leaves"]
+[ext_resource type="Resource" path="res://game/data/block/resources/astraeon_log.tres" id="log"]
+
+[resource]
+script = ExtResource("1")
+definitions = Array[ExtResource("2")]([ExtResource("grass"), ExtResource("dirt"), ExtResource("leaves"), ExtResource("log")])

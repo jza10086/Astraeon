@@ -1,5 +1,17 @@
 # 静态数据定义
 
-blocks/gdscript/ 保存 Resource 类型，blocks/resources/ 保存编辑示例，不保存逐体素运行状态。example_catalog.tres 尚未接入原生世界；实际生效方块库为 game/world/resources/block_library.tres。设计见 ../../docs/project_structure.md；测试统一目标为 test/data/，现有测试迁移由模块 agent 负责。
+`block/gdscript/` 保存方块与有限状态 Resource 类型，`block/resources/block_catalog.tres` 收集本批四种正式定义。`fluid/gdscript/` 保存流体定义，`fluid/resources/astraeon_water.tres` 定义水。key 是稳定内容 ID，采用 `astraeon_xxx`，不是原生体素整数 ID。
 
-方块静态逻辑定义通过 appearance 引用 shading 的共享外观资源；不在 data 重复定义材质字段，也不将当前朝向、坐标等实例状态写入模板。已实现资源结构、尚未接入原生渲染的材质契约见 [方块规格](../../docs/voxel_chunks.md#方块属性与材质契约)。
+| ID | 定义 | 硬度 | 逻辑透光阻挡 |
+| --- | --- | --- | --- |
+| astraeon_grass | 草方块，绿顶、土底、草土色侧面 | 0.6 | 15 |
+| astraeon_dirt | 泥土方块 | 0.5 | 15 |
+| astraeon_leaves | 树叶，当前为实心绿色立方体，有碰撞 | 0.2 | 1 |
+| astraeon_log | 木头，axis_x / axis_y / axis_z，默认 axis_y | 2.0 | 15 |
+| astraeon_water | 水，无固体碰撞 | 不适用 | 1 |
+
+所有外观引用 shading 的共享资源。逻辑碰撞与透光不由视觉透明度推断。这些是可调整的初始数据；树叶镂空贴图、树叶衰减、水流模拟不在本批范围。
+
+状态 orientation 是允许状态的只读旋转模板，标准轴为上 +Y、前 -Z、右 +X。世界实例选择状态，渲染调用 appearance 的方向接口时传入该状态的 orientation，先应用 authoring_orientation 再应用状态旋转。不得修改共享模板。木头两端沿所选轴；正负轴对当前对称原木等价。普通方块 states 为空时使用隐式 default/单位旋转。
+
+本批数据尚未接入原生注册表、生成器、网格或存档；当前实际生效库仍为 `game/world/resources/block_library.tres`。`example_catalog.tres` 是既有编辑示例，不与正式目录合并注册。测试位于 `test/data/`，临时输出归 tmp；不迁移其他模块测试。详见 `../../docs/project_structure.md`。

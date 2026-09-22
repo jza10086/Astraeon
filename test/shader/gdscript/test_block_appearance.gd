@@ -69,7 +69,7 @@ func _initialize() -> void:
 	light.energy = 1.0
 	light.range = 0.0
 	check(not light.validate().is_empty(), "Reject enabled zero range")
-	var catalog: AstraeonBlockCatalog = load("res://game/data/blocks/resources/example_catalog.tres")
+	var catalog: AstraeonBlockCatalog = load("res://game/data/block/resources/example_catalog.tres")
 	check(catalog.definitions[2].appearance == lamp, "Catalog shares cached appearance")
 	DirAccess.make_dir_recursive_absolute("res://tmp/block-appearance")
 	var path: String = "res://tmp/block-appearance/roundtrip.tres"

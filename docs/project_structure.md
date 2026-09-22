@@ -6,9 +6,10 @@
 Astraeon/
 ├─ game/
 │  ├─ core/main.tscn                     # 应用入口与装配
-│  ├─ data/blocks/
+│  ├─ data/block/
 │  │  ├─ gdscript/                      # Resource 类型
 │  │  └─ resources/                     # 静态配置、编辑示例
+│  ├─ data/fluid/                       # 流体类型与静态水定义
 │  ├─ world/
 │  │  ├─ gdscript/native_world.gd        # 当前世界编排
 │  │  ├─ resources/block_library.tres    # 原生块外观库
@@ -82,3 +83,7 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 ## 已批准的方块外观边界
 
 材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。Resource 类型、校验和方向接口已实现于 game/shading/blocks，测试归入 test/shader；原生渲染接入和批量材质编译待实现。
+
+## 当前方块与流体数据
+
+静态定义使用 game/data/block 与 game/data/fluid，ID 为 astraeon_xxx。方块目录收录草、泥土、树叶、三轴木头，流体目录定义水；外观类型与共享材质仍归 shading。木头状态保存允许的旋转，世界实例只选择状态。具体入口和当前接入边界见 game/data/README.md。

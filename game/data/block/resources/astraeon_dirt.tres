@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3]
+
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://game/shading/blocks/resources/dirt.tres" id="appearance"]
+
+[resource]
+script = ExtResource("1")
+key = &"astraeon_dirt"
+display_name = "泥土方块"
+appearance = ExtResource("appearance")
+hardness = 0.5
+light_opacity = 15
