@@ -63,7 +63,7 @@ func tick(p: Profile, sun: DirectionalLight3D, observer: Vector3) -> void:
 	local.y = snappedf(local.y, texel)
 	local.z = snappedf(local.z, 8.0)
 	var transform: Transform3D = Transform3D(basis, basis * local + basis.z * 100.0)
-	var signature: Array = [transform,p.glass_color,p.glass_transmission,p.glass_range,resolution,p.glass_bias,p.glass_filter]
+	var signature: Array = [transform,p.glass_color,p.glass_transmission,p.glass_range,resolution,p.glass_bias,p.glass_filter,p.glass_filter_mode]
 	for caster: MeshInstance3D in casters: signature.append(caster.global_transform)
 	if signature == _signature: return
 	_signature = signature
@@ -85,5 +85,6 @@ func tick(p: Profile, sun: DirectionalLight3D, observer: Vector3) -> void:
 		material.set_shader_parameter("glass_projection", cameras[0].get_camera_projection())
 		material.set_shader_parameter("glass_bias", p.glass_bias)
 		material.set_shader_parameter("glass_filter", p.glass_filter)
+		material.set_shader_parameter("glass_filter_mode", p.glass_filter_mode)
 		material.set_shader_parameter("glass_texel", 1.0/resolution)
 	captures += 1

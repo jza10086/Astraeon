@@ -66,7 +66,7 @@ func apply(settings: Profile) -> void:
 		light.light_color = settings.block_color
 		light.omni_range = settings.local_light_range
 		light.omni_attenuation = 2.0
-		light.shadow_blur = 0.0 if settings.hard_shadows else settings.shadow_blur
+		light.shadow_blur = 1.0 if settings.hard_shadows else maxf(settings.shadow_blur, 0.001)
 		if enabled and light.light_energy > 0.0:
 			active_points += 1
 		if light.shadow_enabled:

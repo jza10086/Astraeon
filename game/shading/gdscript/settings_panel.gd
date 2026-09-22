@@ -212,6 +212,7 @@ func _set_value(key: StringName, value: Variant) -> void:
 	sync(profile)
 
 func _effective(key: StringName) -> bool:
+	if key == &"glass_filter": return profile.glass_enabled and profile.glass_filter_mode in [1,3,4,5,6]
 	if Extra.GATES.has(str(key)):
 		var gate: PackedStringArray = Extra.GATES[str(key)].split(":")
 		return str(int(profile.get(gate[0]))) in gate[1].split(",")

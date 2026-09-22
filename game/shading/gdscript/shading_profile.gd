@@ -240,6 +240,7 @@ extends Resource
 @export_range(16,128,1) var glass_range: float = 64.0
 @export_range(0.001,1,0.001) var glass_bias: float = 0.08
 @export_range(0,4,0.25) var glass_filter: float = 1.0
+@export_enum("最近邻", "原四点", "双线性比较", "3×3 Tent", "5×5 Tent", "圆盘 8 点", "圆盘 16 点") var glass_filter_mode: int = 2
 @export_enum("512","1024","2048","4096") var glass_resolution: int = 1
 @export var motion_enabled: bool = false
 @export_range(0,360,1) var motion_shutter: float = 90.0
@@ -250,6 +251,16 @@ extends Resource
 @export_range(0,8,0.1) var chroma_pixels: float = 1.5
 @export_range(0,0.99,0.01) var chroma_start: float = 0.4
 @export_range(0.1,8,0.1) var chroma_falloff: float = 2.0
+
+@export_enum("关闭", "程序化圆盘", "贴图圆盘") var celestial_mode: int = 1
+@export_range(0.1,12.0,0.1) var celestial_sun_size: float = 1.0
+@export_range(0.1,12.0,0.1) var celestial_moon_size: float = 1.2
+@export_range(0,30,0.1) var celestial_sun_energy: float = 5.0
+@export_range(0,10,0.1) var celestial_moon_energy: float = 1.0
+@export_color_no_alpha var celestial_sun_color: Color = Color(1.0,0.9,0.7)
+@export_color_no_alpha var celestial_moon_color: Color = Color(0.65,0.75,1.0)
+@export_range(0.001,0.5,0.001) var celestial_edge: float = 0.02
+@export_range(0,4,0.05) var celestial_halo: float = 0.25
 
 ## Primary voxel lighting and the optional weak fill have separate controls.
 func effective_block_strength() -> float:

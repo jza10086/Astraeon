@@ -356,6 +356,20 @@ func _apply_lighting() -> void:
 	_sky_material.set_shader_parameter("enhanced", _settings.sky_enhanced)
 	_sky_material.set_shader_parameter("zenith",zenith)
 	_sky_material.set_shader_parameter("horizon",horizon)
+	var sun_direction: Vector3 = Basis.from_euler(Vector3(-solar_angle,-0.5,0.0)).z.normalized()
+	_sky_material.set_shader_parameter("sun_direction", sun_direction)
+	_sky_material.set_shader_parameter("moon_direction", -sun_direction)
+	_sky_material.set_shader_parameter("celestial_mode", _settings.celestial_mode)
+	_sky_material.set_shader_parameter("sun_radius", deg_to_rad(_settings.celestial_sun_size * 0.5))
+	_sky_material.set_shader_parameter("moon_radius", deg_to_rad(_settings.celestial_moon_size * 0.5))
+	_sky_material.set_shader_parameter("disc_edge", deg_to_rad(_settings.celestial_edge))
+	_sky_material.set_shader_parameter("halo_strength", _settings.celestial_halo)
+	_sky_material.set_shader_parameter("sun_tint", _settings.celestial_sun_color)
+	_sky_material.set_shader_parameter("moon_tint", _settings.celestial_moon_color)
+	_sky_material.set_shader_parameter("sun_energy", _settings.celestial_sun_energy)
+	_sky_material.set_shader_parameter("moon_energy", _settings.celestial_moon_energy)
+	_sky_material.set_shader_parameter("sun_texture", preload("res://game/shading/assets/celestial/sun.svg"))
+	_sky_material.set_shader_parameter("moon_texture", preload("res://game/shading/assets/celestial/moon.svg"))
 	_fog_color = (palette.fog as Color).lerp(Color(0.32,0.36,0.4),overcast*0.8)
 	_apply_modules(palette.ambient,horizon)
 
@@ -479,7 +493,7 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	_sun.shadow_bias = _settings.shadow_bias
 	_sun.shadow_normal_bias = _settings.shadow_normal_bias
 	_sun.directional_shadow_blend_splits = true
-	_sun.shadow_blur = 0.0 if _settings.hard_shadows else _settings.shadow_blur
+	_sun.shadow_blur = 1.0 if _settings.hard_shadows else maxf(_settings.shadow_blur, 0.001)
 	var qualities: Array[RenderingServer.ShadowQuality] = [
 		RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM, RenderingServer.SHADOW_QUALITY_SOFT_HIGH, RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW, RenderingServer.SHADOW_QUALITY_SOFT_ULTRA]
 	var quality: int = RenderingServer.SHADOW_QUALITY_HARD if _settings.hard_shadows else qualities[_settings.shadow_quality]

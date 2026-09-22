@@ -1,6 +1,16 @@
 extends RefCounted
 ## Names, groups and mode dependencies for the shading controls.
 const LABELS: Dictionary[String, String] = {
+  "celestial_halo": "光晕强度",
+  "celestial_edge": "边缘过渡（度）",
+  "celestial_moon_color": "月亮颜色",
+  "celestial_sun_color": "太阳颜色",
+  "celestial_moon_energy": "月亮显示亮度",
+  "celestial_sun_energy": "太阳显示亮度",
+  "celestial_moon_size": "月亮角直径（度）",
+  "celestial_sun_size": "太阳角直径（度）",
+  "celestial_mode": "日月外观方案",
+  "glass_filter_mode": "彩色阴影过滤方案",
   "color_saturation": "饱和度",
   "color_contrast": "对比度",
   "color_night_brightness": "夜间亮度倍率",
@@ -129,6 +139,16 @@ const LABELS: Dictionary[String, String] = {
   "chroma_falloff": "衰减幂"
 }
 const GROUPS: Dictionary[String, String] = {
+  "celestial_halo": "日月外观",
+  "celestial_edge": "日月外观",
+  "celestial_moon_color": "日月外观",
+  "celestial_sun_color": "日月外观",
+  "celestial_moon_energy": "日月外观",
+  "celestial_sun_energy": "日月外观",
+  "celestial_moon_size": "日月外观",
+  "celestial_sun_size": "日月外观",
+  "celestial_mode": "日月外观",
+  "glass_filter_mode": "彩色透明阴影",
   "color_saturation": "色彩方案",
   "color_contrast": "色彩方案",
   "color_night_brightness": "色彩方案",
@@ -257,6 +277,15 @@ const GROUPS: Dictionary[String, String] = {
   "chroma_falloff": "色差"
 }
 const GATES: Dictionary[String, String] = {
+  "celestial_halo": "celestial_mode:1,2",
+  "celestial_edge": "celestial_mode:1,2",
+  "celestial_moon_color": "celestial_mode:1,2",
+  "celestial_sun_color": "celestial_mode:1,2",
+  "celestial_moon_energy": "celestial_mode:1,2",
+  "celestial_sun_energy": "celestial_mode:1,2",
+  "celestial_moon_size": "celestial_mode:1,2",
+  "celestial_sun_size": "celestial_mode:1,2",
+  "glass_filter_mode": "glass_enabled:1",
   "auto_min_iso": "exposure_mode:1",
   "auto_max_iso": "exposure_mode:1",
   "auto_speed": "exposure_mode:1",
