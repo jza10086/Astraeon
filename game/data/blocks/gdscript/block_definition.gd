@@ -3,6 +3,8 @@ extends Resource
 ## Shared authoring template. Authoring only; the native runtime does not consume this template yet.
 const STATE_DEFINITION: Script = preload("res://game/data/blocks/gdscript/block_state_definition.gd")
 @export var key: StringName
+## Shared visual definition; never store instance state in this resource.
+@export var appearance: AstraeonBlockAppearance
 @export var display_name: String = ""
 @export var hardness: float = 1.0
 @export var collision_enabled: bool = true

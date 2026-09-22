@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAppearance" format=3]
+
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="1"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2"]
+
+[sub_resource type="Resource" id="Surface"]
+script = ExtResource("2")
+base_color = Color(0.36, 0.22, 0.12, 1)
+
+[sub_resource type="Resource" id="End"]
+script = ExtResource("2")
+base_color = Color(0.65, 0.48, 0.28, 1)
+
+[resource]
+script = ExtResource("1")
+default_surface = SubResource("Surface")
+face_surfaces = Dictionary[int, ExtResource("2")]({0: SubResource("End"), 1: SubResource("End")})

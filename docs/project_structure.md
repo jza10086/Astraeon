@@ -81,4 +81,4 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 
 ## 已批准的方块外观边界
 
-材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。未来实现按功能归入 game/shading/blocks，测试归入 test/shader；当前尚未实现这些类型，不预建空目录。
+材质设计见 [方块规格](voxel_chunks.md#方块属性与材质契约)，与 1 单位 = 1 米的方块尺寸约定共同生效。shading 拥有 BlockAppearance、BlockSurface、BlockLightAppearance 的类型和资源；data 的静态逻辑定义引用这些只读资源，world/gameplay 提供实例位置、当前朝向及动态显示参数。该引用是静态资源依赖，不创建 data 到光影运行服务的依赖，也不允许外观资源反向持有逻辑实例。Resource 类型、校验和方向接口已实现于 game/shading/blocks，测试归入 test/shader；原生渲染接入和批量材质编译待实现。
