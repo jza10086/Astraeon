@@ -240,7 +240,7 @@ extends Resource
 @export_range(16,128,1) var glass_range: float = 64.0
 @export_range(0.001,1,0.001) var glass_bias: float = 0.08
 @export_range(0,4,0.25) var glass_filter: float = 1.0
-@export_enum("最近邻", "原四点", "双线性比较", "3×3 Tent", "5×5 Tent", "圆盘 8 点", "圆盘 16 点") var glass_filter_mode: int = 2
+@export_enum("最近邻", "原四点", "双线性比较", "3×3 Tent", "圆盘 8 点", "十字5点柔化") var glass_filter_mode: int = 2
 @export_enum("512","1024","2048","4096") var glass_resolution: int = 1
 @export var motion_enabled: bool = false
 @export_range(0,360,1) var motion_shutter: float = 90.0
@@ -252,7 +252,8 @@ extends Resource
 @export_range(0,0.99,0.01) var chroma_start: float = 0.4
 @export_range(0.1,8,0.1) var chroma_falloff: float = 2.0
 
-@export_enum("关闭", "程序化圆盘", "贴图圆盘") var celestial_mode: int = 1
+@export_enum("圆形", "方形") var celestial_shape: int = 0
+@export_enum("关闭", "程序化绘制", "贴图采样") var celestial_mode: int = 1
 @export_range(0.1,12.0,0.1) var celestial_sun_size: float = 1.0
 @export_range(0.1,12.0,0.1) var celestial_moon_size: float = 1.2
 @export_range(0,30,0.1) var celestial_sun_energy: float = 5.0
@@ -283,7 +284,7 @@ func load_settings(path: String = "user://settings.cfg") -> Error:
 	var error: Error = config.load(path)
 	if error != OK:
 		return error
-	if config.get_value("shading", "format", "") != "astraeon-shading-20260922":
+	if config.get_value("shading", "format", "") != "astraeon-shading-20260922b":
 		return ERR_FILE_UNRECOGNIZED
 	var known: Array[String] = ["format"]
 	for property: Dictionary in settings_properties():
@@ -316,7 +317,7 @@ func save_settings(path: String = "user://settings.cfg") -> Error:
 		return error # Do not overwrite an unreadable file.
 	if config.has_section("shading"):
 		config.erase_section("shading")
-	config.set_value("shading", "format", "astraeon-shading-20260922")
+	config.set_value("shading", "format", "astraeon-shading-20260922b")
 	for property: Dictionary in settings_properties():
 		config.set_value("shading", property.name, get(property.name))
 	var temporary: String = path + ".tmp"

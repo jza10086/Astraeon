@@ -3,6 +3,7 @@ uniform vec3 zenith : source_color = vec3(0.15,0.35,0.7);
 uniform vec3 horizon : source_color = vec3(0.65,0.8,1.0);
 uniform bool enhanced = true;
 uniform int celestial_mode = 0;
+uniform int celestial_shape = 0;
 uniform vec3 sun_direction = vec3(0.0,1.0,0.0);
 uniform vec3 moon_direction = vec3(0.0,-1.0,0.0);
 uniform float sun_radius = 0.00872665;
@@ -18,13 +19,15 @@ uniform sampler2D moon_texture : source_color, filter_linear_mipmap, repeat_disa
 vec4 disc(vec3 ray, vec3 direction, float radius, sampler2D tex) {
 	float cosine = dot(ray,direction);
 	float angle = acos(clamp(cosine,-1.0,1.0));
-	float mask = 1.0-smoothstep(radius-disc_edge,radius+disc_edge,angle);
+	vec3 reference = abs(direction.y)>0.99 ? vec3(1.0,0.0,0.0) : vec3(0.0,1.0,0.0);
+	vec3 right = normalize(cross(reference,direction));
+	vec3 up = cross(direction,right);
+	vec2 plane=vec2(dot(ray,right),-dot(ray,up));
+	float distance_to_edge = celestial_shape == 0 ? angle : atan(max(abs(plane.x),abs(plane.y)),max(cosine,0.0001));
+	float mask = (1.0-smoothstep(radius-disc_edge,radius+disc_edge,distance_to_edge))*step(0.0,cosine);
 	vec3 color = vec3(1.0);
-	if (celestial_mode == 2 && cosine > 0.0 && angle < radius+disc_edge) {
-		vec3 reference = abs(direction.y)>0.99 ? vec3(1.0,0.0,0.0) : vec3(0.0,1.0,0.0);
-		vec3 right = normalize(cross(reference,direction));
-		vec3 up = cross(direction,right);
-		vec2 uv=vec2(dot(ray,right),-dot(ray,up))/max(2.0*sin(radius),0.0001)+0.5;
+	if (celestial_mode == 2 && mask>0.0) {
+		vec2 uv=plane/max(2.0*tan(radius)*cosine,0.0001)+0.5;
 		vec4 sample_color=texture(tex,uv);
 		color=sample_color.rgb;
 		mask*=sample_color.a;

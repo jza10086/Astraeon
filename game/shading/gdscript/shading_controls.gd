@@ -1,6 +1,7 @@
 extends RefCounted
 ## Names, groups and mode dependencies for the shading controls.
 const LABELS: Dictionary[String, String] = {
+  "celestial_shape": "日月形状",
   "celestial_halo": "光晕强度",
   "celestial_edge": "边缘过渡（度）",
   "celestial_moon_color": "月亮颜色",
@@ -139,6 +140,7 @@ const LABELS: Dictionary[String, String] = {
   "chroma_falloff": "衰减幂"
 }
 const GROUPS: Dictionary[String, String] = {
+  "celestial_shape": "日月外观",
   "celestial_halo": "日月外观",
   "celestial_edge": "日月外观",
   "celestial_moon_color": "日月外观",
@@ -277,6 +279,7 @@ const GROUPS: Dictionary[String, String] = {
   "chroma_falloff": "色差"
 }
 const GATES: Dictionary[String, String] = {
+  "celestial_shape": "celestial_mode:1,2",
   "celestial_halo": "celestial_mode:1,2",
   "celestial_edge": "celestial_mode:1,2",
   "celestial_moon_color": "celestial_mode:1,2",

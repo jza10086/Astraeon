@@ -44,7 +44,7 @@ func _settings_checks() -> void:
 	var file: String = _output.path_join("settings-test.cfg")
 	var config: ConfigFile = ConfigFile.new()
 	config.set_value("unrelated", "keep", "preserved")
-	config.set_value("shading", "format", "astraeon-shading-20260922")
+	config.set_value("shading", "format", "astraeon-shading-20260922b")
 	config.set_value("shading", "ao_strength", 500.0)
 	config.set_value("shading", "fog_density", -1)
 	config.set_value("shading", "aa_mode", 40)

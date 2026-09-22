@@ -37,17 +37,21 @@ vec3 glass_transmittance(vec3 position) {
 		for (int i=0;i<4;i++) result += glass_tap(uv + vec2(float(i%2)*2.0-1.0,float(i/2)*2.0-1.0)*glass_filter*glass_texel,depth);
 		return result*0.25;
 	}
-	if (glass_filter_mode <= 4) {
-		int radius = glass_filter_mode == 3 ? 1 : 2;
-		for (int y=-2;y<=2;y++) for (int x=-2;x<=2;x++) {
+	if (glass_filter_mode == 5) {
+		vec2 d=vec2(glass_filter*glass_texel,0.0);
+		return glass_tap(uv,depth)*0.4+(glass_tap(uv+d,depth)+glass_tap(uv-d,depth)+glass_tap(uv+d.yx,depth)+glass_tap(uv-d.yx,depth))*0.15;
+	}
+	if (glass_filter_mode == 3) {
+		int radius = 1;
+		for (int y=-1;y<=1;y++) for (int x=-1;x<=1;x++) {
 			if (abs(x)>radius || abs(y)>radius) continue;
 			float w=float((radius+1-abs(x))*(radius+1-abs(y)));
 			result += glass_tap(uv+vec2(float(x),float(y))*glass_filter*glass_texel,depth)*w;
 			weight += w;
 		}
 	} else {
-		int count = glass_filter_mode == 5 ? 8 : 16;
-		for (int i=0;i<16;i++) {
+		int count = 8;
+		for (int i=0;i<8;i++) {
 			if(i>=count) break;
 			float angle=float(i)*2.39996323;
 			vec2 offset=vec2(cos(angle),sin(angle))*sqrt((float(i)+0.5)/float(count));

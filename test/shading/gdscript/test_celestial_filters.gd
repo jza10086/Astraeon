@@ -20,7 +20,7 @@ func _render_checks() -> void:
 	await _capture("hard-fixed-view-2")
 	_sample._settings.glass_enabled = true
 	_sample._view(Vector3(10,3,20),Vector3(9,1,12))
-	for mode: int in range(7):
+	for mode: int in range(6):
 		_sample._settings.glass_filter_mode = mode
 		_sample._apply_lighting()
 		await _frames(6)
@@ -40,6 +40,24 @@ func _render_checks() -> void:
 			_sample._apply_lighting()
 			_check(is_equal_approx(_sample._sun.light_energy,sky_energy), "Appearance leaves illumination unchanged")
 			await _capture("celestial-%d-hour-%d" % [mode,int(hour)])
+	_sample._settings.celestial_shape = 1
+	for mode: int in [1,2]:
+		_sample._settings.celestial_mode = mode
+		_sample._apply_lighting()
+		await _capture("square-moon-%d" % mode)
+	_sample._set_hour(10.0)
+	_sample._view(Vector3(0,15,0),Vector3(0,15,0)+_sample._sun.global_basis.z*100.0)
+	for mode: int in [1,2]:
+		_sample._settings.celestial_mode = mode
+		_sample._apply_lighting()
+		await _capture("square-sun-%d" % mode)
+	_sample._view(Vector3(18,4,17),Vector3(18,2,9))
+	_sample._set_hour(12.0)
+	_sample._environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	await _capture("metal-reflection-disabled")
+	_sample._environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	await _capture("metal-sky-reflection")
+	_check(_sample._environment.reflected_light_source == Environment.REFLECTION_SOURCE_SKY,"Sky specular enabled")
 	_sample._settings_panel.show_setting(&"celestial_mode")
 	_check(_sample._settings_panel.widgets.has(&"glass_filter_mode"), "Filter selector available")
 	_check(_sample._settings_panel.widgets.has(&"celestial_mode"), "Celestial selector available")

@@ -49,7 +49,7 @@
 
 ## 配置与接口
 
-配置默认模板是 `game/shading/resources/default_profile.tres`。运行时复制，保存于根工程的 `user://settings.cfg`，节名 `shading`，格式 `astraeon-shading-20260922`。不读取旧样板配置格式；不支持的文件会提示并使用默认值，保存采用临时文件再替换。其他模块的配置节保留。
+配置默认模板是 `game/shading/resources/default_profile.tres`。运行时复制，保存于根工程的 `user://settings.cfg`，节名 `shading`，格式 `astraeon-shading-20260922b`。不读取旧样板配置格式；不支持的文件会提示并使用默认值，保存采用临时文件再替换。其他模块的配置节保留。
 
 新增 UI 元数据位于 `shading_controls.gd`：统一名称、分组及模式依赖。所有开关采用选择框，关闭后隐藏无效参数。SSAO 的采样策略是引擎公开的枚举，不是项目低／中／高预设；半分辨率、半径、模糊等仍独立可调。
 
@@ -93,4 +93,4 @@ Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script re
 
 验证：原生存储光照一致性测试 61 项、实际 D3D12 场景检查 18 项通过。渲染检查覆盖原生网格完成、图集绑定、叶片裁剪、灯与窗口交互。截图 tmp/shading-native-sample/native-sample.png；未进行性能基准。GDScript 光照求解仍逐单元访问原生缓冲，后续性能优化需独立测量，当前不宣称无额外开销。
 
-硬阴影零倍率问题已复现并修复；新增七种彩色阴影过滤及两种日月外观，入口和截图见 [阴影与日月对比](reports/shadows_celestial.md)。光照更新优化暂缓。
+硬阴影零倍率问题已复现并修复；新增六种彩色阴影过滤及两种日月外观，入口和截图见 [阴影与日月对比](reports/shadows_celestial.md)。光照更新优化暂缓。

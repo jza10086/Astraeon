@@ -233,7 +233,7 @@ func _start() -> void:
 	_environment = Environment.new()
 	_environment.background_mode = Environment.BG_SKY
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_DISABLED
-	_environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	_environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	_environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	_sky_material = ShaderMaterial.new()
 	_sky_material.shader = PLAIN_SKY_SHADER
@@ -360,6 +360,7 @@ func _apply_lighting() -> void:
 	_sky_material.set_shader_parameter("sun_direction", sun_direction)
 	_sky_material.set_shader_parameter("moon_direction", -sun_direction)
 	_sky_material.set_shader_parameter("celestial_mode", _settings.celestial_mode)
+	_sky_material.set_shader_parameter("celestial_shape", _settings.celestial_shape)
 	_sky_material.set_shader_parameter("sun_radius", deg_to_rad(_settings.celestial_sun_size * 0.5))
 	_sky_material.set_shader_parameter("moon_radius", deg_to_rad(_settings.celestial_moon_size * 0.5))
 	_sky_material.set_shader_parameter("disc_edge", deg_to_rad(_settings.celestial_edge))
@@ -368,8 +369,8 @@ func _apply_lighting() -> void:
 	_sky_material.set_shader_parameter("moon_tint", _settings.celestial_moon_color)
 	_sky_material.set_shader_parameter("sun_energy", _settings.celestial_sun_energy)
 	_sky_material.set_shader_parameter("moon_energy", _settings.celestial_moon_energy)
-	_sky_material.set_shader_parameter("sun_texture", preload("res://game/shading/assets/celestial/sun.svg"))
-	_sky_material.set_shader_parameter("moon_texture", preload("res://game/shading/assets/celestial/moon.svg"))
+	_sky_material.set_shader_parameter("sun_texture", preload("res://game/shading/assets/celestial/sun.svg") if _settings.celestial_shape == 0 else preload("res://game/shading/assets/celestial/sun_square.svg"))
+	_sky_material.set_shader_parameter("moon_texture", preload("res://game/shading/assets/celestial/moon.svg") if _settings.celestial_shape == 0 else preload("res://game/shading/assets/celestial/moon_square.svg"))
 	_fog_color = (palette.fog as Color).lerp(Color(0.32,0.36,0.4),overcast*0.8)
 	_apply_modules(palette.ambient,horizon)
 

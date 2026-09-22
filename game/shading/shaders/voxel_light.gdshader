@@ -63,6 +63,8 @@ void fragment() {
 	SPECULAR = surface_specular;
 	IRRADIANCE = vec4(sky_color * ambient * (1.0-ambient_minimum) + ambient_minimum_color * ambient_minimum
 		+ block_color * block_energy * indirect_strength * pow(indirect, block_curve), 1.0);
+	// Attenuate sky specular indoors; keep a configurable environment floor.
+	RADIANCE = vec4(vec3(0.0), 1.0-clamp(max(ambient,ambient_minimum),0.0,1.0));
 	EMISSION = base_color.rgb * self_emission;
 }
 
