@@ -3,6 +3,11 @@ extends RefCounted
 ## Startup snapshot: the ordered state table drives generation, meshing and persistence together.
 var state_keys: PackedStringArray = []
 var library: VoxelBlockyLibrary
+var opacity: PackedByteArray = PackedByteArray([0])
+var sources: PackedByteArray = PackedByteArray([0])
+var emission: PackedByteArray = PackedByteArray([0])
+var light_definitions: Dictionary[int, AstraeonBlockLightAppearance] = {}
+var light_offsets: Dictionary[int, Vector3] = {}
 var water_id: int = -1
 var grass_id: int = -1
 var dirt_id: int = -1
@@ -37,6 +42,12 @@ func build(catalog: AstraeonBlockCatalog, water: AstraeonFluidDefinition) -> boo
 			if model == null:
 				return false
 			state_keys.append(key + "/" + state)
+			opacity.append(definition.light_opacity)
+			emission.append(definition.light_emission)
+			sources.append(1 if definition.appearance.light != null and definition.appearance.light.energy > 0.0 else 0)
+			if definition.appearance.light != null:
+				light_definitions[models.size()] = definition.appearance.light
+				light_offsets[models.size()] = definition.appearance.combined_orientation(states[state]) * definition.appearance.light.local_offset
 			models.append(model)
 	if not _valid_key(String(water.key)) or by_key.has(String(water.key)) or water.key == &"astraeon_air":
 		return false
@@ -45,6 +56,9 @@ func build(catalog: AstraeonBlockCatalog, water: AstraeonFluidDefinition) -> boo
 		return false
 	water_id = models.size()
 	state_keys.append(String(water.key) + "/default")
+	opacity.append(water.light_opacity)
+	emission.append(0)
+	sources.append(0)
 	models.append(water_model)
 	grass_id = state_keys.find("astraeon_grass/default")
 	dirt_id = state_keys.find("astraeon_dirt/default")

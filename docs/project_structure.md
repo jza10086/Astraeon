@@ -23,7 +23,7 @@ Astraeon/
 │  │     ├─ gdscript/                   # 输入、相机
 │  │     ├─ scenes/player.tscn
 │  │     └─ assets/hk416.glb
-│  ├─ shading/                          # 可复用光影组件；正式世界接入待开发
+│  ├─ shading/                          # 光影组件、原生派生光场及主世界装配
 │  ├─ gameplay/
 │  │  ├─ interaction/                   # 挖掘/放置职责
 │  │  ├─ inventory/
@@ -54,7 +54,7 @@ Astraeon/
 
 core 装配模块；gameplay 调用 world 和 entities；世界、实体和光影读取 data。加载决定哪些区段驻留，读取是 persistence 的磁盘操作；缺失才生成，损坏必须报错。世界数据是唯一权威源，网格/碰撞/光影都是派生内容。动画只消费实体状态，不直接决定地形修改或持久化。
 
-尚未实现的职责不等于已经独立组件化：当前挖掘/放置、简单提示仍在 native_world.gd 内，后续可提取到 gameplay/interaction/gdscript 与 ui/gdscript；本次未改变玩法行为。正式数据目录已接入原生生成与基础外观编译；完整光影效果仍待开发。只为已实现功能增加代码，不为目录完整预建空框架。
+尚未实现的职责不等于已经独立组件化：当前挖掘/放置、简单提示仍在 native_world.gd 内，后续可提取到 gameplay/interaction/gdscript 与 ui/gdscript；本次未改变玩法行为。正式数据目录已接入原生生成与基础外观编译；主世界光影接入见 world_shading.md。只为已实现功能增加代码，不为目录完整预建空框架。
 
 ## 同模块语言分层
 

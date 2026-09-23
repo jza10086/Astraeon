@@ -1,7 +1,8 @@
 extends Node
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
-## One mirrored camera for the fixed-height lab pool. Shares geometry, never the main camera.
-const WATER_HEIGHT: float = 0.75
+## One mirrored camera for a world-supplied horizontal water plane. Shares geometry, never the main camera.
+@export var water_height: float = 0.75
+@export var water_bounds: AABB = AABB(Vector3(12,0.4,-25),Vector3(16,0.7,16))
 const CAPTURE_MARKER: int = 1 << 19
 const WATER_LAYER: int = 1 << 18
 const PLANT_LAYER: int = 1 << 17
@@ -64,7 +65,7 @@ func apply(settings: Profile, environment: Environment) -> void:
 	if not settings.planar_reflect_clouds:
 		camera.cull_mask &= ~CLOUD_LAYER
 	for material: ShaderMaterial in _clip_materials:
-		material.set_shader_parameter("reflection_clip_height", WATER_HEIGHT + settings.planar_clip_offset)
+		material.set_shader_parameter("reflection_clip_height", water_height + settings.planar_clip_offset)
 		material.set_shader_parameter("reflection_plants", settings.planar_reflect_plants)
 
 func _set_valid(value: bool) -> void:
@@ -73,7 +74,7 @@ func _set_valid(value: bool) -> void:
 
 func _pool_in_view() -> bool:
 	# Conservative AABB/frustum overlap; unlike checking only the center, works above the pool.
-	var bounds: AABB = AABB(Vector3(12,0.4,-25),Vector3(16,0.7,16))
+	var bounds: AABB = water_bounds
 	for plane: Plane in _source.get_frustum():
 		var outside: bool = true
 		for index: int in range(8):
@@ -87,7 +88,7 @@ func _pool_in_view() -> bool:
 func tick(delta: float, settings: Profile) -> void:
 	if not active:
 		return
-	if _source.global_position.y <= WATER_HEIGHT + 0.02 or (settings.planar_visible_only and not _pool_in_view()):
+	if _source.global_position.y <= water_height + 0.02 or (settings.planar_visible_only and not _pool_in_view()):
 		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		_valid = false
 		_set_valid(false)
@@ -109,7 +110,7 @@ func tick(delta: float, settings: Profile) -> void:
 	camera.far = settings.planar_distance
 	var transform: Transform3D = _source.global_transform
 	var origin: Vector3 = transform.origin
-	origin.y = 2.0 * WATER_HEIGHT - origin.y
+	origin.y = 2.0 * water_height - origin.y
 	var forward: Vector3 = -transform.basis.z
 	var up: Vector3 = transform.basis.y
 	forward.y = -forward.y

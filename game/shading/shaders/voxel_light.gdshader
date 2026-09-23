@@ -1,5 +1,11 @@
 shader_type spatial;
 render_mode diffuse_lambert;
+uniform bool authored_surface = false;
+uniform sampler2D authored_orm : filter_nearest;
+uniform sampler2D authored_emission : source_color, filter_nearest;
+uniform float authored_emission_energy = 0.0;
+uniform float emission_multiplier = 1.0;
+uniform float authored_specular = 0.5;
 uniform bool use_block_atlas = false;
 uniform sampler2D block_atlas : source_color, filter_nearest, repeat_disable;
 uniform bool block_cutout = false;
@@ -54,18 +60,19 @@ void fragment() {
 	float edge = min(min(face_uv.x, 1.0 - face_uv.x), min(face_uv.y, 1.0 - face_uv.y));
 	float pattern = mix(1.0, mix(0.85, 1.0, smoothstep(0.0, 0.035, edge)), block_grid_strength);
 	ALBEDO = base_color.rgb * block_texel.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
+	vec3 orm = authored_surface ? texture(authored_orm, UV).rgb : vec3(1.0);
 	float wet = surface_wetness(world_position, normalize(world_normal));
 	ALBEDO *= 1.0 - wet * wet_darken;
-	ROUGHNESS = mix(material_roughness, wet_roughness, wet);
-	surface_specular = mix(material_specular, wet_specular, wet);
-	surface_metallic = material_metallic;
-	METALLIC = material_metallic;
+	ROUGHNESS = mix(material_roughness * orm.g, wet_roughness, wet);
+	surface_specular = mix(material_specular * (authored_surface ? authored_specular * 2.0 : 1.0), wet_specular, wet);
+	surface_metallic = authored_surface ? 1.0-(1.0-orm.b)*(1.0-material_metallic) : material_metallic;
+	METALLIC = surface_metallic;
 	SPECULAR = surface_specular;
 	IRRADIANCE = vec4(sky_color * ambient * (1.0-ambient_minimum) + ambient_minimum_color * ambient_minimum
 		+ block_color * block_energy * indirect_strength * pow(indirect, block_curve), 1.0);
 	// Attenuate sky specular indoors; keep a configurable environment floor.
 	RADIANCE = vec4(vec3(0.0), 1.0-clamp(max(ambient,ambient_minimum),0.0,1.0));
-	EMISSION = base_color.rgb * self_emission;
+	EMISSION = authored_surface ? texture(authored_emission, UV).rgb * authored_emission_energy * emission_multiplier : base_color.rgb * self_emission;
 }
 
 void light() {

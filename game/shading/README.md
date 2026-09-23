@@ -1,6 +1,6 @@
 # Shading 模块
 
-可复用的天空色彩、材质、环境和镜头效果位于本目录；组合样板、有限体素数据、测试夹具和性能工具位于 `test/shading/`。尚未接入正式流式世界，正式游戏入口不变。
+可复用的天空色彩、材质、环境和镜头效果位于本目录；组合样板、有限体素数据、测试夹具和性能工具位于 `test/shading/`。已由正式主世界装配，F6 打开光影设置；接口与限制见 [主世界光影](../../docs/world_shading.md)。
 
 - `gdscript/shading_profile.gd`：运行时复制的配置资源，当前格式 `astraeon-shading-20260922b`，通过显式字段配置。
 - `gdscript/day_palette.gd`：四时段循环色彩；`camera_effects.gd`：SSAO、体积雾、主相机曝光和景深。
@@ -21,6 +21,6 @@
 
 验证：Godot 4.7 headless 执行 `--script res://test/shading/gdscript/test_block_appearance.gd`，360 项检查通过。测试不包含图形或性能验收。
 
-独立水体材质资源已实现于 water/，提供默认资源、校验及参数接口，后续接入边界见 [水体材质说明](water/README.md)。正式世界已接入统一水色回退；独立样板尚未改接，动态水面效果仍待实现。
+独立水体材质资源已实现于 water/，提供默认资源、校验及参数接口，后续接入边界见 [水体材质说明](water/README.md)。正式世界已接入原生水网格、深度吸收、波纹、SSR/平面反射和水下判断。
 
 天空着色器支持程序化/贴图日月，彩色阴影支持六种比较过滤；样板验证见 [阴影与日月报告](../../test/shading/reports/shadows_celestial.md)。硬阴影由硬采样控制，shadow_blur 使用中性值 1，禁止以零倍率模拟硬边。

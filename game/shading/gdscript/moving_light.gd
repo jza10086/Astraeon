@@ -20,5 +20,5 @@ func apply(p: Profile) -> void:
 	light.light_color = color
 	light.omni_range = radius
 	light.omni_attenuation = p.moving_attenuation
-	light.shadow_blur = 0.0 if p.hard_shadows else p.shadow_blur
+	light.shadow_blur = 1.0 if p.hard_shadows else maxf(p.shadow_blur, 0.001)
 	light.light_volumetric_fog_energy = p.moving_volume_energy if p.rays_mode == 2 else 0.0

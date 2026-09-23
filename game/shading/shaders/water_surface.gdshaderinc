@@ -1,5 +1,8 @@
 #include "res://game/shading/shaders/glass_receiver.gdshaderinc"
 uniform sampler2D scene_depth : hint_depth_texture, repeat_disable, filter_nearest;
+uniform vec3 water_bounds_min = vec3(12.0,-5.0,-25.0);
+uniform vec3 water_bounds_max = vec3(28.0,0.75,-9.0);
+uniform bool water_visible = true;
 uniform bool depth_absorption = true;
 uniform bool waves_enabled = true;
 uniform bool reflection_enabled = true;
@@ -26,7 +29,7 @@ uniform vec3 horizon : source_color = vec3(0.6, 0.78, 0.95);
 varying vec3 world_position;
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	if (waves_enabled) {
+	if (waves_enabled && NORMAL.y > 0.5) {
 		float a = world_position.x * 0.7 * wave_scale + clock * 1.3;
 		float b = world_position.z * 0.5 * wave_scale + clock * 0.9;
 		VERTEX.y += (sin(a) + sin(b)) * wave_strength * 0.5;
@@ -34,6 +37,7 @@ void vertex() {
 	}
 }
 void fragment() {
+	if (!water_visible || (CAMERA_VISIBLE_LAYERS & 524288u) != 0u) discard;
 	float thickness = 3.0; // Uniform low-quality fallback, identical across the pool.
 	if (depth_absorption && FRONT_FACING) {
 		vec3 surface = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -41,7 +45,7 @@ void fragment() {
 		// Clip to finite water bounds when a ray reaches a bank or misses scene depth.
 		vec3 safe_ray = mix(vec3(-0.00001), vec3(0.00001), step(vec3(0.0),ray));
 		safe_ray = mix(safe_ray, ray, step(vec3(0.00001), abs(ray)));
-		vec3 boundary = mix(vec3(12.0,-5.0,-25.0), vec3(28.0,0.75 + wave_strength,-9.0), step(vec3(0.0), ray));
+		vec3 boundary = mix(water_bounds_min, water_bounds_max + vec3(0.0,wave_strength,0.0), step(vec3(0.0), ray));
 		vec3 exit_t = (boundary - surface) / safe_ray;
 		float exit_distance = max(0.0, min(exit_t.x, min(exit_t.y,exit_t.z)));
 		float depth = texture(scene_depth, SCREEN_UV).r; // Exactly one scene-depth fetch.

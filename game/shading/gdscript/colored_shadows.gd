@@ -48,8 +48,25 @@ func add_caster(caster: MeshInstance3D) -> void:
 		viewports[index].add_child(copy)
 		copies.append(copy)
 	_signature.clear()
+func remove_caster(caster: MeshInstance3D) -> void:
+	var index: int = casters.find(caster)
+	if index < 0: return
+	if is_instance_valid(caster): caster.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for pass_index: int in range(2):
+		copies[index*2].queue_free()
+		copies.remove_at(index*2)
+	casters.remove_at(index)
+	_signature.clear()
+
 func tick(p: Profile, sun: DirectionalLight3D, observer: Vector3) -> void:
-	var active: bool = p.glass_enabled and sun.visible
+	for index: int in range(casters.size()-1,-1,-1):
+		if not is_instance_valid(casters[index]):
+			for pass_index: int in range(2):
+				copies[index*2].queue_free()
+				copies.remove_at(index*2)
+			casters.remove_at(index)
+			_signature.clear()
+	var active: bool = p.glass_enabled and sun.visible and not casters.is_empty()
 	if active != _active:
 		_active = active
 		_signature.clear()
