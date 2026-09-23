@@ -39,11 +39,14 @@ public:
 #endif
 
 	~SaveBlockDataTask();
+	uint64_t data_revision = 0;
+    bool generated_cache = false;
 
 	const char *get_debug_name() const override {
 		return "SaveBlockData";
 	}
 
+	bool allows_parallel_io() const override { return _stream_dependency->stream.is_valid() && _stream_dependency->stream->supports_parallel_access(); }
 	void run(ThreadedTaskContext &ctx) override;
 	TaskPriority get_priority() override;
 	bool is_cancelled() override;

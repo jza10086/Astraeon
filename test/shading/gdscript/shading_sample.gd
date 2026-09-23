@@ -320,6 +320,7 @@ func _process(delta: float) -> void:
 		_image_usec = Time.get_ticks_usec() - begin
 		begin = Time.get_ticks_usec()
 		_texture.update(images)
+		preload("res://test/shading/gdscript/light_page_fixture.gd").update_fixture(_texture,images)
 		_upload_usec = Time.get_ticks_usec() - begin
 		_uploaded_revision = _volume.settled_revision
 	_frame_counter += 1

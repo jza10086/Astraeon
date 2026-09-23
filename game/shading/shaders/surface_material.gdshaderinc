@@ -1,7 +1,5 @@
 uniform bool wet_active = false;
-uniform sampler2D wet_map : filter_nearest, repeat_disable;
-uniform vec2 wet_origin;
-uniform vec2 wet_size = vec2(64.0);
+#include "res://game/shading/shaders/weather_pages.gdshaderinc"
 uniform float wet_darken = 0.25;
 uniform float wet_roughness = 0.18;
 uniform float wet_specular = 0.65;
@@ -12,9 +10,7 @@ varying float surface_metallic;
 varying float surface_specular;
 float surface_wetness(vec3 position, vec3 normal) {
 	if (!wet_active) return 0.0;
-	vec2 uv = (position.xz-wet_origin)/wet_size;
-	if (any(lessThan(uv,vec2(0.0))) || any(greaterThanEqual(uv,vec2(1.0)))) return 0.0;
-	vec2 column = texture(wet_map,uv).rg;
+	vec3 column = weather_column(position.xz);
 	return column.g * step(column.r-0.08,position.y) * smoothstep(0.0,0.8,normal.y);
 }
 vec3 surface_highlight(vec3 normal, vec3 light, vec3 view, vec3 albedo, float roughness, float metallic, float specular) {

@@ -1,4 +1,5 @@
 extends SceneTree
+const LightPages: Script = preload("res://test/shading/gdscript/light_page_fixture.gd")
 ## Raw shader compilation probe, independent of editor imports and sample bootstrap.
 var _compiled: bool = false
 var _failure: String = ""
@@ -38,9 +39,7 @@ func _run() -> void:
 		var shader: Shader = load("res://game/shading/shaders/"+names[index]+".gdshader") as Shader
 		var material: ShaderMaterial = ShaderMaterial.new()
 		material.shader = shader
-		material.set_shader_parameter("light_volume",texture)
-		material.set_shader_parameter("volume_origin",Vector3(-8,-8,-8))
-		material.set_shader_parameter("volume_size",Vector3(16,16,16))
+		LightPages.bind_fixture(material,texture,Vector3i(-8,-8,-8),Vector3i(16,16,16))
 		var mesh: MeshInstance3D = MeshInstance3D.new()
 		mesh.mesh = BoxMesh.new()
 		mesh.position.x = (index-3)*1.5

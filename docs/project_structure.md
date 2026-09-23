@@ -48,7 +48,7 @@ Astraeon/
 | data | 静态方块、物品、生物、群系定义和校验；不是逐体素运行时存储 |
 | world | 权威体素数据、生成、流式调度、读写存档、网格和地形碰撞 |
 | entities | 共享移动组件、玩家/生物实例、行为、模型、动画 |
-| shading | 天空、日夜、环境、阴影、水面、云、后处理和未来原生光照计算 |
+| shading | 天空、日夜、环境、阴影、水面、云、后处理和原生 section 光照/天气缓存 |
 | gameplay | 目标选择、挖掘/放置及未来背包、合成、生存规则 |
 | core / ui | 组装、生命周期、设置、菜单与显示 |
 
@@ -89,3 +89,7 @@ Voxel Tools 的注册、调度或圆形加载等上游接入补丁仍在 native/
 静态定义使用 game/data/block 与 game/data/fluid，ID 为 astraeon_xxx。方块目录收录草、泥土、树叶、三轴木头，流体目录定义水；外观类型与共享材质仍归 shading。木头状态保存允许的旋转，世界实例只选择状态。具体入口和当前接入边界见 game/data/README.md。
 
 地图生成版本 2 及数据接入边界见 [地图生成](world_generation.md)。
+
+## 缓存模块
+
+`game/core/gdscript/cache_policy.gd` 和 `cache_coordinator.gd` 持有场景局部策略和装配；`game/shading/native/cache/` 持有派生光照、天气和 GPU 页池；world 的权威驻留与版本接入位于 Voxel Tools 生命周期扩展和 world/native。UI 仅展示数值。完整契约见 [world_cache.md](world_cache.md)。旧全量求解器迁至 `test/shading/native/reference/`，仅编辑器目标编译，生产发布版不包含。

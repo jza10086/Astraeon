@@ -56,13 +56,6 @@ func _process(_delta: float) -> void:
     if not driving: return
     var elapsed: float = (now-phase_start)/1000000.0
     _pose(elapsed)
-    if frozen:
-        # Test-only suppression of scheduling. Keep all render updates, viewers and prior texture.
-        # Each phase settles workers first; loaded-data invalidations are discarded here.
-        var p: Vector3 = world.camera.global_position
-        var size: Vector3i = world.shading._size
-        world.shading._requested_origin = Vector3i(floori(p.x/16.0)*16-size.x/2,-64,floori(p.z/16.0)*16-size.z/2)
-        world.shading._dirty = false
 
 func _pose(seconds: float) -> void:
     var angle: float = seconds*PI*0.5 # 90 degrees per second.
@@ -139,12 +132,12 @@ func _run() -> void:
                 measuring = false
                 driving = false
                 frozen = false
+                world.cache_coordinator.native.call("set_suspended",false)
                 action = kind
                 center = initial_center
                 center.x = 16.0 if kind == "orbit_boundary" else 8.0
                 center.z = 8.0
                 _pose(0.0)
-                world.shading.invalidate()
                 if not await _settle():
                     failures.append("Phase failed to settle: "+kind)
                     await _finish()
@@ -152,9 +145,7 @@ func _run() -> void:
                 # Warm renderer at the starting view; motion is measured from its first frame.
                 await get_tree().create_timer(0.5).timeout
                 frozen = freeze
-                if frozen:
-                    world.terrain.block_loaded.disconnect(world.shading._invalidate_block)
-                    world.terrain.block_unloaded.disconnect(world.shading._invalidate_block)
+                world.cache_coordinator.native.call("set_suspended",frozen)
                 phase = "%d_%s_%s" % [round_index+1,kind,"frozen" if freeze else "normal"]
                 phase_start = Time.get_ticks_usec()
                 interval_phase = ""
@@ -164,9 +155,7 @@ func _run() -> void:
                 await get_tree().create_timer(sample_seconds).timeout
                 measuring = false
                 driving = false
-                if frozen:
-                    world.terrain.block_loaded.connect(world.shading._invalidate_block)
-                    world.terrain.block_unloaded.connect(world.shading._invalidate_block)
+                world.cache_coordinator.native.call("set_suspended",false)
                 var summary: Dictionary = _summarize(phase)
                 summaries.append(summary)
                 print("MOTION_PHASE ",JSON.stringify(summary))

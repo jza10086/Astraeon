@@ -1,0 +1,11 @@
+from pathlib import Path
+
+root = Path(Dir('#').abspath).parents[2]
+output = root / 'tmp/cache-native-tests'
+output.mkdir(parents=True, exist_ok=True)
+env = Environment(tools=['msvc', 'mslink'], MSVC_VERSION='14.5')
+env.Append(CCFLAGS=['/std:c++17', '/EHsc', '/O2', '/utf-8'])
+env.SConsignFile(str(output / '.sconsign.dblite'))
+obj = env.Object(target=str(output / 'test_section_cache.obj'),
+                 source=str(root / 'test/shading/native/test_section_light_cache.cpp'))
+Default(env.Program(target=str(output / 'section_cache_test'), source=obj))

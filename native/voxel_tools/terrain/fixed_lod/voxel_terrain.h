@@ -1,5 +1,6 @@
 #ifndef VOXEL_TERRAIN_H
 #define VOXEL_TERRAIN_H
+#include <deque>
 
 #include "../../constants/voxel_constants.h"
 #include "../../engine/meshing_dependency.h"
@@ -43,6 +44,7 @@ public:
 	// Maximum view distance when any terrain boundary is larger than it
 	static const unsigned int MAX_VIEW_DISTANCE_FOR_LARGE_VOLUME = 512;
 
+    void apply_derived_cache_policy(int64_t bytes, double seconds);
 	VoxelTerrain();
 	~VoxelTerrain();
 
@@ -206,6 +208,19 @@ protected:
 	void _on_render_layers_mask_changed() override;
 
 private:
+    struct CachedMesh {
+        VoxelMesher::Output surfaces;
+        std::array<uint64_t,27> revisions;
+        std::shared_ptr<MeshingDependency> materials;
+        uint64_t touched, bytes;
+        bool collision;
+    };
+    StdUnorderedMap<Vector3i,CachedMesh> _derived_meshes;
+    std::deque<Vector3i> _derived_maintenance;
+    uint64_t _derived_maintenance_usec=0,_derived_maintenance_peak_usec=0;
+    StdUnorderedMap<Vector3i,bool> _deferred_unviews;
+    uint64_t _derived_bytes=0,_derived_limit=0,_derived_hits=0,_derived_misses=0,_derived_stale=0;
+    double _derived_seconds=15.0;
 	void process();
 	void process_viewers();
 	void process_viewer_data_box_change(
@@ -250,6 +265,7 @@ private:
 	);
 
 	void emit_data_block_loaded(Vector3i bpos);
+    void emit_section_changes(Box3i area, const char *reason);
 	void emit_data_block_unloaded(Vector3i bpos);
 
 	void emit_mesh_block_entered(Vector3i bpos);
@@ -345,7 +361,10 @@ private:
 	// Data blocks that have been unloaded and needed saving. They are temporarily stored here until saving completes,
 	// and is checked first before loading new blocks. This is in case players leave an area and come back to it faster
 	// than saving, because otherwise loading from stream would return an outdated version.
-	StdUnorderedMap<Vector3i, std::shared_ptr<VoxelBuffer>> _unloaded_saving_blocks;
+	StdUnorderedMap<Vector3i, VoxelData::BlockToSave> _unloaded_saving_blocks;
+public:
+	std::shared_ptr<VoxelData> get_shared_data() const { return _data; }
+private:
 	// List of data blocks that will be used to simulate a loading response on the next process call.
 	struct QuickReloadingBlock {
 		std::shared_ptr<VoxelBuffer> voxels;

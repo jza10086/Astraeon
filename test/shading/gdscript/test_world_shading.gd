@@ -19,7 +19,7 @@ func _native_checks() -> void:
             for x: int in range(4,12):
                 if x in [4,11] or y in [4,11] or z in [4,11]: buffer.set_voxel(1,x,y,z)
     buffer.set_voxel(2,7,5,7)
-    var solver: AstraeonLightField = AstraeonLightField.new()
+    var solver: AstraeonLightReference = AstraeonLightReference.new()
     var result: Dictionary = solver.solve(buffer,PackedByteArray([0,15,15]),PackedByteArray([0,0,15]),PackedByteArray([0,0,1]),PackedByteArray([1]),16,Vector3i(-16,-16,-16))
     check(result.images[7].get_pixel(7,7).r == 0.0,"Sealed room blocks sky")
     check(result.images[7].get_pixel(7,7).g > 0.0,"Enclosed source propagates")
@@ -57,16 +57,16 @@ func _run() -> void:
     root.add_child(world)
     await wait_field(0)
     var deadline: int = Time.get_ticks_msec()+60000
-    while (world.shading._dirty or world.shading._worker != null) and Time.get_ticks_msec()<deadline:
+    while not world.shading.is_ready() and Time.get_ticks_msec()<deadline:
         await process_frame
-    check(not world.shading._dirty and world.shading._worker == null,"Streaming lighting settles")
+    check(world.shading.is_ready(),"Streaming lighting settles")
     world.controller.set_physics_process(false)
     world.camera.reparent(world)
     world.camera.global_position = world.player.global_position+Vector3(18,14,18)
     world.camera.look_at(world.player.global_position)
     await capture("day")
     check(world.content.library.models[world.content.dirt_id].get_material_override(0) is ShaderMaterial,"Native mesher uses shading material")
-    check(world.shading._texture != null,"World light texture published")
+    check(int(world.cache_coordinator.native.call("get_cache_metrics").pages) > 0,"World light texture published")
     var origin: Vector3i = Vector3i(world.player.position.floor())+Vector3i(2,2,0)
     var previous: int = world.shading.field_publications
     world.set_block(origin,world.content.state_keys.find("astraeon_glowstone/default"))
@@ -113,11 +113,11 @@ func _run() -> void:
     world.camera.global_position.y += 6.0
     await frames(4)
     check(not world.shading._underwater,"Leaving water restores atmosphere")
-    var old_origin: Vector3i = world.shading._requested_origin
-    previous = world.shading.field_publications
+    var before_camera: Dictionary = world.cache_coordinator.native.call("get_cache_metrics")
     world.camera.global_position.x += 32.0
-    await wait_field(previous)
-    check(world.shading._requested_origin != old_origin,"Light field follows section crossings")
+    await frames(60)
+    var after_camera: Dictionary = world.cache_coordinator.native.call("get_cache_metrics")
+    check(before_camera.section_reads == after_camera.section_reads and before_camera.passes == after_camera.passes,"Camera movement does not move world lighting interest")
     world.shading._settings.hour = 12.0
     world.shading._settings.weather_mode = 2
     world.shading._settings.weather_transition = 0.1

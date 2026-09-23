@@ -1,5 +1,6 @@
 #ifndef VOXEL_DATA_H
 #define VOXEL_DATA_H
+#include <atomic>
 
 #include "../generators/voxel_generator.h"
 #include "../streams/voxel_stream.h"
@@ -22,6 +23,17 @@ class VoxelDataGrid;
 // Individual calls should be thread-safe.
 class VoxelData {
 public:
+    struct CacheMetrics {
+        uint64_t voxel_bytes = 0, warm_bytes = 0, pinned_bytes = 0;
+        uint64_t hits = 0, misses = 0, evictions = 0, warm_sections = 0;
+    };
+    void set_cache_policy(uint64_t byte_limit, int retain_distance);
+    // Single cache worker; returns true when this accounting/eviction pass completes.
+    bool maintain_cache(Vector3i center, int horizontal_distance, int vertical_distance,
+            StdVector<Vector3i> &removed, uint64_t budget_usec);
+    CacheMetrics get_cache_metrics() const;
+    void set_derived_cache_bytes(uint64_t bytes) { _derived_cache_bytes=bytes; }
+    uint64_t get_derived_cache_bytes() const { return _derived_cache_bytes.load(); }
 	VoxelData();
 	~VoxelData();
 
@@ -261,6 +273,7 @@ public:
 	void update_lods(Span<const Vector3i> modified_lod0_blocks, StdVector<BlockLocation> *out_updated_blocks);
 
 	struct BlockToSave {
+		uint64_t revision = 0;
 		std::shared_ptr<VoxelBuffer> voxels;
 		Vector3i position;
 		uint32_t lod_index;
@@ -276,11 +289,29 @@ public:
 
 	// If the block at the specified LOD0 position exists and is modified, marks it as non-modified and returns a copy
 	// of its data to save. Returns true if there is something to save.
-	bool consume_block_modifications(Vector3i bpos, BlockToSave &out_to_save);
+	bool consume_block_modifications(Vector3i bpos, BlockToSave &out_to_save, bool acknowledge_immediately = true);
+	void acknowledge_save(Vector3i bpos, uint64_t revision);
+	uint64_t copy_section(Vector3i bpos, VoxelBuffer &out) const;
+	uint64_t get_section_revision(Vector3i bpos) const;
+    struct SectionIdentity { uint64_t lifecycle=0, revision=0; };
+    struct SectionRelease { Vector3i position; SectionIdentity identity; };
+    SectionIdentity get_section_identity(Vector3i bpos) const;
+    StdVector<SectionRelease> take_released_sections();
+    // Main-thread render readiness only; authority and light values live elsewhere.
+    void require_light_pages(bool enabled) { _light_pages_required = enabled; }
+    bool is_light_page_ready(Vector3i p) const { return !_light_pages_required || _light_ready.find(p) != _light_ready.end(); }
+    void set_light_page_ready(Vector3i p, bool ready) {
+        if (ready == (_light_ready.find(p) != _light_ready.end())) return;
+        if (ready) _light_ready[p] = true; else _light_ready.erase(p);
+        _light_visibility_changes[p] = ready;
+    }
+    void clear_light_pages() { for (auto &p : _light_ready) _light_visibility_changes[p.first] = false; _light_ready.clear(); }
+    StdUnorderedMap<Vector3i, bool> take_light_visibility_changes() { StdUnorderedMap<Vector3i, bool> out; out.swap(_light_visibility_changes); return out; }
+
 
 	// Marks all modified blocks as unmodified and returns their data to save. if `with_copy` is true, the returned data
 	// will be a copy, otherwise it will reference voxel data. Prefer using references when about to quit for example.
-	void consume_all_modifications(StdVector<BlockToSave> &to_save, bool with_copy);
+	void consume_all_modifications(StdVector<BlockToSave> &to_save, bool with_copy, bool acknowledge_immediately = true);
 
 	// Gets missing blocks out of the given block positions.
 	// WARNING: positions outside bounds will be considered missing too.
@@ -477,6 +508,26 @@ private:
 	// mutex internally either way.
 	// There are times where locking can take longer, but it only happens rarely, when changing LOD count for
 	// example.
+    bool _light_pages_required = false;
+    StdUnorderedMap<Vector3i, bool> _light_ready, _light_visibility_changes;
+    struct WarmSection { uint64_t touched; bool protected_segment; };
+    StdUnorderedMap<Vector3i, WarmSection> _warm_sections;
+    uint64_t _cache_byte_limit = 0;
+    int _cache_retain_distance = 32;
+    CacheMetrics _cache_metrics;
+    StdVector<SectionRelease> _released_sections;
+    struct CacheCandidate { Vector3i pos; uint64_t bytes, touched; bool protected_segment, outside; };
+    struct CachePass {
+        bool active=false, sorted=false;
+        Vector3i center;
+        int horizontal=0, vertical=0;
+        size_t scan=0, evict=0;
+        uint64_t total=0, warm=0, pinned=0;
+        StdVector<Vector3i> positions;
+        StdVector<CacheCandidate> candidates;
+    } _cache_pass; // Owned exclusively by the world's one background cache task.
+
+    std::atomic<uint64_t> _derived_cache_bytes{0};
 	Mutex _settings_mutex;
 };
 

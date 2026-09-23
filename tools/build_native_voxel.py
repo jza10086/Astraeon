@@ -53,6 +53,11 @@ def main():
         module = native_dir.parent.name
         module_hashes[module] = stage(native_dir, WORK / "voxel_tools/astraeon" / module)
         project_sources += ["astraeon/" + module + "/" + path.relative_to(native_dir).as_posix() for path in sorted(native_dir.rglob("*.cpp"))]
+    # Test reference solvers are editor-only, never part of the release backend.
+    if args.target == "editor":
+        reference = ROOT / "test/shading/native/reference"
+        module_hashes["test_shading_reference"] = stage(reference, WORK / "voxel_tools/astraeon_tests/shading/reference")
+        project_sources += ["astraeon_tests/shading/reference/" + path.name for path in sorted(reference.glob("*.cpp"))]
     (WORK / "voxel_tools/astraeon_sources.json").write_text(json.dumps(project_sources), encoding="utf8")
     cpp_hash = stage(ROOT / "native/deps/godot-cpp", WORK / "godot-cpp")
     packages = ROOT / "tmp/voxel-circular-build/python"

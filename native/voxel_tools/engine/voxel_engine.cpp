@@ -1,4 +1,6 @@
 #include "voxel_engine.h"
+#include <godot_cpp/classes/engine.hpp>
+#include <godot_cpp/classes/time.hpp>
 #include "../constants/voxel_constants.h"
 #include "../generators/generate_block_task.h"
 #include "../meshers/mesh_block_task.h"
@@ -147,6 +149,7 @@ void VoxelEngine::try_initialize_gpu_features() {
 }
 
 void VoxelEngine::wait_and_clear_all_tasks(bool warn) {
+    while (!_pending_results.empty()) { auto task = _pending_results.front().task; _pending_results.pop_front(); ZN_DELETE(task); }
 	_general_thread_pool.wait_for_all_tasks();
 
 	_general_thread_pool.dequeue_completed_tasks([warn](zylann::IThreadedTask *task) {
@@ -285,6 +288,16 @@ bool VoxelEngine::is_threaded_graphics_resource_building_enabled() const {
 // 	_threaded_graphics_resource_building_enabled = enabled;
 // }
 
+unsigned int VoxelEngine::get_remaining_commit_usec() {
+    const uint64_t frame = ::godot::Engine::get_singleton()->get_process_frames();
+    if (_commit_frame != frame) { _commit_frame = frame; _commit_used_usec = 0; }
+    return _commit_used_usec >= _main_thread_time_budget_usec ? 0 : unsigned(_main_thread_time_budget_usec - _commit_used_usec);
+}
+void VoxelEngine::charge_commit_usec(uint64_t usec) {
+    get_remaining_commit_usec();
+    _commit_used_usec += usec; _commit_peak_usec = std::max(_commit_peak_usec, usec);
+}
+
 void VoxelEngine::push_async_task(zylann::IThreadedTask *task) {
 	_general_thread_pool.enqueue(task, false);
 }
@@ -295,11 +308,11 @@ void VoxelEngine::push_async_tasks(Span<zylann::IThreadedTask *> tasks) {
 
 void VoxelEngine::push_async_io_task(zylann::IThreadedTask *task) {
 	// I/O tasks run in serial because they usually can't run well in parallel due to locking shared resources.
-	_general_thread_pool.enqueue(task, true);
+	_general_thread_pool.enqueue(task, !task->allows_parallel_io());
 }
 
 void VoxelEngine::push_async_io_tasks(Span<zylann::IThreadedTask *> tasks) {
-	_general_thread_pool.enqueue(tasks, true);
+	for(auto task:tasks) _general_thread_pool.enqueue(task, !task->allows_parallel_io());
 }
 
 #ifdef VOXEL_ENABLE_GPU
@@ -325,14 +338,31 @@ void VoxelEngine::process() {
 	);
 
 	// Receive generation and meshing results
-	_general_thread_pool.dequeue_completed_tasks([](zylann::IThreadedTask *task) {
-		task->apply_result();
-		ZN_DELETE(task);
-	});
-
-	// Run this after dequeueing threaded tasks, because they can add some to this runner,
-	// which could in turn complete right away (we avoid 1-frame delays this way).
-	_time_spread_task_runner.process(_main_thread_time_budget_usec);
+    _general_thread_pool.dequeue_completed_tasks([this](zylann::IThreadedTask *task) { _pending_results.push_back({task,::godot::Time::get_singleton()->get_ticks_usec(),task->get_priority().whole}); });
+    const uint64_t order_now=::godot::Time::get_singleton()->get_ticks_usec();
+    std::stable_sort(_pending_results.begin(),_pending_results.end(),[order_now](const PendingResult &a,const PendingResult &b) {
+        const bool old_a=order_now-a.queued_usec>=250000,old_b=order_now-b.queued_usec>=250000;
+        if(old_a!=old_b)return old_a;
+        if(old_a && a.queued_usec!=b.queued_usec)return a.queued_usec<b.queued_usec;
+        return a.priority>b.priority;
+    });
+    while (!_pending_results.empty() && get_remaining_commit_usec() > 0) {
+        const uint64_t start = ::godot::Time::get_singleton()->get_ticks_usec();
+        IThreadedTask *task = _pending_results.front().task;
+        _queue_wait_peak_usec=std::max(_queue_wait_peak_usec,start-_pending_results.front().queued_usec);
+        _pending_results.pop_front();
+        const std::string task_name=task->get_debug_name();
+        task->apply_result(); ZN_DELETE(task);
+        const uint64_t elapsed=::godot::Time::get_singleton()->get_ticks_usec()-start;
+        if(elapsed>_apply_peak_usec){_apply_peak_usec=elapsed;_apply_peak_name=task_name;}
+        charge_commit_usec(elapsed);
+    }
+    const unsigned remaining = get_remaining_commit_usec();
+    if (remaining > 0) {
+        const uint64_t start = ::godot::Time::get_singleton()->get_ticks_usec();
+        _time_spread_task_runner.process(remaining);
+        charge_commit_usec(::godot::Time::get_singleton()->get_ticks_usec() - start);
+    }
 
 	_progressive_task_runner.process();
 
@@ -342,6 +372,11 @@ void VoxelEngine::process() {
 #ifdef VOXEL_ENABLE_GPU
 	ZN_PROFILE_PLOT("Pending GPU tasks", int64_t(_gpu_task_runner.get_pending_task_count()));
 #endif
+}
+
+uint64_t VoxelEngine::get_cache_temporary_bytes() const {return MeshBlockTask::cache_temporary_bytes.load();}
+bool VoxelEngine::has_task_capacity() const {
+    return get_cache_task_count()<_cache_task_limit && get_cache_temporary_bytes()<uint64_t(_cache_task_limit)*131072;
 }
 
 void VoxelEngine::sync_viewers_task_priority_data() {

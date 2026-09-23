@@ -46,6 +46,7 @@ struct ThreadedTaskContext {
 class IThreadedTask {
 public:
 	virtual ~IThreadedTask() {}
+    virtual bool allows_parallel_io() const { return false; }
 
 	// Called from within the thread pool
 	virtual void run(ThreadedTaskContext &ctx) = 0;

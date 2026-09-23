@@ -3,6 +3,7 @@ Godot 4.7 体素生存建造游戏。
 
 ## 当前状态
 主世界已接入光影装配，F6 打开设置；接口与验证边界见 [主世界光影](docs/world_shading.md)。
+地图与光照现采用 C++ section 缓存、温缓存驻留、增量传播和 GPU 分页上传；F6 中可调整缓存数值预算。职责、统计口径及回归入口见 [地图与光照缓存](docs/world_cache.md)。
 已初始化开发环境：MCP 编辑器插件、Codex 配置、项目技能、开发规范、功能目录和 F5 可启动的原生体素主场景。
 静态方块 Resource 类型与编辑示例位于 `game/data/block/gdscript/` 与 `resources/`，已关联 game/shading/blocks 下的共享外观 Resource（六面材质、标准朝向、自发光及独立光源描述），正式目录已接入原生生成与基础渲染，编辑示例不参与注册；见 [方块材质规格](docs/voxel_chunks.md#方块属性与材质契约)。旧 GDScript 体素后端及专属测试已删除，仅保留历史测试报告。模块与目录规划见 [项目结构](docs/project_structure.md)。
 主场景已接入玩家实体：WASD 4.3 m/s 移动、Shift 5.6 m/s 快跑、鼠标观察、空格跳跃、碰撞和 HK416 V8 的 Idle/Walk_4_3/Run_5_6/Jump 动画。主场景现使用 C++ 原生四生物群系地形，支持左键挖掘、右键放置泥土和地形保存；尚未接入背包、玩家状态存档或生存规则。第三人称测试相机不代表最终游戏视角。模块说明见 [角色实体](docs/character_entities.md)，资产交付约定见 [模型约定](docs/character_asset_contract.md)。

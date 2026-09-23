@@ -6,6 +6,7 @@
 #include "../containers/std_queue.h"
 #include "../thread/mutex.h"
 #include <cstdint>
+#include <string>
 
 namespace zylann {
 
@@ -20,6 +21,8 @@ class ITimeSpreadTask {
 public:
 	virtual ~ITimeSpreadTask() {}
 	virtual void run(TimeSpreadTaskContext &ctx) = 0;
+    // Names have static storage so diagnostic capture remains safe after task deletion.
+    virtual const char *get_debug_name() const {return "TimeSpreadTask";}
 };
 
 // Runs tasks in the caller thread, within a time budget per call. Kind of like coroutines.
@@ -40,14 +43,19 @@ public:
 	void process(uint64_t time_budget_usec);
 	void flush();
 	unsigned int get_pending_count() const;
+    uint64_t get_peak_task_usec() const {return _peak_task_usec;}
+    const char *get_peak_task_name() const {return _peak_task_name.c_str();}
 
 private:
+    struct Entry {ITimeSpreadTask *task;uint64_t queued_usec;};
 	struct Queue {
-		StdQueue<ITimeSpreadTask *> tasks;
+		StdQueue<Entry> tasks;
 		// TODO Optimization: naive thread safety. Should be enough for now.
 		BinaryMutex tasks_mutex;
 	};
 	FixedArray<Queue, PRIORITY_COUNT> _queues;
+    uint64_t _peak_task_usec=0;
+    std::string _peak_task_name;
 };
 
 } // namespace zylann

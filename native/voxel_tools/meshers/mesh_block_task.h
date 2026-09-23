@@ -1,5 +1,6 @@
 #ifndef VOXEL_MESH_BLOCK_TASK_H
 #define VOXEL_MESH_BLOCK_TASK_H
+#include <array>
 
 #include "../constants/voxel_constants.h"
 #include "../engine/ids.h"
@@ -49,6 +50,7 @@ public:
 #endif
 
 	static int debug_get_running_count();
+    inline static std::atomic<uint64_t> cache_temporary_bytes{0};
 
 	// 3x3x3 or 4x4x4 grid of voxel blocks.
 	FixedArray<std::shared_ptr<VoxelBuffer>, constants::MAX_BLOCK_COUNT_PER_REQUEST> blocks;
@@ -62,6 +64,8 @@ public:
 	bool require_visual = true;
 	// If true, a collision mesh is required if possible
 	bool collision_hint = false;
+    std::array<uint64_t,27> section_revisions{};
+    bool cache_versioned = false;
 	// If true, the mesh will be used in a context with LOD, which might require a few extra things in the way it is
 	// built
 	bool lod_hint = false;
@@ -88,6 +92,7 @@ private:
 	void build_mesh();
 
 	bool _has_run = false;
+    uint64_t _cache_bytes=0;
 	bool _too_far = false;
 	bool _has_mesh_resource = false;
 #ifdef VOXEL_ENABLE_GPU

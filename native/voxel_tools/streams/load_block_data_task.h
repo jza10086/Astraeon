@@ -33,6 +33,7 @@ public:
 		return "LoadBlockData";
 	}
 
+	bool allows_parallel_io() const override { return _stream_dependency->stream.is_valid() && _stream_dependency->stream->supports_parallel_access(); }
 	void run(ThreadedTaskContext &ctx) override;
 	TaskPriority get_priority() override;
 	bool is_cancelled() override;

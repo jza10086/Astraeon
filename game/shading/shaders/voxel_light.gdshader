@@ -10,9 +10,7 @@ uniform bool use_block_atlas = false;
 uniform sampler2D block_atlas : source_color, filter_nearest, repeat_disable;
 uniform bool block_cutout = false;
 uniform float block_alpha_cutoff = 0.5;
-uniform sampler3D light_volume : filter_nearest, repeat_disable;
-uniform vec3 volume_origin;
-uniform vec3 volume_size;
+#include "res://game/shading/shaders/light_pages.gdshaderinc"
 uniform vec4 base_color : source_color = vec4(0.65, 0.67, 0.7, 1.0);
 uniform vec3 sky_color : source_color = vec3(0.55, 0.68, 1.0);
 uniform vec3 block_color : source_color = vec3(1.0, 0.64, 0.32);
@@ -46,14 +44,14 @@ void fragment() {
 	if (block_cutout && block_texel.a < block_alpha_cutoff) discard;
 	if (reflection_clipped(world_position, CAMERA_VISIBLE_LAYERS)) discard;
 	// Sample the adjacent air cell, never interpolate through an opaque wall.
-	vec3 cell = floor(world_position + normalize(world_normal) * 0.02 - volume_origin);
-	vec2 illumination = vec2(0.0);
-	if (all(greaterThanEqual(cell, vec3(0.0))) && all(lessThan(cell, volume_size))) {
-		illumination = texture(light_volume, (cell + vec3(0.5)) / volume_size).rg;
-	}
+	vec3 cell = floor(world_position + normalize(world_normal) * 0.02);
+	vec3 section = floor(cell / 16.0);
+	int slot = light_page_slot(section);
+	vec4 sample_light = light_page_texel(slot,cell-section*16.0);
+	vec2 illumination = sample_light.rg;
 	sky_visibility = illumination.r;
 	vec2 filtered = (ambient_smoothing > 0.0 || indirect_strength > 0.0)
-		? smooth_surface_light(world_position, normalize(world_normal)) : illumination;
+		? smooth_surface_light(world_position, normalize(world_normal),sample_light.rgb,section,slot) : illumination;
 	float indirect = filtered.g;
 	float ambient = pow(max(mix(illumination.r, filtered.r, ambient_smoothing), 0.0), ambient_curve) * ambient_strength;
 	vec2 face_uv = use_block_atlas ? vec2(fract(UV.x * 6.0), UV.y) : UV;

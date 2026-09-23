@@ -1,4 +1,5 @@
 extends Node3D
+const LightPages: Script = preload("res://test/shading/gdscript/light_page_fixture.gd")
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Local finite water and grass fixtures. No world streaming or liquid simulation.
 const WATER_SHADER: Shader = preload("res://game/shading/shaders/water.gdshader")
@@ -41,10 +42,8 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 		var marker_material: ShaderMaterial = ShaderMaterial.new()
 		marker_material.shader = preload("res://game/shading/shaders/voxel_light.gdshader")
 		var colors: Array[Color] = [Color(0.85, 0.12, 0.06), Color(0.08, 0.25, 0.9), Color(0.9, 0.65, 0.08)]
+		LightPages.bind_fixture(marker_material,texture,origin,size)
 		marker_material.set_shader_parameter("base_color", colors[i])
-		marker_material.set_shader_parameter("light_volume", texture)
-		marker_material.set_shader_parameter("volume_origin", Vector3(origin))
-		marker_material.set_shader_parameter("volume_size", Vector3(size))
 		marker_materials.append(marker_material)
 		marker.mesh = box
 		marker.material_override = marker_material
@@ -52,10 +51,8 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 		add_child(marker)
 	grass_material = ShaderMaterial.new()
 	grass_material.shader = PLANT_SHADER
+	LightPages.bind_fixture(grass_material,texture,origin,size)
 	grass_material.set_shader_parameter("base_color", Color(0.25, 0.5, 0.14))
-	grass_material.set_shader_parameter("light_volume", texture)
-	grass_material.set_shader_parameter("volume_origin", Vector3(origin))
-	grass_material.set_shader_parameter("volume_size", Vector3(size))
 	grass_material.set_shader_parameter("grass", true)
 	# Two crossed cutout quads per clump; no per-voxel nodes in production terrain.
 	var quad: QuadMesh = QuadMesh.new()

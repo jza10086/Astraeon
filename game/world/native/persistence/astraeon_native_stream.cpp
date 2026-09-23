@@ -9,6 +9,7 @@
 #include <chrono>
 #ifdef _WIN32
 #include <io.h>
+#include <share.h>
 #else
 #include <unistd.h>
 #endif
@@ -28,8 +29,7 @@ void put32(unsigned char *p, uint32_t v) { for (int i = 0; i < 4; ++i) p[i] = st
 uint32_t get32(const unsigned char *p) { return uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24); }
 FILE *open_file(const std::filesystem::path &path, bool create) {
 #ifdef _WIN32
-    FILE *file = nullptr;
-    _wfopen_s(&file, path.c_str(), create ? L"w+b" : L"r+b");
+    FILE *file = _wfsopen(path.c_str(), create ? L"w+b" : L"r+b", _SH_DENYNO);
     return file;
 #else
     return fopen(path.c_str(), create ? "w+b" : "r+b");
@@ -73,6 +73,46 @@ int64_t AstraeonNativeStream::get_saved_blocks() const { return _saved.load(); }
 int64_t AstraeonNativeStream::get_loaded_blocks() const { return _loaded.load(); }
 void AstraeonNativeStream::load_voxel_block(VoxelQueryData &q) { access(q, false); }
 void AstraeonNativeStream::save_voxel_block(VoxelQueryData &q) { access(q, true); }
+void AstraeonNativeStream::set_region_handle_limit(int limit) {
+    std::lock_guard<std::mutex> guard(_mutex);
+    _region_limit = size_t(std::max(1, std::min(limit, 256)));
+    while (_regions.size() > _region_limit) {
+        auto oldest = _regions.end();
+        for (auto it = _regions.begin(); it != _regions.end(); ++it) {
+            if (it->second.use_count() == 1 && (oldest == _regions.end() || it->second->last_use < oldest->second->last_use)) oldest = it;
+        }
+        if (oldest == _regions.end()) break;
+        _regions.erase(oldest); ++_region_evictions;
+    }
+    _region_available.notify_all();
+}
+std::shared_ptr<AstraeonNativeStream::Region> AstraeonNativeStream::acquire_region(const std::string &key) {
+    std::unique_lock<std::mutex> guard(_mutex);
+    for (;;) {
+        auto found = _regions.find(key);
+        if (found != _regions.end()) {
+            found->second->last_use = ++_region_clock; ++_region_hits;
+            return found->second;
+        }
+        if (_regions.size() < _region_limit) {
+            auto region = std::make_shared<Region>();
+            region->last_use = ++_region_clock;
+            _regions.emplace(key, region); ++_region_misses;
+            return region;
+        }
+        auto oldest = _regions.end();
+        for (auto it = _regions.begin(); it != _regions.end(); ++it) {
+            if (it->second.use_count() == 1 && (oldest == _regions.end() || it->second->last_use < oldest->second->last_use)) oldest = it;
+        }
+        if (oldest != _regions.end()) { _regions.erase(oldest); ++_region_evictions; }
+        else _region_available.wait(guard);
+    }
+}
+void AstraeonNativeStream::release_region(std::shared_ptr<Region> &region) {
+    std::lock_guard<std::mutex> guard(_mutex);
+    region.reset();
+    _region_available.notify_all();
+}
 void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
     const auto started = std::chrono::steady_clock::now();
     struct Timing {
@@ -80,7 +120,6 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
         std::atomic<int64_t> &duration, &count;
         ~Timing() { duration += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count(); ++count; }
     } timing{started, writing ? _save_usec : _load_usec, writing ? _save_requests : _load_requests};
-    std::lock_guard<std::mutex> guard(_mutex);
     q.result = RESULT_ERROR;
     if (!get_last_error().is_empty()) return; // Sticky failure: never silently regenerate corrupted data.
     if (_directory.empty() || q.lod_index != 0 || q.voxel_buffer.get_size() != Vector3i(16,16,16)) {
@@ -90,13 +129,23 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
     const int rx = floor4(pos.x), ry = floor4(pos.y), rz = floor4(pos.z);
     const int index = (pos.x - rx * 4) + 4 * ((pos.y - ry * 4) + 4 * (pos.z - rz * 4));
     const auto path = std::filesystem::u8path(_directory) / (std::to_string(rx) + "_" + std::to_string(ry) + "_" + std::to_string(rz) + ".avr");
-    std::error_code ec;
-    const bool exists = std::filesystem::exists(path, ec);
-    if (ec) { fail("Cannot inspect region."); return; }
-    if (!exists && !writing) { q.result = RESULT_BLOCK_NOT_FOUND; return; }
-    FILE *file = open_file(path, !exists);
-    if (!file) { fail("Cannot open region."); return; }
-    struct Close { FILE *f; ~Close() { fclose(f); } } close{file};
+    auto region = acquire_region(path.string());
+    struct Lease {
+        AstraeonNativeStream &owner; std::shared_ptr<Region> &region;
+        ~Lease() { owner.release_region(region); }
+    } lease{*this, region};
+    std::lock_guard<std::mutex> region_guard(region->mutex);
+    if (!get_last_error().is_empty()) return;
+    FILE *file = region->file;
+    if (file == nullptr) {
+        std::error_code ec;
+        const bool exists = std::filesystem::exists(path, ec);
+        if (ec) { fail("Cannot inspect region."); return; }
+        if (!exists && !writing) { q.result = RESULT_BLOCK_NOT_FOUND; return; }
+        file = open_file(path, !exists);
+        if (!file) { fail("Cannot open region."); return; }
+        setvbuf(file, nullptr, _IONBF, 0);
+        region->file = file;
     std::array<unsigned char, HEADER> expected{};
     memcpy(expected.data(), "ASTRAEON", 8);
     put32(expected.data()+8, 2); // Exact format version.
@@ -110,6 +159,7 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
     } else {
         std::array<unsigned char, HEADER> actual{};
         if (fread(actual.data(), 1, HEADER, file) != HEADER || actual != expected) { fail("Unsupported or damaged region metadata/seed/block table."); return; }
+    }
     }
     Record records[2]{};
     const long offset = long(HEADER + size_t(index) * RECORD * 2);
@@ -133,6 +183,14 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
         }
         q.voxel_buffer.compress_uniform_channels(); ++_loaded; q.result = RESULT_BLOCK_FOUND; return;
     }
+    if (q.generated_cache && newest >= 0) { q.result = RESULT_BLOCK_FOUND; return; }
+    if (q.data_revision != 0) {
+        std::lock_guard<std::mutex> guard(_mutex);
+        auto found = _saved_revisions.find(path.string());
+        if (found != _saved_revisions.end() && found->second[index] >= q.data_revision) {
+            q.result = RESULT_BLOCK_FOUND; return;
+        }
+    }
     Record next{};
     const uint32_t sequence = newest < 0 ? 1 : get32(records[newest].data()) + 1;
     if (!sequence) { fail("Section sequence exhausted."); return; }
@@ -148,16 +206,27 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
     if (fseek(file, offset + long(slot * RECORD), SEEK_SET) != 0 || fwrite(next.data(), 1, RECORD, file) != RECORD || !sync_file(file)) {
         fail("Section durable write failed; previous record retained."); return;
     }
+    if (q.data_revision != 0) {
+        std::lock_guard<std::mutex> guard(_mutex);
+        _saved_revisions[path.string()][index] = q.data_revision;
+    }
     ++_saved; q.result = RESULT_BLOCK_FOUND;
 }
 Dictionary AstraeonNativeStream::get_metrics() const {
+    std::lock_guard<std::mutex> guard(_mutex);
     Dictionary d;
+    d["save_revision_bytes"] = int64_t(_saved_revisions.size() * (64 * sizeof(uint64_t) + sizeof(std::string)));
+    d["region_handles"] = int64_t(_regions.size());
+    d["region_handle_limit"] = int64_t(_region_limit);
+    d["region_hits"] = _region_hits.load(); d["region_misses"] = _region_misses.load();
+    d["region_evictions"] = _region_evictions.load();
     d["saved_blocks"] = _saved.load(); d["loaded_blocks"] = _loaded.load();
     d["save_requests"] = _save_requests.load(); d["load_requests"] = _load_requests.load();
     d["save_usec"] = _save_usec.load(); d["load_usec"] = _load_usec.load();
     return d;
 }
 void AstraeonNativeStream::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("set_region_handle_limit", "limit"), &AstraeonNativeStream::set_region_handle_limit);
     ClassDB::bind_method(D_METHOD("get_metrics"), &AstraeonNativeStream::get_metrics);
     ClassDB::bind_method(D_METHOD("open_world", "directory", "seed", "biome_layout", "state_keys"), &AstraeonNativeStream::open_world);
     ClassDB::bind_method(D_METHOD("get_last_error"), &AstraeonNativeStream::get_last_error);

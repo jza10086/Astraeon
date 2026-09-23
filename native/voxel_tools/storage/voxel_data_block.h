@@ -16,6 +16,10 @@ class VoxelBuffer;
 class VoxelDataBlock {
 public:
 	RefCount viewers;
+	bool cache_reused = false;
+	uint64_t get_revision() const { return _revision; }
+    uint64_t get_lifecycle() const { return _lifecycle; }
+	void acknowledge_save(uint64_t revision) { if (_revision == revision) _modified = false; }
 
 	VoxelDataBlock() {}
 
@@ -25,38 +29,44 @@ public:
 			_voxels(buffer), _lod_index(p_lod_index) {}
 
 	VoxelDataBlock(VoxelDataBlock &&src) :
-			viewers(src.viewers),
+			viewers(src.viewers), cache_reused(src.cache_reused),
 			_voxels(std::move(src._voxels)),
 			_lod_index(src._lod_index),
 			_needs_lodding(src._needs_lodding),
 			_modified(src._modified),
-			_edited(src._edited) {}
+			_edited(src._edited), _revision(src._revision), _lifecycle(src._lifecycle) {}
 
 	VoxelDataBlock(const VoxelDataBlock &src) :
-			viewers(src.viewers),
+			viewers(src.viewers), cache_reused(src.cache_reused),
 			_voxels(src._voxels),
 			_lod_index(src._lod_index),
 			_needs_lodding(src._needs_lodding),
 			_modified(src._modified),
-			_edited(src._edited) {}
+			_edited(src._edited), _revision(src._revision), _lifecycle(src._lifecycle) {}
 
 	VoxelDataBlock &operator=(VoxelDataBlock &&src) {
 		viewers = src.viewers;
+		cache_reused = src.cache_reused;
 		_lod_index = src._lod_index;
 		_voxels = std::move(src._voxels);
 		_needs_lodding = src._needs_lodding;
 		_modified = src._modified;
 		_edited = src._edited;
+		_revision = src._revision;
+        _lifecycle = src._lifecycle;
 		return *this;
 	}
 
 	VoxelDataBlock operator=(const VoxelDataBlock &src) {
 		viewers = src.viewers;
+		cache_reused = src.cache_reused;
 		_lod_index = src._lod_index;
 		_voxels = src._voxels;
 		_needs_lodding = src._needs_lodding;
 		_modified = src._modified;
 		_edited = src._edited;
+		_revision = src._revision;
+        _lifecycle = src._lifecycle;
 		return *this;
 	}
 
@@ -98,10 +108,12 @@ public:
 	void set_voxels(const std::shared_ptr<VoxelBuffer> &buffer) {
 		ZN_ASSERT_RETURN(buffer != nullptr);
 		_voxels = buffer;
+		_revision = next_revision();
 	}
 
 	void clear_voxels() {
 		_voxels = nullptr;
+		_revision = next_revision();
 		_edited = false;
 	}
 
@@ -128,6 +140,9 @@ public:
 	}
 
 private:
+	static uint64_t next_revision();
+	uint64_t _revision = next_revision();
+    uint64_t _lifecycle = next_revision();
 	// Voxel data. If null, it means the data may be obtained with procedural generation.
 	std::shared_ptr<VoxelBuffer> _voxels;
 

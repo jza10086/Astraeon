@@ -1,6 +1,6 @@
 class_name AstraeonWorldShading
 extends Node3D
-## Scene-local assembly. Terrain is authoritative; worker input is an immutable disposable snapshot.
+## Scene-local effects assembly. Native cache owns derived section lighting and bounded uploads.
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 const Palette: Script = preload("res://game/shading/gdscript/day_palette.gd")
 const Clouds: Script = preload("res://game/shading/gdscript/block_clouds.gd")
@@ -39,19 +39,13 @@ var planar: Planar = Planar.new()
 var panel: SettingsPanel = SettingsPanel.new()
 var _menu: PanelContainer
 var _fps: FrameTimeLabel
-var _worker: Thread
-var _dirty: bool = true
 var _timer: float = 0.0
 var _clock: float = 0.0
 var _water_clock: float = 0.0
 var _cloud_clock: float = 0.0
-var _origin: Vector3i
-var _requested_origin: Vector3i
-var _size: Vector3i
-var _texture: ImageTexture3D
-var _viewer: VoxelViewer
 var _revision: int = 0
 var field_publications: int = 0
+var _source_revision: int = -1
 ## Opt-in main-thread timing; no samples or clock reads when diagnostics are disabled.
 signal diagnostic_timing(kind: StringName, start_usec: int, duration_usec: int)
 var diagnostics_enabled: bool = false
@@ -89,6 +83,7 @@ func configure(owner_world: Node3D) -> void:
     receivers.append_array(water_materials)
     clouds.configure(receivers)
     weather.configure(materials)
+    weather.configure_cache(world.cache_coordinator.native)
     glass.configure(receivers)
     planar.water_height = world.WATER_SURFACE_HEIGHT
     planar.configure(_camera,water_materials,materials)
@@ -102,17 +97,8 @@ func configure(owner_world: Node3D) -> void:
     _camera.compositor = compositor
     _camera.far = maxf(_camera.far,1600.0)
     _previous_camera = _camera.global_transform
-    _viewer = VoxelViewer.new()
-    _viewer.requires_visuals = false
-    _viewer.requires_collisions = false
-    _viewer.view_distance = world.horizontal_distance + 32
-    _viewer.view_distance_vertical_ratio = 144.0 / _viewer.view_distance
-    add_child(_viewer)
-    _size = Vector3i((world.horizontal_distance+32)*2,256,(world.horizontal_distance+32)*2)
-    _size.x = ceili(_size.x/16.0)*16
-    _size.z = ceili(_size.z/16.0)*16
-    world.terrain.block_loaded.connect(_invalidate_block)
-    world.terrain.block_unloaded.connect(_invalidate_block)
+    for material: ShaderMaterial in materials:
+        world.cache_coordinator.native.call("bind_material",material)
     _make_ui()
     _apply_lighting()
 
@@ -143,69 +129,23 @@ func _compile_materials() -> void:
         model.set_material_override(0,material)
     content.library.bake()
 
-## Initial gameplay readiness includes the latest loaded-data publication.
+## World readiness follows converged native results and completed page publication.
 func is_ready() -> bool:
-    return field_publications > 0 and not _dirty and _worker == null
-
-func invalidate() -> void:
-    _dirty = true
-
-func _invalidate_block(_position: Vector3i) -> void:
-    invalidate()
-
-func _solve(snapshot: Dictionary) -> Dictionary:
-    var solver: AstraeonLightField = AstraeonLightField.new()
-    return solver.solve(snapshot.buffer,snapshot.opacity,snapshot.emission,snapshot.sources,snapshot.known,16,snapshot.origin)
-
-func _publish() -> void:
-    var result: Dictionary = _worker.wait_to_finish()
-    _worker = null
-    if result.is_empty():
-        push_error("Native shading field failed")
-        return
-    var texture: ImageTexture3D = ImageTexture3D.new()
-    var images: Array[Image] = []
-    images.assign(result.images)
-    if texture.create(Image.FORMAT_RGBA8,_size.x,_size.y,_size.z,false,images) != OK:
-        push_error("Could not allocate world light field")
-        return
-    _texture = texture
-    _origin = _requested_origin
-    for material: ShaderMaterial in materials:
-        material.set_shader_parameter("light_volume",_texture)
-        material.set_shader_parameter("volume_origin",Vector3(_origin))
-        material.set_shader_parameter("volume_size",Vector3(_size))
-    _revision += 1
-    var weather_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
-    weather.set_surface_map(result.height,Vector2(_origin.x,_origin.z),Vector2(_size.x,_size.z),_revision)
-    if diagnostics_enabled: diagnostic_timing.emit(&"weather_map",weather_start,Time.get_ticks_usec()-weather_start)
-    _emitters = result.emitters
-    field_publications += 1
-    _allocate_lights()
+    return world != null and world.cache_coordinator.native.call("is_ready")
 
 func _process(delta: float) -> void:
     if world == null: return
+    var diagnostic_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
     _local_fog.global_position = _camera.global_position
     _clock += delta
     _timer += delta
-    _viewer.global_position = Vector3(_camera.global_position.x,64.0,_camera.global_position.z)
-    var next_origin: Vector3i = Vector3i(floori(_camera.global_position.x/16.0)*16-_size.x/2,-64,floori(_camera.global_position.z/16.0)*16-_size.z/2)
-    if next_origin != _requested_origin: _dirty = true
-    if _worker != null and not _worker.is_alive():
-        var publish_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
-        _publish()
-        if diagnostics_enabled: diagnostic_timing.emit(&"publish",publish_start,Time.get_ticks_usec()-publish_start)
-    if _dirty and _worker == null and _timer >= 0.5:
-        _timer = 0.0
-        _dirty = false
-        _requested_origin = next_origin
-        var snapshot_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
-        var snapshot: Dictionary = world.capture_shading_snapshot(next_origin,_size)
-        if diagnostics_enabled: diagnostic_timing.emit(&"snapshot",snapshot_start,Time.get_ticks_usec()-snapshot_start)
-        _worker = Thread.new()
-        if _worker.start(_solve.bind(snapshot)) != OK:
-            _worker = null
-            push_error("Could not start shading worker")
+    var metrics: Dictionary = world.cache_coordinator.metrics
+    var publications: int = int(metrics.get("page_uploads",0))
+    if int(metrics.get("source_revision",0)) != _source_revision:
+        _source_revision = int(metrics.get("source_revision",0))
+        _emitters = world.cache_coordinator.native.call("get_light_sources")
+        _allocate_lights()
+    field_publications = publications
     if _settings.cycle_enabled:
         _settings.hour = fposmod(_settings.hour+delta*24.0/_settings.day_seconds,24.0)
     var weather_changed: bool = weather.tick(delta,_settings,_camera.global_position)
@@ -240,7 +180,10 @@ func _process(delta: float) -> void:
         effects.update_focus(_settings,hit.distance if hit != null else 100.0,delta)
     _fps.visible = _settings.show_fps
     _fps.sampling_enabled = _settings.show_fps and field_publications > 0
-    _fps.context_text = "F6 光影设置 | 光照发布 %d" % field_publications
+    var managed_bytes: int = int(metrics.get("voxel_bytes",0))+int(metrics.get("light_bytes",0))+int(metrics.get("derived_bytes",0))+int(metrics.get("weather_cpu_bytes",0))+int(metrics.get("temporary_bytes",0))
+    _fps.context_text = "F6 光影设置 | 光照页 %d | 队列 %d | CPU 缓存 %.1f MiB | 命中 %d%s" % [int(metrics.get("pages",0)),int(metrics.get("queue",0)),float(managed_bytes)/1048576.0,int(metrics.get("map_hits",0))," | 缓存容量不足" if bool(metrics.get("unreclaimable_over_budget",false)) or bool(metrics.get("capacity_blocked",false)) else ""]
+
+    if diagnostics_enabled: diagnostic_timing.emit(&"effects",diagnostic_start,Time.get_ticks_usec()-diagnostic_start)
 
 func _allocate_lights() -> void:
     _emitters.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
@@ -308,6 +251,7 @@ func _make_ui() -> void:
         panel.profile = _settings
         _changed())
     box.add_child(reset)
+    world.cache_coordinator.add_settings(box)
     _menu.hide()
     if not InputMap.has_action("shading_settings"):
         InputMap.add_action("shading_settings")
@@ -329,7 +273,6 @@ func _changed() -> void:
     if error != OK: push_error("Could not save shading settings: " + error_string(error))
 
 func _exit_tree() -> void:
-    if _worker != null: _worker.wait_to_finish()
     if world != null:
         Engine.max_fps = _previous_max_fps
         DisplayServer.window_set_vsync_mode(_previous_vsync)

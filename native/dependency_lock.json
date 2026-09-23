@@ -14,10 +14,11 @@
   "engine": "4.7.stable",
   "bootstrap": "Copied existing pinned source trees, including the Astraeon circular streaming patch; future builds must not restore or overwrite this workspace.",
   "project_changes": [
-    "astraeon native generator and current region stream",
-    "directional data-only prefetch viewer",
-    "FIFO task priority ties",
-    "3 ms main-thread commit budget"
+    "astraeon native generation and versioned current-region persistence",
+    "bounded per-region handles and parallel independent-region I/O",
+    "player-centered predictive viewing and warm section residency",
+    "versioned CPU mesh reuse and shared 2 ms commit budget",
+    "section incremental light/weather caches and packed GPU page pools"
   ],
   "project_source_root": "game/*/native"
 }

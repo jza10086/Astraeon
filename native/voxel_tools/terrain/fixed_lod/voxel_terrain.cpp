@@ -1,4 +1,5 @@
 #include "voxel_terrain.h"
+#include <godot_cpp/classes/time.hpp>
 #include "../../constants/voxel_constants.h"
 #include "../../constants/voxel_string_names.h"
 #include "../../edition/voxel_tool_terrain.h"
@@ -61,6 +62,9 @@ VoxelTerrain::VoxelTerrain() {
 	_meshing_dependency = make_shared_instance<MeshingDependency>();
 
 	struct ApplyMeshUpdateTask : public ITimeSpreadTask {
+        const char *get_debug_name() const override {return "VoxelMeshUploadAndCollision";}
+        uint64_t tracked_bytes=0;
+        ~ApplyMeshUpdateTask(){MeshBlockTask::cache_temporary_bytes-=tracked_bytes;}
 		void run(TimeSpreadTaskContext &ctx) override {
 			if (!VoxelEngine::get_singleton().is_volume_valid(volume_id)) {
 				// The node can have been destroyed while this task was still pending
@@ -85,7 +89,9 @@ VoxelTerrain::VoxelTerrain() {
 		task->volume_id = self->_volume_id;
 		task->self = self;
 		task->data = std::move(ob);
-		VoxelEngine::get_singleton().push_main_thread_time_spread_task(task);
+        task->tracked_bytes=sizeof(ApplyMeshUpdateTask)+task->data.surfaces.get_cache_bytes();
+        MeshBlockTask::cache_temporary_bytes+=task->tracked_bytes;
+		VoxelEngine::get_singleton().push_main_thread_time_spread_task(task,task->data.collision_was_required?TimeSpreadTaskRunner::PRIORITY_NORMAL:TimeSpreadTaskRunner::PRIORITY_LOW);
 	};
 	callbacks.data_output_callback = [](void *cb_data, VoxelEngine::BlockDataOutput &ob) {
 		VoxelTerrain *self = reinterpret_cast<VoxelTerrain *>(cb_data);
@@ -476,35 +482,32 @@ void VoxelTerrain::view_mesh_block(Vector3i bpos, bool mesh_flag, bool collision
 }
 
 void VoxelTerrain::unview_mesh_block(Vector3i bpos, bool mesh_flag, bool collision_flag) {
-	VoxelMeshBlockVT *block = _mesh_map.get_block(bpos);
-	// Mesh blocks are created on first view call,
-	// so that would mean we unview one without viewing it in the first place
-	ERR_FAIL_COND(block == nullptr);
-
-	if (mesh_flag) {
-		block->mesh_viewers.remove();
-		if (block->mesh_viewers.get() == 0) {
-			// Mesh no longer required
-			block->drop_mesh();
-			block->set_visible(false);
-		}
-	}
-
-	if (collision_flag) {
-		block->collision_viewers.remove();
-		if (block->collision_viewers.get() == 0) {
-			// Collision no longer required
-			block->drop_collision();
-			block->set_collision_enabled(false);
-		}
-	}
-
-	if (block->mesh_viewers.get() == 0 && block->collision_viewers.get() == 0) {
-		unload_mesh_block(bpos);
-	}
+    VoxelMeshBlockVT *block = _mesh_map.get_block(bpos);
+    ERR_FAIL_COND(block == nullptr);
+    if(mesh_flag){block->mesh_viewers.remove();if(block->mesh_viewers.get()==0)block->set_visible(false);}
+    if(collision_flag){block->collision_viewers.remove();if(block->collision_viewers.get()==0)block->set_collision_enabled(false);}
+    if(_deferred_unviews.find(bpos)!=_deferred_unviews.end())return;
+    _deferred_unviews[bpos]=true;
+    struct ReleaseTask : ITimeSpreadTask {
+        const char *get_debug_name() const override {return "VoxelMeshAndCollisionRelease";}
+        VoxelTerrain *self;VolumeID volume;Vector3i pos;
+        void run(TimeSpreadTaskContext &ctx) override {
+            if(!VoxelEngine::get_singleton().is_volume_valid(volume))return;
+            self->_deferred_unviews.erase(pos);
+            auto block=self->_mesh_map.get_block(pos);
+            if(!block)return;
+            if(block->mesh_viewers.get()==0)block->drop_mesh();
+            if(block->collision_viewers.get()==0)block->drop_collision();
+            if(block->mesh_viewers.get()==0 && block->collision_viewers.get()==0)self->unload_mesh_block(pos);
+        }
+    };
+    ReleaseTask *task=ZN_NEW(ReleaseTask);task->self=this;task->volume=_volume_id;task->pos=bpos;
+    VoxelEngine::get_singleton().push_main_thread_time_spread_task(task,TimeSpreadTaskRunner::PRIORITY_LOW);
 }
 
 void VoxelTerrain::unload_mesh_block(Vector3i bpos) {
+    auto cached = _derived_meshes.find(bpos);
+    if (cached != _derived_meshes.end()) cached->second.touched = ::godot::Time::get_singleton()->get_ticks_usec();
 	StdVector<Vector3i> &blocks_pending_update = _blocks_pending_update;
 
 	bool was_loaded = false;
@@ -537,7 +540,7 @@ void VoxelTerrain::save_all_modified_blocks(bool with_copy, std::shared_ptr<Asyn
 	BufferedTaskScheduler &task_scheduler = BufferedTaskScheduler::get_for_current_thread();
 
 	// That may cause a stutter, so should be used when the player won't notice
-	_data->consume_all_modifications(_blocks_to_save, with_copy);
+	_data->consume_all_modifications(_blocks_to_save, with_copy, false);
 
 #ifdef VOXEL_ENABLE_INSTANCER
 	if (stream.is_valid() && _instancer != nullptr && stream->supports_instance_blocks()) {
@@ -684,6 +687,8 @@ Dictionary VoxelTerrain::_b_get_statistics() const {
 	d["dropped_block_meshs"] = _stats.dropped_block_meshs;
 	d["updated_blocks"] = _stats.updated_blocks;
 
+    d["derived_bytes"]=int64_t(_derived_bytes);d["derived_hits"]=int64_t(_derived_hits);d["derived_misses"]=int64_t(_derived_misses);d["derived_stale"]=int64_t(_derived_stale);
+    d["cache_maintenance_usec"]=int64_t(_derived_maintenance_usec);d["cache_maintenance_peak_usec"]=int64_t(_derived_maintenance_peak_usec);
 	return d;
 }
 
@@ -847,6 +852,7 @@ void VoxelTerrain::try_schedule_mesh_update_from_data(const Box3i &box_in_voxels
 
 void VoxelTerrain::post_edit_area(Box3i box_in_voxels, bool update_mesh) {
 	_data->mark_area_modified(box_in_voxels, nullptr, false);
+    emit_section_changes(box_in_voxels,"edit");
 
 	box_in_voxels.clip(_data->get_bounds());
 
@@ -1076,7 +1082,10 @@ void VoxelTerrain::send_data_load_requests() {
 		BufferedTaskScheduler &scheduler = BufferedTaskScheduler::get_for_current_thread();
 
 		// Blocks to load
+        size_t issued=0;
 		for (size_t i = 0; i < _blocks_pending_load.size(); ++i) {
+            if(issued>=64 || !VoxelEngine::get_singleton().has_task_capacity())break;
+            ++issued;
 			const Vector3i block_pos = _blocks_pending_load[i];
 
 			auto saving_block_it = _unloaded_saving_blocks.find(block_pos);
@@ -1091,7 +1100,7 @@ void VoxelTerrain::send_data_load_requests() {
 				std::shared_ptr<VoxelBuffer> voxel_data =
 						make_shared_instance<VoxelBuffer>(VoxelBuffer::ALLOCATOR_POOL);
 				// Duplicating to make sure the saving version doesn't get altered by possible upcoming modifications.
-				saving_block_it->second->copy_to(*voxel_data, true);
+				saving_block_it->second.voxels->copy_to(*voxel_data, true);
 				_quick_reloading_blocks.push_back(QuickReloadingBlock{ voxel_data, block_pos });
 				// Don't erase it just yet, we may only do this once we know it is saved
 				// _unloaded_saving_blocks.erase(saving_block_it);
@@ -1120,7 +1129,7 @@ void VoxelTerrain::send_data_load_requests() {
 			}
 		}
 		scheduler.flush();
-		_blocks_pending_load.clear();
+        _blocks_pending_load.erase(_blocks_pending_load.begin(),_blocks_pending_load.begin()+issued);
 	}
 }
 
@@ -1140,6 +1149,8 @@ void VoxelTerrain::consume_block_data_save_requests(
 					_volume_id, b.position, 0, b.voxels, _streaming_dependency, saving_tracker, with_flush
 			));
 
+			task->data_revision = b.revision;
+
 			// No priority data, saving doesn't need sorting.
 			task_scheduler.push_io_task(task);
 		}
@@ -1153,6 +1164,19 @@ void VoxelTerrain::consume_block_data_save_requests(
 	_blocks_to_save.clear();
 }
 
+void VoxelTerrain::emit_section_changes(Box3i area,const char *reason) {
+    Array changes;
+    area.clipped(_data->get_bounds()).downscaled(16).for_each_cell_zxy([&](Vector3i position){
+        const auto identity=_data->get_section_identity(position);
+        Dictionary item;item["world_instance"]=int64_t(get_instance_id());item["section"]=position;
+        item["lifecycle"]=int64_t(identity.lifecycle);item["data_version"]=int64_t(identity.revision);
+        const Box3i local=area.clipped(Box3i(position*16,Vector3i(16,16,16)));
+        item["position"]=local.position;item["size"]=local.size;item["reason"]=reason;
+        changes.append(item);
+    });
+    if(!changes.is_empty())emit_signal("sections_changed",changes);
+}
+
 void VoxelTerrain::emit_data_block_loaded(Vector3i bpos) {
 	// Not sure about exposing buffers directly... some stuff on them is useful to obtain directly,
 	// but also it allows scripters to mess with voxels in a way they should not.
@@ -1164,6 +1188,7 @@ void VoxelTerrain::emit_data_block_loaded(Vector3i bpos) {
 	// const Variant vbuffer = block->voxels;
 	// const Variant *args[2] = { &vpos, &vbuffer };
 	emit_signal(VoxelStringNames::get_singleton().block_loaded, bpos);
+    emit_section_changes(Box3i(bpos*16,Vector3i(16,16,16)),"load");
 }
 
 void VoxelTerrain::emit_data_block_unloaded(Vector3i bpos) {
@@ -1224,7 +1249,39 @@ void VoxelTerrain::notify_data_block_enter(const VoxelDataBlock &block, Vector3i
 	}
 }
 
+void VoxelTerrain::apply_derived_cache_policy(int64_t bytes,double seconds) {
+    _derived_limit=std::max<int64_t>(0,bytes);_derived_seconds=std::max(0.0,seconds);
+}
 void VoxelTerrain::process() {
+    const uint64_t cache_now=::godot::Time::get_singleton()->get_ticks_usec();
+    Array released;
+    for(const auto &change:_data->take_released_sections()) {
+        Dictionary item;item["world_instance"]=int64_t(get_instance_id());item["section"]=change.position;
+        item["lifecycle"]=int64_t(change.identity.lifecycle);item["data_version"]=int64_t(change.identity.revision);
+        item["position"]=change.position*16;item["size"]=Vector3i(16,16,16);item["reason"]="release";released.append(item);
+    }
+    if(!released.is_empty())emit_signal("sections_changed",released);
+    // Maintenance must not scan thousands of active meshes in every movement frame.
+    // A rotating bounded queue eventually visits every retained entry; each key is unique.
+    const uint64_t maintenance_budget=std::min<uint64_t>(100,VoxelEngine::get_singleton().get_remaining_commit_usec());
+    const size_t maintenance_count=std::min<size_t>(32,_derived_maintenance.size());
+    for(size_t i=0;i<maintenance_count && ::godot::Time::get_singleton()->get_ticks_usec()-cache_now<maintenance_budget;++i) {
+        const Vector3i position=_derived_maintenance.front();_derived_maintenance.pop_front();
+        auto it=_derived_meshes.find(position);
+        if(it==_derived_meshes.end())continue;
+        if(_derived_bytes>_derived_limit || (_mesh_map.get_block(position)==nullptr && double(cache_now-it->second.touched)>_derived_seconds*1000000.0)) {
+            _derived_bytes-=it->second.bytes;_derived_meshes.erase(it);
+        }else _derived_maintenance.push_back(position);
+    }
+    _derived_maintenance_usec=::godot::Time::get_singleton()->get_ticks_usec()-cache_now;
+    _derived_maintenance_peak_usec=std::max(_derived_maintenance_peak_usec,_derived_maintenance_usec);
+    VoxelEngine::get_singleton().charge_commit_usec(_derived_maintenance_usec);
+    _data->set_derived_cache_bytes(_derived_bytes);
+    for (const auto &change : _data->take_light_visibility_changes()) {
+        VoxelMeshBlockVT *block = _mesh_map.get_block(change.first);
+        if (block != nullptr) block->set_visible(block->mesh_viewers.get() > 0 && change.second);
+    }
+
 	ZN_PROFILE_SCOPE();
 
 #ifdef VOXEL_ENABLE_GPU
@@ -1655,7 +1712,7 @@ void VoxelTerrain::process_viewer_data_box_change(
 		// Temporarily store unloaded blocks in a map until saving completes
 		for (unsigned int i = to_save_index0; i < _blocks_to_save.size(); ++i) {
 			const VoxelData::BlockToSave &bts = _blocks_to_save[i];
-			_unloaded_saving_blocks[bts.position] = bts.voxels;
+			_unloaded_saving_blocks[bts.position] = bts;
 		}
 
 		{
@@ -1778,11 +1835,11 @@ void VoxelTerrain::apply_data_block_response(VoxelEngine::BlockDataOutput &ob) {
 			ERR_PRINT(String("Could not save block {0}").format(varray(ob.position)));
 
 		} else if (ob.had_voxels) {
-			// TODO What if the version that was saved is older than the one we cached here?
-			// For that to be a problem, you'd have to edit a chunk, move away, move back in, edit it again, move away,
-			// and have the first save complete before the second.
-			// But we may consider adding version numbers, which requires adding block metadata
-			_unloaded_saving_blocks.erase(ob.position);
+            _data->acknowledge_save(ob.position, ob.data_revision);
+            auto it = _unloaded_saving_blocks.find(ob.position);
+            if (it != _unloaded_saving_blocks.end() && it->second.revision == ob.data_revision) {
+                _unloaded_saving_blocks.erase(it);
+            }
 
 		}
 #ifdef VOXEL_ENABLE_INSTANCER
@@ -1973,7 +2030,14 @@ void VoxelTerrain::process_meshing() {
 
 	BufferedTaskScheduler &scheduler = BufferedTaskScheduler::get_for_current_thread();
 
+    std::stable_sort(_blocks_pending_update.begin(),_blocks_pending_update.end(),[this](Vector3i a,Vector3i b){
+        auto ma=_mesh_map.get_block(a),mb=_mesh_map.get_block(b);
+        return ma && mb && ma->collision_viewers.get()>0 && mb->collision_viewers.get()==0;
+    });
+    size_t issued=0;
 	for (size_t bi = 0; bi < _blocks_pending_update.size(); ++bi) {
+        if(issued>=32 || !VoxelEngine::get_singleton().has_task_capacity())break;
+        ++issued;
 		ZN_PROFILE_SCOPE_NAMED("Block");
 		const Vector3i mesh_block_pos = _blocks_pending_update[bi];
 
@@ -1995,6 +2059,23 @@ void VoxelTerrain::process_meshing() {
 		}
 #endif
 
+        std::array<uint64_t,27> versions{};
+        if (mesh_to_data_factor == 1) {
+            int vi=0;data_box.for_each_cell_zxy([&](Vector3i p){versions[vi++]=_data->get_section_revision(p);});
+            auto cached=_derived_meshes.find(mesh_block_pos);
+            if(cached!=_derived_meshes.end() && cached->second.revisions==versions && cached->second.materials==_meshing_dependency &&
+                    (!(_generate_collisions && mesh_block->collision_viewers.get()>0) || cached->second.collision)) {
+                VoxelEngine::BlockMeshOutput output;
+                output.type=VoxelEngine::BlockMeshOutput::TYPE_MESHED;output.position=mesh_block_pos;output.lod=0;
+                output.surfaces=cached->second.surfaces;output.has_mesh_resource=false;
+                output.visual_was_required=mesh_block->mesh_viewers.get()>0;output.collision_was_required=cached->second.collision;
+                output.cache_versioned=true;output.section_revisions=versions;
+                const auto callbacks=VoxelEngine::get_singleton().get_volume_callbacks(_volume_id);
+                callbacks.mesh_output_callback(callbacks.data,output);
+                mesh_block->is_in_update_list=false;++_derived_hits;continue;
+            }
+            ++_derived_misses;
+        }
 		// print_line(String("DDD request {0}").format(varray(mesh_request.render_block_position.to_vec3())));
 		// We'll allocate this quite often. If it becomes a problem, it should be easy to pool.
 		MeshBlockTask *task = ZN_NEW(MeshBlockTask);
@@ -2005,6 +2086,7 @@ void VoxelTerrain::process_meshing() {
 		task->require_visual = mesh_block->mesh_viewers.get() > 0;
 		task->collision_hint = _generate_collisions && mesh_block->collision_viewers.get() > 0;
 		task->data = _data;
+        task->cache_versioned = mesh_to_data_factor==1;task->section_revisions=versions;
 
 		// This iteration order is specifically chosen to match VoxelEngine and threaded access
 		_data->get_blocks_with_voxel_data(data_box, 0, to_span(task->blocks));
@@ -2042,7 +2124,7 @@ void VoxelTerrain::process_meshing() {
 
 	scheduler.flush();
 
-	_blocks_pending_update.clear();
+    _blocks_pending_update.erase(_blocks_pending_update.begin(),_blocks_pending_update.begin()+issued);
 
 	_stats.time_request_blocks_to_update = profiling_clock.restart();
 
@@ -2076,6 +2158,23 @@ void VoxelTerrain::apply_mesh_update(const VoxelEngine::BlockMeshOutput &ob) {
 		return;
 	}
 
+    if(ob.cache_versioned) {
+        std::array<uint64_t,27> versions{};int vi=0;
+        Box3i(ob.position-Vector3i(1,1,1),Vector3i(3,3,3)).for_each_cell_zxy([&](Vector3i p){versions[vi++]=_data->get_section_revision(p);});
+        if(versions!=ob.section_revisions) {
+            ++_derived_stale;
+            if(!block->is_in_update_list){block->is_in_update_list=true;_blocks_pending_update.push_back(ob.position);}
+            return;
+        }
+        if(_derived_limit>0) {
+            const uint64_t bytes=sizeof(CachedMesh)+ob.surfaces.get_cache_bytes();
+            auto old=_derived_meshes.find(ob.position);
+            if(old!=_derived_meshes.end())_derived_bytes-=old->second.bytes;
+            else _derived_maintenance.push_back(ob.position);
+            _derived_meshes[ob.position]={ob.surfaces,versions,_meshing_dependency,::godot::Time::get_singleton()->get_ticks_usec(),bytes,ob.collision_was_required};
+            _derived_bytes+=bytes;
+        }
+    }
 	Ref<ArrayMesh> mesh;
 	Ref<Mesh> shadow_occluder_mesh;
 	StdVector<uint16_t> material_indices;
@@ -2176,7 +2275,7 @@ void VoxelTerrain::apply_mesh_update(const VoxelEngine::BlockMeshOutput &ob) {
 		block->set_collision_mask(_collision_mask);
 	}
 
-	block->set_visible(block->mesh_viewers.get() > 0);
+	block->set_visible(block->mesh_viewers.get() > 0 && _data->is_light_page_ready(ob.position));
 	block->set_collision_enabled(gen_collisions);
 	block->set_parent_visible(is_visible());
 	block->set_parent_transform(get_global_transform());
@@ -2441,7 +2540,7 @@ Ref<VoxelSaveCompletionTracker> VoxelTerrain::_b_save_modified_blocks() {
 // Explicitly ask to save a block if it was modified
 void VoxelTerrain::_b_save_block(Vector3i p_block_pos) {
 	VoxelData::BlockToSave to_save;
-	if (_data->consume_block_modifications(p_block_pos, to_save)) {
+	if (_data->consume_block_modifications(p_block_pos, to_save, false)) {
 		_blocks_to_save.push_back(to_save);
 	}
 }
@@ -2504,6 +2603,8 @@ bool VoxelTerrain::_b_is_area_meshed(AABB aabb) const {
 }
 
 void VoxelTerrain::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("apply_derived_cache_policy","bytes","seconds"),&VoxelTerrain::apply_derived_cache_policy);
+    ADD_SIGNAL(MethodInfo("sections_changed",PropertyInfo(Variant::ARRAY,"changes")));
 	using Self = VoxelTerrain;
 
 	ClassDB::bind_method(D_METHOD("set_material_override", "material"), &Self::set_material_override);

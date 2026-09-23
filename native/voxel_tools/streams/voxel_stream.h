@@ -54,12 +54,16 @@ public:
 		_RESULT_COUNT
 	};
 
+    virtual bool supports_parallel_access() const { return false; }
+
 	struct VoxelQueryData {
 		VoxelBuffer &voxel_buffer;
 		Vector3i position_in_blocks;
 		uint8_t lod_index;
-		// This is currently not used in save queries. Maybe it should?
+		// Save implementations report durable failure through result.
 		ResultCode result;
+		uint64_t data_revision = 0;
+        bool generated_cache = false;
 	};
 
 #ifdef VOXEL_ENABLE_INSTANCER
@@ -68,6 +72,8 @@ public:
 		Vector3i position_in_blocks;
 		uint8_t lod_index;
 		ResultCode result;
+		uint64_t data_revision = 0;
+        bool generated_cache = false;
 	};
 #endif
 

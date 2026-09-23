@@ -15,6 +15,7 @@ const WATER_SURFACE_HEIGHT: float = 32.0 # Generation v2, half-open water fill.
 @export var horizontal_distance: int = 64
 @export var vertical_distance: int = 32
 @export var prediction_enabled: bool = true
+var cache_coordinator: Node
 var shading: AstraeonWorldShading
 var terrain: VoxelTerrain
 var stream: AstraeonNativeStream
@@ -92,6 +93,12 @@ func _ready() -> void:
         var prefetch: AstraeonPrefetchViewer = AstraeonPrefetchViewer.new()
         prefetch.name = "PrefetchViewer"
         player.add_child(prefetch)
+    cache_coordinator = preload("res://game/core/gdscript/cache_coordinator.gd").new()
+    cache_coordinator.name = "CacheCoordinator"
+    add_child(cache_coordinator)
+    if not cache_coordinator.configure(self):
+        _status.text = "Invalid cache configuration or missing native cache DLL"
+        return
     shading = AstraeonWorldShading.new()
     shading.name = "Shading"
     shading.settings_path = shading_settings_path
@@ -192,23 +199,10 @@ func save_world(quit_after: bool) -> void:
     if quit_after:
         get_tree().quit()
 
-## Bulk read-only capture for derived rendering. Unknown sections remain explicitly unknown.
-func capture_shading_snapshot(origin: Vector3i, size: Vector3i) -> Dictionary:
-    var buffer: VoxelBuffer = VoxelBuffer.new()
-    buffer.create(size.x,size.y,size.z)
-    buffer.set_channel_depth(VoxelBuffer.CHANNEL_TYPE,VoxelBuffer.DEPTH_16_BIT)
-    voxel_tool.copy(origin,buffer,1 << VoxelBuffer.CHANNEL_TYPE,false)
-    var known: PackedByteArray = PackedByteArray()
-    for z: int in range(0,size.z,16):
-        for y: int in range(0,size.y,16):
-            for x: int in range(0,size.x,16):
-                known.append(1 if voxel_tool.is_area_editable(AABB(Vector3(origin+Vector3i(x,y,z)),Vector3(16,16,16))) else 0)
-    return {"buffer":buffer,"known":known,"origin":origin,"opacity":content.opacity,"emission":content.emission,"sources":content.sources}
-
 ## Gameplay edit boundary: commit authoritative voxel first, then invalidate derived lighting.
 func set_block(position_in_voxels: Vector3i, state_id: int) -> void:
     if state_id < 0 or state_id >= content.state_keys.size():
         push_error("Invalid block state")
         return
     voxel_tool.set_voxel(position_in_voxels,state_id)
-    shading.invalidate()
+    # VoxelTerrain emits a versioned area invalidation for every native editing path.

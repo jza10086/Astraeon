@@ -2,7 +2,13 @@
 #include "../util/io/log.h"
 #include "../util/string/format.h"
 
+#include <atomic>
+
 namespace zylann::voxel {
+uint64_t VoxelDataBlock::next_revision() {
+	static std::atomic<uint64_t> counter{0};
+	return ++counter;
+}
 
 void VoxelDataBlock::set_modified(bool modified) {
 	// #ifdef TOOLS_ENABLED
@@ -11,6 +17,7 @@ void VoxelDataBlock::set_modified(bool modified) {
 	// 	}
 	// #endif
 	_modified = modified;
+	if (modified) _revision = next_revision();
 }
 
 } // namespace zylann::voxel

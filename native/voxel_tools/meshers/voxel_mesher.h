@@ -74,6 +74,9 @@ public:
 		// May be used to store extra information needed in shader to render the mesh properly
 		// (currently used only by the cubes mesher when baking colors)
 		Ref<Image> atlas_image;
+
+        // Owned CPU payload; excludes driver resources and allocator bookkeeping.
+        uint64_t get_cache_bytes() const;
 	};
 
 	static bool is_mesh_empty(const StdVector<Output::Surface> &surfaces);

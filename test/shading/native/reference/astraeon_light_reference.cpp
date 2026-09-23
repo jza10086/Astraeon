@@ -1,10 +1,10 @@
-#include "astraeon_light_field.h"
+#include "astraeon_light_reference.h"
 #include "util/godot/core/class_db.h"
 #include <vector>
 #include <deque>
 #include <algorithm>
 namespace zylann::voxel {
-Dictionary AstraeonLightField::solve(Ref<godot::VoxelBuffer> snapshot, PackedByteArray opacity, PackedByteArray emission, PackedByteArray sources, PackedByteArray known, int section_size, Vector3i origin) {
+Dictionary AstraeonLightReference::solve(Ref<godot::VoxelBuffer> snapshot, PackedByteArray opacity, PackedByteArray emission, PackedByteArray sources, PackedByteArray known, int section_size, Vector3i origin) {
     Dictionary result;
     ERR_FAIL_COND_V(snapshot.is_null() || section_size <= 0, result);
     const VoxelBuffer &buffer = snapshot->get_buffer();
@@ -62,7 +62,7 @@ Dictionary AstraeonLightField::solve(Ref<godot::VoxelBuffer> snapshot, PackedByt
     }
     result["images"]=images;result["height"]=height;result["emitters"]=emitters;return result;
 }
-void AstraeonLightField::_bind_methods() {
-    ClassDB::bind_method(D_METHOD("solve","snapshot","opacity","emission","sources","known_sections","section_size","origin"), &AstraeonLightField::solve);
+void AstraeonLightReference::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("solve","snapshot","opacity","emission","sources","known_sections","section_size","origin"), &AstraeonLightReference::solve);
 }
 }

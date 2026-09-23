@@ -1,5 +1,7 @@
 #ifndef VOXEL_ENGINE_H
 #define VOXEL_ENGINE_H
+#include <deque>
+#include <array>
 
 #include "../meshers/voxel_mesher.h"
 #include "../util/containers/slot_map.h"
@@ -65,6 +67,8 @@ public:
 		bool has_mesh_resource;
 		// Tells if the meshing task was required to build a rendering mesh if possible.
 		bool visual_was_required;
+        std::array<uint64_t,27> section_revisions{};
+        bool cache_versioned = false, collision_was_required = false;
 #ifdef VOXEL_ENABLE_SMOOTH_MESHING
 		// Can be null. Attached to meshing output so it is tracked more easily, because it is baked asynchronously
 		// starting from the mesh task, and it might complete earlier or later than the mesh.
@@ -96,6 +100,7 @@ public:
 		bool initial_load;
 		bool had_instances;
 		bool had_voxels;
+		uint64_t data_revision = 0;
 	};
 
 #ifdef VOXEL_ENABLE_SMOOTH_MESHING
@@ -203,6 +208,16 @@ public:
 			ITimeSpreadTask *task,
 			TimeSpreadTaskRunner::Priority priority = TimeSpreadTaskRunner::PRIORITY_NORMAL
 	);
+    unsigned int get_remaining_commit_usec();
+    bool has_task_capacity() const;
+    uint64_t get_cache_temporary_bytes() const;
+    void set_cache_task_limit(unsigned int limit) { _cache_task_limit=std::max(16u,limit); }
+    uint64_t get_queue_wait_peak_usec() const {return _queue_wait_peak_usec;}
+    unsigned int get_cache_task_count() const { return _general_thread_pool.get_debug_remaining_tasks()+_pending_results.size()+_time_spread_task_runner.get_pending_count(); }
+    void charge_commit_usec(uint64_t usec);
+    uint64_t get_commit_peak_usec() const { return _commit_peak_usec; }
+    uint64_t get_single_task_peak_usec() const {return std::max(_apply_peak_usec,_time_spread_task_runner.get_peak_task_usec());}
+    const char *get_single_task_peak_name() const {return _apply_peak_usec>=_time_spread_task_runner.get_peak_task_usec()?_apply_peak_name.c_str():_time_spread_task_runner.get_peak_task_name();}
 	int get_main_thread_time_budget_usec() const;
 	void set_main_thread_time_budget_usec(unsigned int usec);
 
@@ -340,6 +355,13 @@ private:
 	// For tasks that can only run on the main thread and be spread out over frames
 	TimeSpreadTaskRunner _time_spread_task_runner;
 	unsigned int _main_thread_time_budget_usec = DEFAULT_MAIN_THREAD_BUDGET_USEC;
+    unsigned int _cache_task_limit=4096;
+    struct PendingResult { IThreadedTask *task; uint64_t queued_usec; uint32_t priority; };
+    std::deque<PendingResult> _pending_results;
+    uint64_t _queue_wait_peak_usec=0;
+    uint64_t _apply_peak_usec=0;
+    std::string _apply_peak_name;
+    uint64_t _commit_frame = UINT64_MAX, _commit_used_usec = 0, _commit_peak_usec = 0;
 	ProgressiveTaskRunner _progressive_task_runner;
 
 	FileLocker _file_locker;

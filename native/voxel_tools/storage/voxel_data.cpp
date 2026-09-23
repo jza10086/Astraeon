@@ -1,4 +1,6 @@
 #include "voxel_data.h"
+#include <chrono>
+#include <algorithm>
 #include "../util/containers/std_vector.h"
 #include "../util/dstack.h"
 #include "../util/math/conv.h"
@@ -20,6 +22,7 @@ struct BeforeUnloadSaveAction {
 		if (block.is_modified()) {
 			// If a modified block has no voxels, it is equivalent to removing the block from the stream
 			VoxelData::BlockToSave b;
+			b.revision = block.get_revision();
 			b.position = position;
 			b.lod_index = lod_index;
 			if (block.has_voxels()) {
@@ -35,11 +38,13 @@ struct ScheduleSaveAction {
 	StdVector<VoxelData::BlockToSave> &blocks_to_save;
 	uint8_t lod_index;
 	bool with_copy;
+	bool acknowledge_immediately;
 
 	void operator()(const Vector3i &bpos, VoxelDataBlock &block) {
 		if (block.is_modified()) {
 			// print_line(String("Scheduling save for block {0}").format(varray(block->position.to_vec3())));
 			VoxelData::BlockToSave b;
+			b.revision = block.get_revision();
 			// If a modified block has no voxels, it is equivalent to removing the block from the stream
 			if (block.has_voxels()) {
 				if (with_copy) {
@@ -52,7 +57,7 @@ struct ScheduleSaveAction {
 			b.position = bpos;
 			b.lod_index = lod_index;
 			blocks_to_save.push_back(b);
-			block.set_modified(false);
+			if (acknowledge_immediately) block.set_modified(false);
 		}
 	}
 };
@@ -88,6 +93,7 @@ void VoxelData::reset_maps() {
 }
 
 void VoxelData::reset_maps_no_settings_lock() {
+    clear_light_pages();
 	for (unsigned int lod_index = 0; lod_index < _lods.size(); ++lod_index) {
 		Lod &data_lod = _lods[lod_index];
 
@@ -96,6 +102,7 @@ void VoxelData::reset_maps_no_settings_lock() {
 		SpatialLock3D::Write swlock(data_lod.spatial_lock, BoxBounds3i::from_everywhere());
 
 		RWLockWrite wlock(data_lod.map_lock);
+        if (lod_index == 0) _warm_sections.clear();
 
 		// Instance new maps if we have more lods, or clear them otherwise
 		if (lod_index < _lod_count) {
@@ -307,6 +314,7 @@ bool VoxelData::try_set_voxel(uint64_t value, Vector3i pos, unsigned int channel
 	}
 
 	voxels->set_voxel(value, data_lod0.map.to_local(pos), channel_index);
+    { RWLockWrite map_lock(data_lod0.map_lock); VoxelDataBlock *block=data_lod0.map.get_block(block_pos_lod0); if(block)block->set_modified(true); }
 	// We don't update mips, this must be done by the caller
 	return true;
 }
@@ -1056,7 +1064,7 @@ void VoxelData::unload_blocks(Box3i bbox, unsigned int lod_index, StdVector<Bloc
 // 	}
 // }
 
-bool VoxelData::consume_block_modifications(Vector3i bpos, VoxelData::BlockToSave &out_to_save) {
+bool VoxelData::consume_block_modifications(Vector3i bpos, VoxelData::BlockToSave &out_to_save, bool acknowledge_immediately) {
 	Lod &lod = _lods[0];
 
 	// Locking for write because we are going to change state on the block.
@@ -1077,13 +1085,14 @@ bool VoxelData::consume_block_modifications(Vector3i bpos, VoxelData::BlockToSav
 		}
 		out_to_save.position = bpos;
 		out_to_save.lod_index = 0;
-		block->set_modified(false);
+		out_to_save.revision = block->get_revision();
+		if (acknowledge_immediately) block->set_modified(false);
 		return true;
 	}
 	return false;
 }
 
-void VoxelData::consume_all_modifications(StdVector<BlockToSave> &to_save, bool with_copy) {
+void VoxelData::consume_all_modifications(StdVector<BlockToSave> &to_save, bool with_copy, bool acknowledge_immediately) {
 	const unsigned int lod_count = get_lod_count();
 	for (unsigned int lod_index = 0; lod_index < lod_count; ++lod_index) {
 		Lod &lod = _lods[lod_index];
@@ -1095,8 +1104,42 @@ void VoxelData::consume_all_modifications(StdVector<BlockToSave> &to_save, bool 
 		// Locking for read because we won't add or remove blocks to the map
 		RWLockRead rlock(lod.map_lock);
 
-		lod.map.for_each_block(ScheduleSaveAction{ to_save, uint8_t(lod_index), with_copy });
+		lod.map.for_each_block(ScheduleSaveAction{ to_save, uint8_t(lod_index), with_copy, acknowledge_immediately });
 	}
+}
+
+void VoxelData::acknowledge_save(Vector3i bpos, uint64_t revision) {
+    Lod &lod = _lods[0];
+    SpatialLock3D::Write lock(lod.spatial_lock, BoxBounds3i::from_position(bpos));
+    RWLockRead map_lock(lod.map_lock);
+    VoxelDataBlock *block = lod.map.get_block(bpos);
+    if (block != nullptr) block->acknowledge_save(revision);
+}
+uint64_t VoxelData::copy_section(Vector3i bpos, VoxelBuffer &out) const {
+    const Lod &lod = _lods[0];
+    SpatialLock3D::Read lock(lod.spatial_lock, BoxBounds3i::from_position(bpos));
+    RWLockRead map_lock(lod.map_lock);
+    const VoxelDataBlock *block = lod.map.get_block(bpos);
+    if (block == nullptr || !block->has_voxels()) return 0;
+    block->get_voxels_const().copy_to(out, false);
+    return block->get_revision();
+}
+uint64_t VoxelData::get_section_revision(Vector3i bpos) const {
+    const Lod &lod = _lods[0];
+    SpatialLock3D::Read lock(lod.spatial_lock, BoxBounds3i::from_position(bpos));
+    RWLockRead map_lock(lod.map_lock);
+    const VoxelDataBlock *block = lod.map.get_block(bpos);
+    return block == nullptr ? 0 : block->get_revision();
+}
+
+VoxelData::SectionIdentity VoxelData::get_section_identity(Vector3i bpos) const {
+    const Lod &lod=_lods[0];
+    SpatialLock3D::Read spatial(lod.spatial_lock,BoxBounds3i::from_position(bpos));RWLockRead lock(lod.map_lock);
+    const VoxelDataBlock *block=lod.map.get_block(bpos);
+    return block?SectionIdentity{block->get_lifecycle(),block->get_revision()}:SectionIdentity{};
+}
+StdVector<VoxelData::SectionRelease> VoxelData::take_released_sections() {
+    RWLockWrite lock(_lods[0].map_lock);StdVector<SectionRelease> out;out.swap(_released_sections);return out;
 }
 
 void VoxelData::get_missing_blocks(
@@ -1228,9 +1271,10 @@ void VoxelData::view_area(
 	// Locking for read because we don't add or remove blocks.
 	RWLockRead rlock(lod.map_lock);
 
-	blocks_box.for_each_cell_zxy([&lod, found_blocks_positions, found_blocks, &missing_blocks](Vector3i bpos) {
+	blocks_box.for_each_cell_zxy([this, &lod, found_blocks_positions, found_blocks, &missing_blocks](Vector3i bpos) {
 		VoxelDataBlock *block = lod.map.get_block(bpos);
 		if (block != nullptr) {
+            if (_warm_sections.erase(bpos) != 0) { ++_cache_metrics.hits; block->cache_reused = true; }
 			block->viewers.add();
 			if (found_blocks != nullptr) {
 				found_blocks->push_back(*block);
@@ -1240,6 +1284,7 @@ void VoxelData::view_area(
 			}
 		} else if (missing_blocks != nullptr) {
 			missing_blocks->push_back(bpos);
+            ++_cache_metrics.misses;
 		}
 	});
 }
@@ -1267,11 +1312,23 @@ void VoxelData::unview_area(
 	// Locking for write because we are potentially going to remove blocks from the map.
 	RWLockWrite wlock(lod.map_lock);
 
-	blocks_box.for_each_cell_zxy([&lod, missing_blocks, removed_blocks, to_save, lod_index](Vector3i bpos) {
+	blocks_box.for_each_cell_zxy([this, &lod, missing_blocks, removed_blocks, to_save, lod_index](Vector3i bpos) {
 		VoxelDataBlock *block = lod.map.get_block(bpos);
 		if (block != nullptr) {
 			block->viewers.remove();
 			if (block->viewers.get() == 0) {
+                if (_cache_byte_limit > 0 && lod_index == 0) {
+                    const uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                    _warm_sections[bpos] = WarmSection{now, block->cache_reused};
+                    if (to_save != nullptr && block->is_modified() && block->has_voxels()) {
+                        BlockToSave save;
+                        save.position = bpos; save.lod_index = 0; save.revision = block->get_revision();
+                        save.voxels = make_shared_instance<VoxelBuffer>(VoxelBuffer::ALLOCATOR_POOL);
+                        block->get_voxels_const().copy_to(*save.voxels, true);
+                        to_save->push_back(save);
+                    }
+                    return;
+                }
 				if (to_save == nullptr) {
 					lod.map.remove_block(bpos, VoxelDataMap::NoAction());
 				} else {
@@ -1285,6 +1342,82 @@ void VoxelData::unview_area(
 			missing_blocks->push_back(bpos);
 		}
 	});
+}
+
+void VoxelData::set_cache_policy(uint64_t byte_limit, int retain_distance) {
+    Lod &lod = _lods[0];
+    RWLockWrite lock(lod.map_lock);
+    _cache_byte_limit = byte_limit;
+    _cache_retain_distance = std::max(0, retain_distance);
+}
+VoxelData::CacheMetrics VoxelData::get_cache_metrics() const {
+    RWLockRead lock(_lods[0].map_lock);
+    return _cache_metrics;
+}
+bool VoxelData::maintain_cache(Vector3i center, int horizontal_distance, int vertical_distance,
+        StdVector<Vector3i> &removed, uint64_t budget_usec) {
+    if(budget_usec==0)return false;
+    const auto now=[](){return uint64_t(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());};
+    const uint64_t start=now();
+    Lod &lod=_lods[0];auto &pass=_cache_pass;
+    uint64_t byte_limit;int retain;
+    {
+        RWLockRead lock(lod.map_lock);byte_limit=_cache_byte_limit;retain=_cache_retain_distance;
+        if(!pass.active || pass.center!=center || pass.horizontal!=horizontal_distance || pass.vertical!=vertical_distance) {
+            pass=CachePass{};pass.active=true;pass.center=center;pass.horizontal=horizontal_distance;pass.vertical=vertical_distance;
+            // One metadata-only enumeration. Payload inspection and release are sliced below.
+            lod.map.for_each_block([&](Vector3i pos,const VoxelDataBlock &){pass.positions.push_back(pos);});
+        }
+    }
+    const int radius=horizontal_distance+retain;
+    while(pass.scan<pass.positions.size() && now()-start<budget_usec) {
+        const Vector3i pos=pass.positions[pass.scan++];
+        SpatialLock3D::Read spatial_lock(lod.spatial_lock,BoxBounds3i::from_position(pos));
+        RWLockRead map_lock(lod.map_lock);
+        const VoxelDataBlock *block=lod.map.get_block(pos);if(!block)continue;
+        uint64_t bytes=sizeof(VoxelDataBlock)+sizeof(Vector3i);
+        if(block->has_voxels()) {
+            const VoxelBuffer &buffer=block->get_voxels_const();bytes+=sizeof(VoxelBuffer);
+            for(unsigned channel=0;channel<VoxelBuffer::MAX_CHANNELS;++channel) {
+                Span<const uint8_t> data;if(buffer.get_channel_as_bytes_read_only(channel,data))bytes+=data.size();
+            }
+        }
+        pass.total+=bytes;
+        const auto it=_warm_sections.find(pos);
+        if(it==_warm_sections.end()){pass.pinned+=bytes;continue;}
+        pass.warm+=bytes;
+        if(block->is_modified() || block->viewers.get()!=0 || (block->has_voxels() && block->get_voxels_shared().use_count()>2)) {pass.pinned+=bytes;continue;}
+        const Vector3i offset=pos*16+Vector3i(8,8,8)-center;
+        const bool outside=int64_t(offset.x)*offset.x+int64_t(offset.z)*offset.z>int64_t(radius+12)*(radius+12) || std::abs(offset.y)>vertical_distance+retain+8;
+        pass.candidates.push_back({pos,bytes,it->second.touched,it->second.protected_segment,outside});
+    }
+    if(pass.scan<pass.positions.size())return false;
+    if(!pass.sorted) {
+        if(now()-start>=budget_usec)return false;
+        std::sort(pass.candidates.begin(),pass.candidates.end(),[](const CacheCandidate &a,const CacheCandidate &b){
+            if(a.outside!=b.outside)return a.outside;
+            if(a.protected_segment!=b.protected_segment)return !a.protected_segment;
+            return a.touched<b.touched;
+        });pass.sorted=true;
+    }
+    while(pass.evict<pass.candidates.size() && now()-start<budget_usec) {
+        const auto &candidate=pass.candidates[pass.evict++];
+        if(!candidate.outside && pass.total<=byte_limit)continue;
+        SpatialLock3D::Write spatial_lock(lod.spatial_lock,BoxBounds3i::from_position(candidate.pos));
+        RWLockWrite map_lock(lod.map_lock);
+        const VoxelDataBlock *block=lod.map.get_block(candidate.pos);const auto warm=_warm_sections.find(candidate.pos);
+        if(!block || warm==_warm_sections.end() || warm->second.touched!=candidate.touched || block->is_modified() || block->viewers.get()!=0 || (block->has_voxels() && block->get_voxels_shared().use_count()>2))continue;
+        _released_sections.push_back({candidate.pos,{block->get_lifecycle(),block->get_revision()}});
+        lod.map.remove_block(candidate.pos,VoxelDataMap::NoAction());_warm_sections.erase(candidate.pos);removed.push_back(candidate.pos);
+        pass.total-=candidate.bytes;pass.warm-=candidate.bytes;++_cache_metrics.evictions;
+    }
+    if(pass.evict<pass.candidates.size())return false;
+    {
+        RWLockWrite map_lock(lod.map_lock);
+        _cache_metrics.voxel_bytes=pass.total;_cache_metrics.warm_bytes=pass.warm;_cache_metrics.pinned_bytes=pass.pinned;
+        _cache_metrics.warm_sections=_warm_sections.size();
+    }
+    pass=CachePass{};return true;
 }
 
 std::shared_ptr<VoxelBuffer> VoxelData::try_get_block_voxels(Vector3i bpos) {

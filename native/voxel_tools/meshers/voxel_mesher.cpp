@@ -21,6 +21,31 @@ using namespace zylann::godot;
 
 namespace zylann::voxel {
 
+uint64_t VoxelMesher::Output::get_cache_bytes() const {
+    auto array_bytes=[](const Array &arrays) {
+        uint64_t bytes=arrays.size()*sizeof(Variant);
+        for(int i=0;i<arrays.size();++i) {
+            const Variant value=arrays[i];
+            switch(value.get_type()) {
+                case Variant::PACKED_VECTOR3_ARRAY:bytes+=PackedVector3Array(value).size()*12;break;
+                case Variant::PACKED_VECTOR2_ARRAY:bytes+=PackedVector2Array(value).size()*8;break;
+                case Variant::PACKED_COLOR_ARRAY:bytes+=PackedColorArray(value).size()*16;break;
+                case Variant::PACKED_INT32_ARRAY:bytes+=PackedInt32Array(value).size()*4;break;
+                case Variant::PACKED_FLOAT32_ARRAY:bytes+=PackedFloat32Array(value).size()*4;break;
+                case Variant::PACKED_BYTE_ARRAY:bytes+=PackedByteArray(value).size();break;
+                default:break;
+            }
+        }
+        return bytes;
+    };
+    uint64_t bytes=sizeof(Output)+surfaces.capacity()*sizeof(Surface)+array_bytes(shadow_occluder);
+    for(const auto &surface:surfaces)bytes+=array_bytes(surface.arrays);
+    for(const auto &list:transition_surfaces){bytes+=list.capacity()*sizeof(Surface);for(const auto &surface:list)bytes+=array_bytes(surface.arrays);}
+    bytes+=collision_surface.positions.capacity()*sizeof(Vector3f)+collision_surface.indices.capacity()*sizeof(int);
+    if(atlas_image.is_valid())bytes+=atlas_image->get_data().size();
+    return bytes;
+}
+
 Ref<Mesh> VoxelMesher::build_mesh(
 		const VoxelBuffer &voxels,
 		TypedArray<Material> materials,

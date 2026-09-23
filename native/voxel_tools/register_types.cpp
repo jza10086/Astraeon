@@ -1,4 +1,8 @@
-#include "astraeon/shading/astraeon_light_field.h"
+#ifdef TOOLS_ENABLED
+#include "astraeon_tests/shading/reference/astraeon_light_reference.h"
+#endif
+#include "astraeon/shading/cache/astraeon_section_cache.h"
+#include "astraeon/shading/cache/astraeon_page_pool.h"
 #include "astraeon/world/streaming/astraeon_prefetch_viewer.h"
 #include "astraeon/world/persistence/astraeon_native_stream.h"
 #include "astraeon/world/generation/astraeon_native_generator.h"
@@ -367,7 +371,11 @@ void initialize_voxel_module(ModuleInitializationLevel p_level) {
 #ifdef VOXEL_ENABLE_BASIC_GENERATORS
 		ClassDB::register_class<VoxelGeneratorFlat>();
         ClassDB::register_class<AstraeonNativeGenerator>();
-        ClassDB::register_class<AstraeonLightField>();
+#ifdef TOOLS_ENABLED
+        ClassDB::register_class<AstraeonLightReference>();
+#endif
+        ClassDB::register_class<AstraeonPagePool>();
+        ClassDB::register_class<AstraeonSectionCache>();
 		ClassDB::register_abstract_class<VoxelGeneratorHeightmap>();
 		ClassDB::register_class<VoxelGeneratorWaves>();
 		ClassDB::register_class<VoxelGeneratorImage>();

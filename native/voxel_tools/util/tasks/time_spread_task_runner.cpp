@@ -13,14 +13,14 @@ TimeSpreadTaskRunner::~TimeSpreadTaskRunner() {
 void TimeSpreadTaskRunner::push(ITimeSpreadTask *task, Priority priority) {
 	Queue &queue = _queues[priority];
 	MutexLock lock(queue.tasks_mutex);
-	queue.tasks.push(task);
+	queue.tasks.push({task,Time::get_singleton()->get_ticks_usec()});
 }
 
 void TimeSpreadTaskRunner::push(Span<ITimeSpreadTask *> tasks, Priority priority) {
 	Queue &queue = _queues[priority];
 	MutexLock lock(queue.tasks_mutex);
 	for (unsigned int i = 0; i < tasks.size(); ++i) {
-		queue.tasks.push(tasks[i]);
+		queue.tasks.push({tasks[i],Time::get_singleton()->get_ticks_usec()});
 	}
 }
 
@@ -41,11 +41,18 @@ void TimeSpreadTaskRunner::process(uint64_t time_budget_usec) {
 
 		// Consume from high priority queues first
 		unsigned int queue_index;
+        // Bound starvation of distant uploads and resource releases.
+        {Queue &low=_queues[PRIORITY_LOW];MutexLock lock(low.tasks_mutex);
+            if(!low.tasks.empty() && time.get_ticks_usec()-low.tasks.front().queued_usec>=250000) {
+                task=low.tasks.front().task;low.tasks.pop();queue_index=PRIORITY_LOW;
+            }
+        }
+		if(task==nullptr)
 		for (queue_index = 0; queue_index < _queues.size(); ++queue_index) {
 			Queue &queue = _queues[queue_index];
 			MutexLock lock(queue.tasks_mutex);
 			if (queue.tasks.size() != 0) {
-				task = queue.tasks.front();
+				task = queue.tasks.front().task;
 				queue.tasks.pop();
 				break;
 			}
@@ -56,6 +63,8 @@ void TimeSpreadTaskRunner::process(uint64_t time_budget_usec) {
 		}
 
 		TimeSpreadTaskContext ctx;
+        const char *task_name=task->get_debug_name();
+        const uint64_t task_start=time.get_ticks_usec();
 		task->run(ctx);
 
 		if (ctx.postpone) {
@@ -64,6 +73,8 @@ void TimeSpreadTaskRunner::process(uint64_t time_budget_usec) {
 			// TODO Call recycling function instead?
 			ZN_DELETE(task);
 		}
+        const uint64_t elapsed=time.get_ticks_usec()-task_start;
+        if(elapsed>_peak_task_usec){_peak_task_usec=elapsed;_peak_task_name=task_name;}
 
 	} while (time.get_ticks_usec() - time_before < time_budget_usec);
 

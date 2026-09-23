@@ -6,7 +6,7 @@
 - `gdscript/day_palette.gd`：四时段循环色彩；`camera_effects.gd`：SSAO、体积雾、主相机曝光和景深。
 - `gdscript/camera_post.gd`、`shaders/camera_post.glsl`：屏幕光束、运动模糊、色差的 HDR CompositorEffect；计算着色器需要先完成 Godot 导入。
 - `gdscript/light_budget.gd`、`moving_light.gd`：真实移动点光源和共享点光源／阴影预算。不写入体素传播。
-- `gdscript/weather_effects.gd`：相机周围 GPU 雨滴、表面高度图遮挡、湿润与干燥。世界模块通过 `set_surface_map(image, origin, extent, revision)` 提供派生表面图。
+- `gdscript/weather_effects.gd`：相机周围 GPU 雨滴、表面高度图遮挡、湿润与干燥。生产世界通过 `configure_cache` 绑定原生天气页；全图 set_surface_map 只留在 test/shading 的有限夹具。
 - `gdscript/colored_shadows.gd`：注册玻璃网格的日月透射图，独立深度和颜色纹理，仅最近一层。
 - `gdscript/planar_reflection.gd`：平面水池反射，相机曝光独立，SSAO／体积雾分别选择，镜头后处理不继承。
 - `shaders/surface_material.gdshaderinc`：GGX 高光和湿润参数；`glass_receiver.gdshaderinc`：只调制日月直射的彩色阴影。
@@ -24,3 +24,7 @@
 独立水体材质资源已实现于 water/，提供默认资源、校验及参数接口，后续接入边界见 [水体材质说明](water/README.md)。正式世界已接入原生水网格、深度吸收、波纹、SSR/平面反射和水下判断。
 
 天空着色器支持程序化/贴图日月，彩色阴影支持六种比较过滤；样板验证见 [阴影与日月报告](../../test/shading/reports/shadows_celestial.md)。硬阴影由硬采样控制，shadow_blur 使用中性值 1，禁止以零倍率模拟硬边。
+
+## 原生 section 缓存
+
+`native/cache/` 保存增量光照求解、天气柱及 GPU 页池。体素读取使用 world 带版本的 section 快照，提交校验依赖；人物决定驻留，转视角不触发重算。GPU 逻辑页 16KiB，默认容量下 256 页合并为一数组层，仍逐页上传。策略由 core 持有，UI 不参与计算。详见 [缓存设计与测试](../../docs/world_cache.md)。旧整片参考求解器仅位于 test/shading/native/reference，发布版不编译。

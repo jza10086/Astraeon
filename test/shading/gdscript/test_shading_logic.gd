@@ -2,7 +2,7 @@ extends SceneTree
 ## Core contracts can run without importing the GPU compute shader or starting an editor.
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 const Budget: Script = preload("res://game/shading/gdscript/light_budget.gd")
-const Weather: Script = preload("res://game/shading/gdscript/weather_effects.gd")
+const Weather: Script = preload("res://test/shading/gdscript/weather_fixture.gd")
 const Palette: Script = preload("res://game/shading/gdscript/day_palette.gd")
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
 const CameraEffects: Script = preload("res://game/shading/gdscript/camera_effects.gd")

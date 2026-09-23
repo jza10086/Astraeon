@@ -284,6 +284,8 @@ func load_settings(path: String = "user://settings.cfg") -> Error:
 	var error: Error = config.load(path)
 	if error != OK:
 		return error
+	if not config.has_section("shading"):
+		return OK
 	if config.get_value("shading", "format", "") != "astraeon-shading-20260922b":
 		return ERR_FILE_UNRECOGNIZED
 	var known: Array[String] = ["format"]

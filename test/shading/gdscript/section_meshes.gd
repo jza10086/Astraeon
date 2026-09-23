@@ -1,4 +1,5 @@
 extends RefCounted
+const LightPages: Script = preload("res://test/shading/gdscript/light_page_fixture.gd")
 ## One native block mesh per 16^3 section. Light-only changes never rebuild geometry.
 const Volume: Script = preload("res://test/shading/gdscript/light_volume.gd")
 const LIGHT_SHADER: Shader = preload("res://game/shading/shaders/voxel_light.gdshader")
@@ -29,14 +30,12 @@ func configure(volume: Volume, parent: Node3D, texture: ImageTexture3D) -> void:
 		var compiled: ORMMaterial3D = model.get_material_override(0)
 		var material: ShaderMaterial = ShaderMaterial.new()
 		material.shader = PLANT_SHADER if i == 3 else LIGHT_SHADER
+		LightPages.bind_fixture(material,texture,volume.origin,volume.size)
 		material.set_shader_parameter("base_color", Color.WHITE)
 		material.set_shader_parameter("use_block_atlas", true)
 		material.set_shader_parameter("block_atlas", compiled.albedo_texture)
 		material.set_shader_parameter("block_cutout", definition.appearance.default_surface.alpha_mode == AstraeonBlockSurface.AlphaMode.CUTOUT)
 		material.set_shader_parameter("block_alpha_cutoff", definition.appearance.default_surface.alpha_cutoff)
-		material.set_shader_parameter("volume_origin", Vector3(volume.origin))
-		material.set_shader_parameter("volume_size", Vector3(volume.size))
-		material.set_shader_parameter("light_volume", texture)
 		material.set_shader_parameter("self_emission", definition.appearance.default_surface.emission_energy)
 		material.set_shader_parameter("material_roughness", definition.appearance.default_surface.roughness)
 		material.set_shader_parameter("material_specular", definition.appearance.default_surface.specular)

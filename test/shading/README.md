@@ -96,3 +96,18 @@ Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script re
 验证：原生存储光照一致性测试 61 项、实际 D3D12 场景检查 18 项通过。渲染检查覆盖原生网格完成、图集绑定、叶片裁剪、灯与窗口交互。截图 tmp/shading-native-sample/native-sample.png；未进行性能基准。GDScript 光照求解仍逐单元访问原生缓冲，后续性能优化需独立测量，当前不宣称无额外开销。
 
 硬阴影零倍率问题已复现并修复；新增六种彩色阴影过滤及两种日月外观，入口和截图见 [阴影与日月对比](reports/shadows_celestial.md)。光照更新优化暂缓。
+
+## 地图与光照缓存回归
+
+- `runners/run_cache_native.py`：编译并运行独立 C++ 增量/全量光照一致性检查。
+- `gdscript/cache_contracts.gd`：真实世界与 GPU 读回，覆盖跨 section 编辑、温缓存返回、保存竞态、缓存配置、天气驻留和世界切换。
+- `gdscript/cache_pressure.gd`：人为制造页池不足，验证保存与需求缩小后的恢复；不是性能档位。
+- 上述脚本使用 `-- --large` 检查大缓存预设；`gdscript/cache_lifetime.gd` 检查世界销毁后的原生引用、任务与纹理释放。
+- `gdscript/cache_ui.gd`：四种画布尺寸的实际缓存设置面板。
+- `gdscript/cache_edit_latency.gd`：64/256 视距的 GPU 读回与实时点光源更新延迟；与 FPS 测量分开运行。
+- `runners/run_cache_suite.py --run`：1080p、64/256 视距、两轮 AB/BA，自动采集 NVIDIA 遥测并输出 Markdown 表格；没有 --run 只打印计划。需要 tmp/cache-baseline 内已导入的旧版隔离对照。
+- `gdscript/cache_benchmark.gd -- --actions=static,move_40 --seconds=4 --distance=256 --output=res://tmp/my-cache-run`：定向短测。正式矩阵不包含 isolate_* 调试路径。
+
+旧全量 C++ 求解器在 native/reference/，仅编辑器构建供测试使用；生产没有旧管线回退。数据及截图生成到 tmp，最终结论另存 reports。性能测量期间不得同时运行其他测试或构建；完整冷导入必须先关闭同一工程编辑器。
+
+本轮缓存结果见 [2026-09-24 验收报告](reports/cache_20260924.md)。

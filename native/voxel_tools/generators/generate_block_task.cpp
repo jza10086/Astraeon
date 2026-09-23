@@ -175,7 +175,8 @@ void GenerateBlockTask::run_stream_saving_and_finish() {
 					_volume_id, _position, _lod_index, voxels_copy, _stream_dependency, nullptr, false
 			));
 
-			VoxelEngine::get_singleton().push_async_io_task(save_task);
+			save_task->generated_cache=true;
+            VoxelEngine::get_singleton().push_async_io_task(save_task);
 		}
 	}
 

@@ -1,8 +1,6 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never;
-uniform sampler2D roof_map : filter_nearest, repeat_disable;
-uniform vec2 roof_origin;
-uniform vec2 roof_size = vec2(64.0);
+#include "res://game/shading/shaders/weather_pages.gdshaderinc"
 uniform float opacity = 0.3;
 varying vec3 world_position;
 void vertex() {
@@ -13,9 +11,8 @@ void vertex() {
 	VERTEX = (inverse(MODEL_MATRIX)*vec4(world_position,1.0)).xyz;
 }
 void fragment() {
-	vec2 uv = (world_position.xz-roof_origin)/roof_size;
-	if (any(lessThan(uv,vec2(0.0))) || any(greaterThanEqual(uv,vec2(1.0)))) discard;
-	if (world_position.y <= texture(roof_map,uv).r) discard;
+	vec3 column = weather_column(world_position.xz);
+	if (column.b < 0.5 || world_position.y <= column.r) discard;
 	ALBEDO = vec3(0.65,0.78,0.88);
 	ALPHA = opacity * (1.0-abs(UV.x*2.0-1.0));
 }

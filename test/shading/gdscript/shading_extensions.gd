@@ -3,7 +3,7 @@ const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd"
 ## Test-only assembly of reusable shading components and explicit sample adapters.
 const CameraEffects: Script = preload("res://game/shading/gdscript/camera_effects.gd")
 const CameraPost: Script = preload("res://game/shading/gdscript/camera_post.gd")
-const Weather: Script = preload("res://game/shading/gdscript/weather_effects.gd")
+const Weather: Script = preload("res://test/shading/gdscript/weather_fixture.gd")
 const Glass: Script = preload("res://game/shading/gdscript/colored_shadows.gd")
 const Moving: Script = preload("res://game/shading/gdscript/moving_light.gd")
 const Budget: Script = preload("res://game/shading/gdscript/light_budget.gd")

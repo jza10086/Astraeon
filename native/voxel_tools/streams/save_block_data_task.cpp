@@ -94,7 +94,12 @@ void SaveBlockDataTask::run(zylann::ThreadedTaskContext &ctx) {
 		_voxels->copy_to(voxels_copy, true);
 		_voxels = nullptr;
 		VoxelStream::VoxelQueryData q{ voxels_copy, _position, _lod, VoxelStream::RESULT_ERROR };
+		q.data_revision = data_revision; q.generated_cache = generated_cache;
 		stream->save_voxel_block(q);
+		if (q.result == VoxelStream::RESULT_ERROR) {
+			if (_tracker != nullptr) _tracker->abort();
+			return;
+		}
 	}
 
 #ifdef VOXEL_ENABLE_INSTANCER
@@ -150,6 +155,7 @@ void SaveBlockDataTask::apply_result() {
 			// TODO Perhaps separate save and load callbacks?
 			VoxelEngine::BlockDataOutput o;
 			o.position = _position;
+			o.data_revision = data_revision;
 			o.lod_index = _lod;
 			o.dropped = !_has_run;
 			o.max_lod_hint = false; // Unused

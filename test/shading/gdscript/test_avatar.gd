@@ -1,4 +1,5 @@
 extends Node3D
+const LightPages: Script = preload("res://test/shading/gdscript/light_page_fixture.gd")
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Procedural reflection subject, not a gameplay controller. Feet define the anchor.
 var materials: Array[ShaderMaterial] = []
@@ -10,10 +11,8 @@ func configure(texture: ImageTexture3D, origin: Vector3i, size: Vector3i) -> voi
 	for color: Color in [Color(0.8,0.48,0.3),Color(0.05,0.3,0.8),Color(0.08,0.1,0.15)]:
 		var material: ShaderMaterial = ShaderMaterial.new()
 		material.shader = preload("res://game/shading/shaders/voxel_light.gdshader")
+		LightPages.bind_fixture(material,texture,origin,size)
 		material.set_shader_parameter("base_color",color)
-		material.set_shader_parameter("light_volume",texture)
-		material.set_shader_parameter("volume_origin",Vector3(origin))
-		material.set_shader_parameter("volume_size",Vector3(size))
 		materials.append(material)
 	_part(self,Vector3(0,1.63,0),Vector3(0.42,0.42,0.42),materials[0])
 	_part(self,Vector3(0,1.1,0),Vector3(0.55,0.64,0.3),materials[1])

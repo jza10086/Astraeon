@@ -312,6 +312,7 @@ MeshBlockTask::MeshBlockTask() : _voxels(VoxelBuffer::ALLOCATOR_POOL) {
 
 MeshBlockTask::~MeshBlockTask() {
 	--g_debug_mesh_tasks_count;
+    cache_temporary_bytes-=_cache_bytes;
 }
 
 int MeshBlockTask::debug_get_running_count() {
@@ -499,6 +500,12 @@ void MeshBlockTask::gather_voxels_cpu() {
 }
 
 void MeshBlockTask::build_mesh() {
+    uint64_t bytes=sizeof(MeshBlockTask);
+    for(unsigned channel=0;channel<VoxelBuffer::MAX_CHANNELS;++channel) {
+        Span<const uint8_t> payload;
+        if(_voxels.get_channel_as_bytes_read_only(channel,payload))bytes+=payload.size();
+    }
+    cache_temporary_bytes+=bytes-_cache_bytes;_cache_bytes=bytes;
 	Ref<VoxelMesher> mesher = meshing_dependency->mesher;
 	const Vector3i mesh_block_size =
 			_voxels.get_size() - Vector3iUtil::create(mesher->get_minimum_padding() + mesher->get_maximum_padding());
@@ -516,6 +523,8 @@ void MeshBlockTask::build_mesh() {
 		true // detail_texture_hint
 	};
 	mesher->build(_surfaces_output, input);
+    const uint64_t output_bytes=_surfaces_output.get_cache_bytes();
+    cache_temporary_bytes+=output_bytes;_cache_bytes+=output_bytes;
 
 #ifdef VOXEL_ENABLE_SMOOTH_MESHING
 	const bool mesh_is_empty = VoxelMesher::is_mesh_empty(_surfaces_output.surfaces);
@@ -639,6 +648,7 @@ void MeshBlockTask::apply_result() {
 			o.shadow_occluder_mesh = _shadow_occluder_mesh;
 			o.mesh_material_indices = std::move(_mesh_material_indices);
 			o.has_mesh_resource = _has_mesh_resource;
+            o.section_revisions = section_revisions; o.cache_versioned = cache_versioned; o.collision_was_required = collision_hint;
 			o.visual_was_required = require_visual;
 #ifdef VOXEL_ENABLE_SMOOTH_MESHING
 			o.detail_textures = _detail_textures;
