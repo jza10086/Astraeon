@@ -11,6 +11,7 @@ var viewport: SubViewport
 var camera: Camera3D
 var captures: int = 0
 var active: bool = false
+var _capture_environment: Environment
 var _source: Camera3D
 var _materials: Array[ShaderMaterial] = []
 var _clip_materials: Array[ShaderMaterial] = []
@@ -47,7 +48,14 @@ func apply(settings: Profile, environment: Environment) -> void:
 		_valid = false
 		_set_valid(false)
 		return
-	var capture_environment: Environment = environment.duplicate() as Environment
+	if _capture_environment == null:
+		_capture_environment = Environment.new()
+		camera.environment = _capture_environment
+	# Copy settings into the same resource. Sky remains shared with the source.
+	for property: Dictionary in environment.get_property_list():
+		if int(property.usage) & PROPERTY_USAGE_STORAGE and not String(property.name).begins_with("resource_"):
+			_capture_environment.set(property.name,environment.get(property.name))
+	var capture_environment: Environment = _capture_environment
 	# Capture scene-linear HDR; the main viewport performs the only tone mapping.
 	capture_environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	capture_environment.tonemap_exposure = 1.0
@@ -56,7 +64,6 @@ func apply(settings: Profile, environment: Environment) -> void:
 	capture_environment.ssao_enabled = settings.planar_ssao and settings.ssao_enabled
 	capture_environment.volumetric_fog_enabled = settings.planar_volumetric and settings.rays_mode == 2
 	capture_environment.fog_enabled = settings.planar_fog and settings.fog_enabled
-	camera.environment = capture_environment
 	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if settings.planar_aa == 1 else Viewport.SCREEN_SPACE_AA_DISABLED
 	viewport.use_taa = false
 	camera.cull_mask = (_source.cull_mask & ~WATER_LAYER) | CAPTURE_MARKER
@@ -67,6 +74,12 @@ func apply(settings: Profile, environment: Environment) -> void:
 	for material: ShaderMaterial in _clip_materials:
 		material.set_shader_parameter("reflection_clip_height", water_height + settings.planar_clip_offset)
 		material.set_shader_parameter("reflection_plants", settings.planar_reflect_plants)
+
+## Animated atmosphere only; capture quality and post-processing stay independently configured.
+func update_atmosphere(environment: Environment) -> void:
+	if not active or _capture_environment == null: return
+	_capture_environment.fog_light_color = environment.fog_light_color
+	_capture_environment.ambient_light_energy = environment.ambient_light_energy
 
 func _set_valid(value: bool) -> void:
 	for material: ShaderMaterial in _materials:

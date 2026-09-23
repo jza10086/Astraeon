@@ -40,6 +40,14 @@
 
 ## 验证
 
+### 昼夜更新路径
+
+`_apply_lighting()` 只在初始化和设置变更时应用渲染质量、VSync、材质方案及模块配置。每帧时间推进走 `_update_daylight()`，仅更新日月方向/能量、天空/环境色、云影方向、水面天空色和雾色；天气权重变化另行更新云覆盖率及风力。时间推进不触发体素光场失效。
+
+云配置只在设置变更时复制；平面反射保留同一个 Environment，与主视口共享 Sky，并独立保留线性 HDR、SSAO、体积雾和反射雾开关。昼夜不再每帧重建反射环境或重新设置水面 Shader。仍保留逐帧日月运动，没有降低阴影、天空反射质量或降低昼夜更新频率。
+
+`test/shading/gdscript/test_day_cycle.gd` 提供固定视角的暂停/流动 ABBA 短测，并验证时间/太阳更新、云配置/网格稳定、反射环境复用、配置切换及天气独立更新。结果说明见 [昼夜性能修复](../test/shading/reports/day_cycle_fix.md)。
+
 `test/shading/gdscript/test_world_shading.gd` 使用 tmp 下隔离世界和配置，检查密闭空间、源删除、未知区段、负坐标、独立点光请求、主世界材质、光照发布、静态/手持灯、透明物件、三种水反射、水上/水下、跨区段和设置面板。运行使用 Godot 4.7 Forward+ / D3D12。截图中的瞬时 FPS 不作为性能基准。
 
 测试结果及截图见 [主世界光影验收](../test/shading/reports/world_shading.md)。

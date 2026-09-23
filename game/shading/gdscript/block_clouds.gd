@@ -121,14 +121,18 @@ func apply(settings: Profile, horizon: Color, toward_light: Vector3) -> void:
 	visible = settings.clouds_enabled
 	if visible and not is_equal_approx(_coverage,settings.cloud_coverage):
 		_build(settings.cloud_coverage)
+	update_lighting(horizon,toward_light)
+	for receiver: ShaderMaterial in _receivers:
+		receiver.set_shader_parameter("cloud_shadow_enabled",visible and settings.block_cloud_shadows)
+		receiver.set_shader_parameter("cloud_shadow_strength",settings.cloud_shadow_strength)
+		receiver.set_shader_parameter("cloud_shadow_softness",settings.cloud_shadow_softness)
+
+func update_lighting(horizon: Color, toward_light: Vector3) -> void:
 	material.set_shader_parameter("cloud_horizon",horizon)
 	material.set_shader_parameter("cloud_lit",horizon.lerp(Color.WHITE,0.5) * clampf(horizon.get_luminance()*2.0,0.015,1.0))
 	material.set_shader_parameter("light_direction",toward_light)
 	for receiver: ShaderMaterial in _receivers:
-		receiver.set_shader_parameter("cloud_shadow_enabled",visible and settings.block_cloud_shadows)
 		receiver.set_shader_parameter("cloud_light_direction",toward_light)
-		receiver.set_shader_parameter("cloud_shadow_strength",settings.cloud_shadow_strength)
-		receiver.set_shader_parameter("cloud_shadow_softness",settings.cloud_shadow_softness)
 
 func tick(clock: float, camera_position: Vector3) -> void:
 	if not visible:

@@ -16,6 +16,7 @@ const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_pane
 @export var settings_path: String = "user://settings.cfg"
 var world: Node3D
 var _settings: Profile
+var _cloud_profile: Profile
 var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _environment: Environment
@@ -196,8 +197,9 @@ func _process(delta: float) -> void:
             push_error("Could not start shading worker")
     if _settings.cycle_enabled:
         _settings.hour = fposmod(_settings.hour+delta*24.0/_settings.day_seconds,24.0)
-        _apply_lighting()
-    if weather.tick(delta,_settings,_camera.global_position): _apply_lighting()
+    var weather_changed: bool = weather.tick(delta,_settings,_camera.global_position)
+    if weather_changed: _update_weather()
+    if _settings.cycle_enabled or weather_changed: _update_daylight()
     if _settings.clouds_enabled: _cloud_clock += delta*_settings.cloud_speed
     clouds.tick(_cloud_clock,_camera.global_position)
     if _settings.water_enabled and _settings.waves_enabled: _water_clock += delta*_settings.wave_speed
@@ -319,33 +321,14 @@ func _exit_tree() -> void:
         Engine.max_fps = _previous_max_fps
         DisplayServer.window_set_vsync_mode(_previous_vsync)
 
+## Settings changes only; daily animation must never reapply renderer configuration.
 func _apply_lighting() -> void:
     Engine.max_fps = _settings.max_fps
-    if _sun == null:
-        return
-    var solar_angle: float = (_settings.hour - 6.0) * PI / 12.0
-    var altitude: float = sin(solar_angle)
-    var day: float = smoothstep(-0.12, 0.3, altitude)
-    var sunset: float = (1.0 - smoothstep(0.05, 0.5, absf(altitude))) * day
-    var moon: bool = altitude < 0.0
-    _sun.rotation = Vector3(-solar_angle + (PI if moon else 0.0), -0.5, 0.0)
+    if _sun == null: return
     _sun.visible = _settings.direct_enabled
-    var palette: Dictionary[String, Variant] = Palette.sample(_settings)
-    var overcast: float = weather.cloud_weight
-    _sun.light_color = palette.direct
-    _sun.light_energy = pow(absf(altitude), 0.4) * float(palette.energy) * lerpf(1.0,0.35,overcast)
     _sun.shadow_enabled = _settings.shadows_enabled and _settings.direct_enabled
     _sun.directional_shadow_max_distance = _settings.shadow_distance
-    var zenith: Color = palette.zenith
-    var horizon: Color = palette.horizon
-    zenith = zenith.lerp(Color(0.19,0.23,0.28),overcast*0.8)
-    horizon = horizon.lerp(Color(0.32,0.36,0.4),overcast*0.8)
     _sky_material.set_shader_parameter("enhanced", _settings.sky_enhanced)
-    _sky_material.set_shader_parameter("zenith",zenith)
-    _sky_material.set_shader_parameter("horizon",horizon)
-    var sun_direction: Vector3 = Basis.from_euler(Vector3(-solar_angle,-0.5,0.0)).z.normalized()
-    _sky_material.set_shader_parameter("sun_direction", sun_direction)
-    _sky_material.set_shader_parameter("moon_direction", -sun_direction)
     _sky_material.set_shader_parameter("celestial_mode", _settings.celestial_mode)
     _sky_material.set_shader_parameter("celestial_shape", _settings.celestial_shape)
     _sky_material.set_shader_parameter("sun_radius", deg_to_rad(_settings.celestial_sun_size * 0.5))
@@ -358,11 +341,49 @@ func _apply_lighting() -> void:
     _sky_material.set_shader_parameter("moon_energy", _settings.celestial_moon_energy)
     _sky_material.set_shader_parameter("sun_texture", preload("res://game/shading/assets/celestial/sun.svg") if _settings.celestial_shape == 0 else preload("res://game/shading/assets/celestial/sun_square.svg"))
     _sky_material.set_shader_parameter("moon_texture", preload("res://game/shading/assets/celestial/moon.svg") if _settings.celestial_shape == 0 else preload("res://game/shading/assets/celestial/moon_square.svg"))
+    _cloud_profile = _settings.duplicate() as Profile
+    _apply_modules()
+    _update_weather()
+    _update_daylight()
+    planar.apply(_settings,_environment)
+
+## Only values driven by time/weather; no resource allocation or quality configuration.
+func _update_daylight() -> void:
+    var solar_angle: float = (_settings.hour - 6.0) * PI / 12.0
+    var altitude: float = sin(solar_angle)
+    var moon: bool = altitude < 0.0
+    _sun.rotation = Vector3(-solar_angle + (PI if moon else 0.0), -0.5, 0.0)
+    var palette: Dictionary[String, Variant] = Palette.sample(_settings)
+    var overcast: float = weather.cloud_weight
+    _sun.light_color = palette.direct
+    _sun.light_energy = pow(absf(altitude), 0.4) * float(palette.energy) * lerpf(1.0,0.35,overcast)
+    var zenith: Color = palette.zenith
+    var horizon: Color = palette.horizon
+    zenith = zenith.lerp(Color(0.19,0.23,0.28),overcast*0.8)
+    horizon = horizon.lerp(Color(0.32,0.36,0.4),overcast*0.8)
+    _sky_material.set_shader_parameter("zenith",zenith)
+    _sky_material.set_shader_parameter("horizon",horizon)
+    var sun_direction: Vector3 = Basis.from_euler(Vector3(-solar_angle,-0.5,0.0)).z.normalized()
+    _sky_material.set_shader_parameter("sun_direction", sun_direction)
+    _sky_material.set_shader_parameter("moon_direction", -sun_direction)
     _fog_color = (palette.fog as Color).lerp(Color(0.32,0.36,0.4),overcast*0.8)
-    _apply_modules(palette.ambient,horizon)
+    for material: ShaderMaterial in materials:
+        material.set_shader_parameter("sky_color",palette.ambient)
+    for material: ShaderMaterial in water_materials:
+        material.set_shader_parameter("sky_color",palette.ambient)
+        material.set_shader_parameter("horizon",horizon)
+    clouds.update_lighting(horizon,_sun.global_basis.z.normalized())
+    _apply_fog()
+    planar.update_atmosphere(_environment)
+
+func _update_weather() -> void:
+    _cloud_profile.cloud_coverage = lerpf(_settings.cloud_coverage,_settings.weather_cloud,weather.cloud_weight)
+    clouds.apply(_cloud_profile,Color.WHITE,_sun.global_basis.z.normalized())
+    for material: ShaderMaterial in plants:
+        material.set_shader_parameter("wind_strength",_settings.wind_strength*lerpf(1.0,_settings.weather_wind,weather.cloud_weight))
 
 
-func _apply_modules(sky_color: Color, horizon: Color) -> void:
+func _apply_modules() -> void:
     DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if _settings.vsync_enabled else DisplayServer.VSYNC_DISABLED)
     get_viewport().use_taa = _settings.aa_mode == 2
     get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if _settings.aa_mode == 1 else Viewport.SCREEN_SPACE_AA_DISABLED
@@ -388,13 +409,9 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
     effects.apply(_settings,_camera,_environment,_sun)
     weather.apply(_settings)
     moving.apply(_settings)
-    var cloud_profile: Profile = _settings.duplicate() as Profile
-    cloud_profile.cloud_coverage = lerpf(_settings.cloud_coverage,_settings.weather_cloud,weather.cloud_weight)
-    clouds.apply(cloud_profile,horizon,_sun.global_basis.z.normalized())
     for material: ShaderMaterial in materials:
         for key: StringName in [&"ambient_smoothing",&"ambient_strength",&"ambient_minimum",&"ambient_minimum_color",&"ambient_curve",&"block_grid_strength",&"block_color",&"block_energy",&"block_curve"]:
             material.set_shader_parameter(key,_settings.get(key))
-        material.set_shader_parameter("sky_color",sky_color)
         material.set_shader_parameter("indirect_strength",_settings.effective_block_strength())
         material.set_shader_parameter("ao_strength",_settings.ao_strength if _settings.ao_enabled else 0.0)
         material.set_shader_parameter("emission_multiplier",_settings.lamp_emission_strength)
@@ -403,27 +420,22 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
         material.set_shader_parameter("material_specular",_settings.gloss_block_specular if _settings.gloss_enabled else 0.0)
     for material: ShaderMaterial in plants:
         material.set_shader_parameter("wind_enabled",_settings.wind_enabled)
-        material.set_shader_parameter("wind_strength",_settings.wind_strength*lerpf(1.0,_settings.weather_wind,weather.cloud_weight))
         material.set_shader_parameter("translucency",_settings.translucency_strength if _settings.translucency_enabled else 0.0)
-    _apply_water(sky_color,horizon)
-    _apply_fog()
-    planar.apply(_settings,_environment)
+    _apply_water()
     _allocate_lights()
 
-func _apply_water(sky_color: Color, horizon: Color) -> void:
+func _apply_water() -> void:
     for material: ShaderMaterial in water_materials:
         var shader: Shader = preload("res://game/shading/shaders/water.gdshader")
         if _settings.water_reflection_mode == 1: shader = preload("res://game/shading/shaders/water_reflective.gdshader")
         if _settings.water_reflection_mode == 2: shader = preload("res://game/shading/shaders/water_planar.gdshader")
-        material.shader = shader
+        if material.shader != shader: material.shader = shader
         for key: StringName in [&"water_shallow_color",&"water_deep_color",&"water_absorption",&"water_opacity",&"water_low_opacity",&"water_roughness",&"water_specular",&"wave_scale",&"water_sky_strength",&"water_ssr_strength",&"water_ssr_steps",&"water_ssr_distance",&"water_ssr_tolerance",&"water_ssr_edge_fade",&"water_ssr_refinements",&"water_ssr_normal_offset",&"planar_strength",&"planar_distortion",&"planar_blur_pixels",&"planar_edge_fade",&"wave_strength"]:
             material.set_shader_parameter(key,_settings.get(key))
         material.set_shader_parameter("water_visible",_settings.water_enabled)
         material.set_shader_parameter("depth_absorption",_settings.water_quality == 1)
         material.set_shader_parameter("waves_enabled",_settings.waves_enabled)
         material.set_shader_parameter("reflection_enabled",_settings.water_reflection)
-        material.set_shader_parameter("sky_color",sky_color)
-        material.set_shader_parameter("horizon",horizon)
         material.set_shader_parameter("water_bounds_min",world.terrain.bounds.position)
         material.set_shader_parameter("water_bounds_max",Vector3(world.terrain.bounds.end.x,world.WATER_SURFACE_HEIGHT,world.terrain.bounds.end.z))
 
