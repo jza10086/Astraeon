@@ -12,6 +12,7 @@ const Effects: Script = preload("res://game/shading/gdscript/camera_effects.gd")
 const Post: Script = preload("res://game/shading/gdscript/camera_post.gd")
 const Planar: Script = preload("res://game/shading/gdscript/planar_reflection.gd")
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
+const FrameTimeLabel: Script = preload("res://game/ui/gdscript/frame_time_label.gd")
 @export var profile: Profile = preload("res://game/shading/resources/default_profile.tres")
 @export var settings_path: String = "user://settings.cfg"
 var world: Node3D
@@ -37,7 +38,7 @@ var post: Post = Post.new()
 var planar: Planar = Planar.new()
 var panel: SettingsPanel = SettingsPanel.new()
 var _menu: PanelContainer
-var _fps: Label
+var _fps: FrameTimeLabel
 var _worker: Thread
 var _dirty: bool = true
 var _timer: float = 0.0
@@ -228,7 +229,8 @@ func _process(delta: float) -> void:
         var hit: VoxelRaycastResult = world.voxel_tool.raycast(_camera.global_position,-_camera.global_basis.z,100.0)
         effects.update_focus(_settings,hit.distance if hit != null else 100.0,delta)
     _fps.visible = _settings.show_fps
-    _fps.text = "%d FPS · %.2f ms | F6 光影设置 | 光照发布 %d" % [Engine.get_frames_per_second(),1000.0/maxf(Engine.get_frames_per_second(),1),field_publications]
+    _fps.sampling_enabled = _settings.show_fps and field_publications > 0
+    _fps.context_text = "F6 光影设置 | 光照发布 %d" % field_publications
 
 func _allocate_lights() -> void:
     _emitters.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
@@ -269,11 +271,12 @@ func unregister_transparent_caster(mesh: MeshInstance3D) -> void:
 func _make_ui() -> void:
     var layer: CanvasLayer = CanvasLayer.new()
     add_child(layer)
-    _fps = Label.new()
+    _fps = FrameTimeLabel.new()
+    _fps.add_theme_font_size_override("font_size",16)
     _fps.position = Vector2(24,130)
     layer.add_child(_fps)
     _menu = PanelContainer.new()
-    _menu.position = Vector2(24,180)
+    _menu.position = Vector2(24,205)
     _menu.custom_minimum_size = Vector2(410,580)
     layer.add_child(_menu)
     var scroll: ScrollContainer = ScrollContainer.new()
