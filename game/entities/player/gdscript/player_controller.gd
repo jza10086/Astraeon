@@ -23,6 +23,7 @@ func _physics_process(delta: float) -> void:
 	if input_enabled:
 		var axes: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		motor.move_intent = camera_pivot.global_basis * Vector3(axes.x, 0.0, axes.y) if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Vector3.ZERO
+		motor.sprint_requested = Input.is_action_pressed("sprint") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		motor.jump_requested = Input.is_action_just_pressed("jump") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	motor.step(delta)
 	if motor.global_position.y < respawn_below:

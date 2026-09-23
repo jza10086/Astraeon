@@ -1,6 +1,6 @@
 extends SceneTree
 ## Real physics and imported-animation regression, no editor import or benchmark.
-const WORLD: PackedScene = preload("res://game/core/main.tscn")
+const WORLD: PackedScene = preload("res://test/entities/scenes/player_playground.tscn")
 var failures: Array[String] = []
 var checks: int = 0
 var player: CharacterMotor
@@ -40,10 +40,15 @@ func _run() -> void:
 	player.move_intent = Vector3.RIGHT
 	await _frames(60)
 	var straight_distance: float = player.position.distance_to(origin)
-	_check(straight_distance > 0.9 and straight_distance < 1.2, "Movement matches 1.1 m/s")
-	_check(animator.current_animation == "Run" and animator.is_playing(), "Run animation plays")
+	_check(straight_distance > 3.8 and straight_distance < 4.35, "Movement matches 4.3 m/s")
+	_check(animator.current_animation == "Walk_4_3" and animator.is_playing(), "Walk animation plays")
+	player.sprint_requested = true
+	await _frames(30)
+	_check(absf(player.velocity.x - 5.6) < 0.02, "Sprint reaches 5.6 m/s")
+	_check(animator.current_animation == "Run_5_6" and animator.is_playing(), "Run animation plays")
+	player.sprint_requested = false
 	player.move_intent = Vector3.ZERO
-	await _frames(15)
+	await _frames(20)
 	_check(Vector2(player.velocity.x, player.velocity.z).length() < 0.01, "Braking stops movement")
 	await _place(Vector3(0, 0.1, 3))
 	origin = player.position
@@ -57,7 +62,7 @@ func _run() -> void:
 	for frame: int in range(60):
 		await _frames(1)
 		peak = maxf(peak, player.position.y)
-		jump_seen = jump_seen or animator.current_animation == "Jump"
+		jump_seen = jump_seen or (not player.is_on_floor() and animator.assigned_animation == "Jump")
 		if frame == 15:
 			player.jump_requested = true
 	_check(peak > 1.15 and peak < 1.4, "Jump height and no double jump")
@@ -80,9 +85,9 @@ func _run() -> void:
 	player.jump_requested = true
 	await _frames(60)
 	_check(player.is_on_floor() and absf(player.position.y - 1.0) < 0.03, "Jump reaches one-meter platform")
-	await _place(Vector3(3.7, 0.1, -1.1))
+	await _place(Vector3(3.7, 0.1, -5.1))
 	player.move_intent = Vector3.FORWARD
-	await _frames(90)
+	await _frames(30)
 	_check(player.is_on_floor() and player.position.y > 0.25, "Walk up slope without falling through")
 	await _place(Vector3(2, 2.5, 0))
 	await _frames(45)
@@ -97,7 +102,12 @@ func _run() -> void:
 	await _frames(20)
 	_check(player.is_on_floor() and player.position.distance_to(Vector3(0, 0, 3)) < 0.03, "Void respawn resets player")
 	var skeleton: Skeleton3D = player.find_child("Skeleton3D", true, false) as Skeleton3D
-	_check(skeleton != null and skeleton.get_bone_count() == 42, "Imported skeleton remains intact")
+	_check(skeleton != null and skeleton.get_bone_count() == 36, "Imported skeleton remains intact")
+	for clip: StringName in [&"Idle", &"Walk_4_3", &"Run_5_6"]:
+		_check(animator.get_animation(clip).loop_mode == Animation.LOOP_LINEAR, "Loop flag: " + String(clip))
+	_check(animator.get_animation(&"Jump").loop_mode == Animation.LOOP_NONE, "Jump does not loop")
+	_check(absf(animator.get_animation(&"Walk_4_3").length - 0.533333) < 0.001, "Walk duration")
+	_check(absf(animator.get_animation(&"Run_5_6").length - 0.466667) < 0.001, "Run duration")
 	if DisplayServer.get_name() != "headless":
 		await _test_window_input()
 	else:
@@ -119,8 +129,12 @@ func _test_window_input() -> void:
 	origin = player.position
 	Input.action_press("move_forward")
 	await _frames(30)
+	Input.action_press("sprint")
+	await _frames(20)
+	_check(absf(Vector2(player.velocity.x, player.velocity.z).length() - 5.6) < 0.05, "Shift input selects sprint")
+	Input.action_release("sprint")
 	Input.action_release("move_forward")
-	await _frames(10)
+	await _frames(20)
 	_check(player.position.z < origin.z - 0.4, "Player input drives motor")
 	Input.action_press("jump")
 	await _frames(5)

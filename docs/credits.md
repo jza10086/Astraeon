@@ -18,6 +18,11 @@
 
 - 2026-09-15 环境光表面插值、方块云合并网格与二值底面云影为项目自编；覆盖图由 Godot FastNoiseLite 生成，未引入第三方云素材。
 
-- HK416 测试角色：来自用户本地 F:/AstraBlender/Projects/HK416_Voxel/HK416_Godot_Animated.glb，原样复制；依据用户提供的角色参考制作。源目录未附独立商业使用许可，本项目记录为内部原型参考资产，不宣称角色设计权利或重新许可。
+- HK416 测试角色：来自用户本地 F:/AstraBlender/Projects/HK416_Voxel/rigged_v8/HK416_V8_Animated.glb，原样复制；依据用户提供的角色参考制作。源目录未附独立商业使用许可，本项目记录为内部原型参考资产，不宣称角色设计权利或重新许可。
 
 - 主工程原生后端：固定 Voxel Tools 与 godot-cpp 源码保留在 native/voxel_tools/ 和 native/deps/godot-cpp/，保留各自 MIT 与第三方许可证。部署插件保留 addons/zylann.voxel/LICENSE.md。项目修改见 docs/native_voxel_backend.md。
+
+- HK416 V8 移动动作参考 CMU Graphics Lab Motion Capture Database，Subject 16 Trial 35 与 Subject 09 Trial 01；制作说明位于源目录 references/README.md。来源：https://mocap.cs.cmu.edu/ 。本项目不复制原始动捕文件。
+
+The data used in this project was obtained from mocap.cs.cmu.edu.
+The database was created with funding from NSF EIA-0196217.

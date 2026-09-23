@@ -2,10 +2,11 @@ extends Node3D
 ## Fixed collision fixtures; deliberately independent of experimental world generation.
 
 func _ready() -> void:
-	_box("Platform", Vector3(2.0, 0.5, 0.0), Vector3(2.0, 1.0, 2.0), Color(0.5, 0.4, 0.25))
+	_box("Ground", Vector3(0, -0.25, 0), Vector3(40, 0.5, 40), Color(0.22, 0.34, 0.3))
+	_box("Platform", Vector3(4.0, 0.5, 0.0), Vector3(6.0, 1.0, 2.0), Color(0.5, 0.4, 0.25))
 	_box("Wall", Vector3(-3.0, 1.5, 0.0), Vector3(0.5, 3.0, 4.0), Color(0.35, 0.4, 0.5))
 	_box("LowCeiling", Vector3(0.0, 2.15, -3.5), Vector3(2.0, 0.3, 2.0), Color(0.55, 0.35, 0.3))
-	var ramp: StaticBody3D = _box("Ramp", Vector3(3.7, 0.40, -3.0), Vector3(1.5, 0.25, 3.0), Color(0.35, 0.45, 0.55))
+	var ramp: StaticBody3D = _box("Ramp", Vector3(3.7, 0.40, -7.0), Vector3(1.5, 0.25, 3.0), Color(0.35, 0.45, 0.55))
 	ramp.rotation.x = deg_to_rad(20.0)
 
 func _box(node_name: String, center: Vector3, size: Vector3, color: Color) -> StaticBody3D:

@@ -1,25 +1,30 @@
-# 玩家与生物实体初版
+# 玩家与生物实体
 
-本轮只实现可控制玩家，不含生物 AI、感知、寻路、战斗或持久化。
-- game/entities/common/gdscript/character_motor.gd：共享 CharacterBody3D 运动组件，接受世界空间移动意图与单次跳跃请求，由拥有者每物理帧调用 step。
-- game/entities/common/gdscript/character_visual.gd：独立动画与模型朝向，接受实际运动状态。
-- game/entities/player/gdscript/player_controller.gd：玩家输入、临时第三人称相机、掉出世界复位。
-- game/entities/player/scenes/player.tscn：可复用玩家场景，@export 引用连接组件。
-- game/core/main.tscn：F5 可运行固定碰撞试验场，不依赖地图实验方案。
+当前玩家使用 HK416 V8。entities 负责实例运动、动作和视觉；world 负责地形碰撞与加载。无生物 AI、战斗或玩家状态存档。
 
-操作：WASD 移动，鼠标转相机，空格跳跃，Esc 释放鼠标，左键重新捕获。
-碰撞层 1 为世界，层 2 为实体；玩家当前只碰撞世界。相机弹簧臂只检测世界。
-默认速度 1.1 m/s 匹配现有 Run。保持原模型、动画和材质；动作适配见 character_asset_contract.md。
-固定场地提供地板、1 米平台、墙、斜坡和低顶。离开场地跌落到 Y=-20 以下回到出生点。
-输入与 AI 不属于共享运动组件；未来生物可另行提供意图，无需引入全局管理器。
-本阶段不接入流式体素世界；接入前须解决附近碰撞就绪、卸载边界和出生位置安全。
-玩家状态未保存，重新启动回到出生点；相机参数当前为场景默认值，尚无设置界面。
+## 模块
+以下路径相对 game/entities：
+- common/gdscript/character_motor.gd：共享 CharacterMotor 接受 move_intent、sprint_requested、jump_requested，由控制器每物理帧调用 step。普通速度 4.3 m/s，快跑 5.6 m/s，重力 20，跳高 1.25 米。
+- common/gdscript/character_visual.gd：读取真实速度、垂直速度与接地状态，播放当前四段动作。慢跑/快跑选择有滞回，播放倍率随实际速度变化，顶墙停止迈步。
+- player/gdscript/player_controller.gd：玩家输入、相机与复位。
+- player/scenes/player.tscn：胶囊、模型与相机组装，模型引用 player/assets/hk416.glb 的 V8 内容。
 
-## 验证记录（2026-09-17）
-Godot 4.7.stable.official.5b4e0cb0f，Forward+ / D3D12，RTX 3060 Laptop GPU。
-test/entities/gdscript/test_player.gd 在实际图形进程中完成 24 项检查，退出码 0，无 SCRIPT ERROR / ERROR。
-涵盖站稳、速度、斜向归一、制动、跳高与禁止二段跳、三种动画、墙体、低顶、跳上一米平台、斜坡、平台跌落、复位、骨架、输入和鼠标捕获。
-日志 tmp/entity_window_test.log。无界面运行跳过 6 项依赖鼠标捕获的窗口检查，不将其当作窗口验收。
-测试现位于 res://test/entities/gdscript/test_player.gd；以上为历史验证。当前脚本仍假定旧固定地面场景，需要接入独立实体夹具后再执行，不能将历史通过视为当前地图验收。
-主场景实际截图与 MCP 输入模拟已检查；手动手感、极端动画混合、多分辨率及流式世界接受度尚未验收。
-资产 SHA-256：8446EBCE45EB312CABC6222520DD99D21F003999145E4F435B54234156C848EF，项目副本与原 GLB 一致。
+## 操作与世界
+WASD 移动，Shift 快跑，鼠标观察，空格跳跃，Esc 释放鼠标，左键重新捕获。
+F5 为当前原生体素世界，沿用现有碰撞就绪保护；左键挖掘、右键放置仍由 world 编排，不属于动画组件。
+Jump 即时起跳跳过蓄力，空中按物理速度采样，实际接地才播放落地段；移动可打断落地缓冲。
+胶囊高 1.8 米、半径 0.3 米；实体层 2、世界层 1。相机为临时第三人称，最终视角未定。
+不保留旧模型、旧 1.1 m/s 字段、Run 调用或旧跳跃时间点。
+
+## 验证入口
+test/entities/scenes/player_playground.tscn 为独立固定碰撞场地，包含地面、平台、墙、斜坡与低顶，不读写正式世界。
+test/entities/gdscript/test_player.gd 检查当前资产、速度、动画与碰撞；窗口模式额外验证输入和鼠标捕获。
+资产要求见 character_asset_contract.md。人工手感、极端混合姿态、斜坡滑脚与多分辨率验收仍单独进行。
+
+## V8 迁移验证（2026-09-23）
+Godot 4.7.stable.official.5b4e0cb0f，D3D12 / Forward+。
+完整资源导入通过；独立图形实体回归 33 项通过；临时原生世界集成检查通过。
+日志：tmp/v8_import.log、tmp/v8_player_test.log、tmp/v8_world_test.log。
+世界截图：tmp/v8_world_idle.png、v8_world_walk.png、v8_world_run.png、v8_world_jump.png。
+模型哈希与源 V8 一致；保留资源 UID 和 60 FPS、禁优化/压缩的导入设置。
+本次为自动物理/输入/动画验证及截图检查，不等于人工操作手感或全部混合姿态验收。
