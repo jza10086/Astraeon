@@ -1,5 +1,7 @@
 # 数据驱动光影测试入口
 
+移动/转视角卡顿诊断：打开 `scenes/motion_stutter.tscn` 按 F6，自动进行静止、纯转向、区段内/边界绕转和跨区段移动的正常/冻结光照对照。输出保存在 `tmp/motion-stutter/<时间戳>/report.md`。配置、命令和指标边界见 [测试说明](reports/motion_stutter_plan.md)。
+
 打开 `scenes/content_sample.tscn` 按 F6，或执行 `./test/shading/runners/lighting_sample.ps1 -Run`。
 
 新场景通过 AstraeonWorldContent 读取正式方块/水定义，使用 VoxelBuffer 和 VoxelMesherBlocky 生成有限测试网格，复用 game/entities/player/scenes/player.tscn 的人物、动画、移动和碰撞。WASD 移动、空格跳跃、Esc 释放鼠标以操作按钮。

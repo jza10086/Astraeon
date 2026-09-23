@@ -52,6 +52,9 @@ var _texture: ImageTexture3D
 var _viewer: VoxelViewer
 var _revision: int = 0
 var field_publications: int = 0
+## Opt-in main-thread timing; no samples or clock reads when diagnostics are disabled.
+signal diagnostic_timing(kind: StringName, start_usec: int, duration_usec: int)
+var diagnostics_enabled: bool = false
 var _emitters: Array = []
 var _lights: Array[OmniLight3D] = []
 var _previous_max_fps: int
@@ -173,7 +176,9 @@ func _publish() -> void:
         material.set_shader_parameter("volume_origin",Vector3(_origin))
         material.set_shader_parameter("volume_size",Vector3(_size))
     _revision += 1
+    var weather_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
     weather.set_surface_map(result.height,Vector2(_origin.x,_origin.z),Vector2(_size.x,_size.z),_revision)
+    if diagnostics_enabled: diagnostic_timing.emit(&"weather_map",weather_start,Time.get_ticks_usec()-weather_start)
     _emitters = result.emitters
     field_publications += 1
     _allocate_lights()
@@ -186,12 +191,17 @@ func _process(delta: float) -> void:
     _viewer.global_position = Vector3(_camera.global_position.x,64.0,_camera.global_position.z)
     var next_origin: Vector3i = Vector3i(floori(_camera.global_position.x/16.0)*16-_size.x/2,-64,floori(_camera.global_position.z/16.0)*16-_size.z/2)
     if next_origin != _requested_origin: _dirty = true
-    if _worker != null and not _worker.is_alive(): _publish()
+    if _worker != null and not _worker.is_alive():
+        var publish_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
+        _publish()
+        if diagnostics_enabled: diagnostic_timing.emit(&"publish",publish_start,Time.get_ticks_usec()-publish_start)
     if _dirty and _worker == null and _timer >= 0.5:
         _timer = 0.0
         _dirty = false
         _requested_origin = next_origin
+        var snapshot_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0
         var snapshot: Dictionary = world.capture_shading_snapshot(next_origin,_size)
+        if diagnostics_enabled: diagnostic_timing.emit(&"snapshot",snapshot_start,Time.get_ticks_usec()-snapshot_start)
         _worker = Thread.new()
         if _worker.start(_solve.bind(snapshot)) != OK:
             _worker = null

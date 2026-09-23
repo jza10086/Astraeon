@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://fk2o1n4lcb"]
+
+[ext_resource type="Script" uid="uid://cnnt2l50odh8m" path="res://test/shading/gdscript/motion_stutter.gd" id="1_xh35f"]
+
+[node name="MotionStutter" type="Node" unique_id=1805800777]
+script = ExtResource("1_xh35f")
