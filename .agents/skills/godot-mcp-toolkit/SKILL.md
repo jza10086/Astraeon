@@ -6,7 +6,7 @@ description: >
   for MCP-connected agents.
 ---
 
-This is the Astraeon project adaptation of the Godot MCP Toolkit workflow. Follow root AGENTS.md for product scope, typing, dependencies, and validation. Before mutations verify the MCP target is this checkout and application/config/name is ASTRAEON.
+This is the Astraeon project adaptation of the Godot MCP Toolkit workflow. Follow root AGENTS.md for product scope, typing, dependencies, and validation. [Godot tooling and skills](../../../AGENTS.md#godot-tooling-and-skills) is the authority for editor identity, process handling, import exclusivity, and refresh rules. Read the connected editor's project name with `project_get_settings({prefix: "application/config/name"})`; the returned `settings` includes `application/config/name`. This queries the connected editor, not every Godot process on the machine. The configured target path is not itself proof of a live connection.
 Follow these patterns to work efficiently, avoid common pitfalls, and
 minimise wasted tool calls.
 
@@ -187,7 +187,7 @@ group).
 - **Prefer `script_edit` for changes to an existing script** — a surgical
   `old_string` -> `new_string` swap that keeps undo history and returns inline
   diagnostics. Use `script_write` for new files.
-- Prefer `script_write` / `script_edit` for scripts when connected to the verified editor. Without a live connection, authorized filesystem edits use the validation route in AGENTS.md. Refresh changed paths and wait for idle before relying on live editor state.
+- Use the editing and refresh route in AGENTS.md for both MCP and external script changes.
 
 **Placeholder art.** Use Godot primitives (ColorRect, Polygon2D, simple shapes)
 for placeholder visuals. For quick placeholder assets, `texture_generate` /
@@ -288,7 +288,7 @@ selection, reset them — `discover_tools({reset: true})` (all) or
 
 ## 5. Headless mode
 
-**Launch:** `godot --headless --editor --path <project>`
+**Launch (only when permitted by the editor/import rules in AGENTS.md):** `godot --headless --editor --path <project>`
 
 Build and validate normally: `script_check`, `lsp_project_diagnostics`,
 `editor_get_console`, and scene/node inspection all work. Run `editor_refresh`
@@ -303,7 +303,7 @@ output instead.
 
 ## 6. Key constraints
 
-**Scene edits.** Prefer MCP scene tools with a verified live editor. Cold-start filesystem editing is supported by AGENTS.md with appropriate import validation. Avoid overwriting unsaved editor scenes.
+**Scene edits.** Follow the editor state and unsaved-scene rules in AGENTS.md.
 
 **Root node path.** The root node is always path `"."` — not the node name.
 Children are relative.

@@ -66,7 +66,7 @@ python tools/build_native_voxel.py --target template_release --install
 python test/native_world/runners/test_native_voxel.py --godot "F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe"
 ```
 
-不要同时运行两个构建命令。DLL 不入库，新检出先构建再打开编辑器。日志、源码和 DLL 指纹位于 `tmp/native-build/`。安装文件名带内容哈希，描述文件仅指向当前构建，不提供旧版本回退。已打开的编辑器仍映射旧 DLL，重启后更新原生 API；新游戏进程使用当前描述文件的 DLL。
+构建并发、编辑器重启和进程处理统一遵循 [AGENTS.md 的 Godot 工具规则](../AGENTS.md#godot-tooling-and-skills)。DLL 不入库，新检出先构建再打开编辑器。日志、源码和 DLL 指纹位于 `tmp/native-build/`。安装文件名带内容哈希，描述文件仅指向当前构建，不提供旧版本回退。
 
 短测执行合约检查及四次图形运行：预加载关/开 × 新地图/重读，覆盖 16/32/64 体素每秒、直行、反向、转向、传送。输出 P50/P95/P99/最大帧时、近处网格与真实碰撞采样、任务队列峰值、生成/读写累计耗时和文件大小。结果在 `tmp/native-probe/`，归档见 [首版接入结果](native_voxel_results_20260918.md)。
 

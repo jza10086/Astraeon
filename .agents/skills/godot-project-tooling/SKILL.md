@@ -40,7 +40,7 @@ Prefer the console executable on Windows. Do not scan arbitrary drives, download
 
 ## Run headless checks
 
-Before an import, determine whether this checkout is already open in an editor. Prefer its live MCP diagnostics rather than a concurrent headless editor. For this project, tools/check.ps1 performs the full cold-start import/startup batch; do not run it again after documentation-only edits.
+Follow [AGENTS.md: Godot tooling and skills](../../../AGENTS.md#godot-tooling-and-skills) for editor identity, process handling, import exclusivity, and refresh rules. `tools/check.ps1` performs the full cold-start import/startup batch; it is not a check-only command.
 
 Use one of these modes:
 

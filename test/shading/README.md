@@ -108,6 +108,6 @@ Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script re
 - `runners/run_cache_suite.py --run`：1080p、64/256 视距、两轮 AB/BA，自动采集 NVIDIA 遥测并输出 Markdown 表格；没有 --run 只打印计划。需要 tmp/cache-baseline 内已导入的旧版隔离对照。
 - `gdscript/cache_benchmark.gd -- --actions=static,move_40 --seconds=4 --distance=256 --output=res://tmp/my-cache-run`：定向短测。正式矩阵不包含 isolate_* 调试路径。
 
-旧全量 C++ 求解器在 native/reference/，仅编辑器构建供测试使用；生产没有旧管线回退。数据及截图生成到 tmp，最终结论另存 reports。性能测量期间不得同时运行其他测试或构建；完整冷导入必须先关闭同一工程编辑器。
+旧全量 C++ 求解器在 native/reference/，仅编辑器构建供测试使用；生产没有旧管线回退。数据及截图生成到 tmp，最终结论另存 reports。性能测量隔离与编辑器／导入规则统一见 [AGENTS.md](../../AGENTS.md#godot-tooling-and-skills)。
 
 本轮缓存结果见 [2026-09-24 验收报告](reports/cache_20260924.md)。
