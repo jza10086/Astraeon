@@ -2,6 +2,7 @@ class_name CharacterMotor
 extends CharacterBody3D
 ## Shared physical movement. Input or AI supplies world-space intent.
 
+@export var slow_walk_speed: float = 0.5141
 @export var walk_speed: float = 4.3
 @export var run_speed: float = 5.6
 @export var acceleration: float = 25.0
@@ -13,6 +14,7 @@ extends CharacterBody3D
 @export var jump_buffer_time: float = 0.12
 
 var move_intent: Vector3 = Vector3.ZERO
+var slow_walk_requested: bool = false
 var sprint_requested: bool = false
 var jump_requested: bool = false
 var jumped_this_frame: bool = false
@@ -26,7 +28,8 @@ func step(delta: float) -> void:
 	_jump_remaining = jump_buffer_time if jump_requested else maxf(0.0, _jump_remaining - delta)
 	jump_requested = false
 	var direction: Vector3 = Vector3(move_intent.x, 0.0, move_intent.z).limit_length(1.0)
-	var target: Vector3 = direction * (run_speed if sprint_requested else walk_speed)
+	var target_speed: float = slow_walk_speed if slow_walk_requested else (run_speed if sprint_requested else walk_speed)
+	var target: Vector3 = direction * target_speed
 	var rate: float = acceleration if direction.length_squared() > 0.0 else braking
 	if not is_on_floor():
 		rate = air_acceleration
@@ -49,6 +52,7 @@ func step(delta: float) -> void:
 func reset_motion() -> void:
 	velocity = Vector3.ZERO
 	move_intent = Vector3.ZERO
+	slow_walk_requested = false
 	sprint_requested = false
 	jump_requested = false
 	_coyote_remaining = 0.0

@@ -6,14 +6,16 @@
 
 以下路径相对 game/entities：
 
-- common/gdscript/character_motor.gd：共享 CharacterMotor 接受 move_intent、sprint_requested、jump_requested，由控制器每物理帧调用 step。普通速度 4.3 m/s，快跑 5.6 m/s，重力 20，跳高 1.25 米。
+- common/gdscript/character_motor.gd：共享 CharacterMotor 接受 move_intent、slow_walk_requested、sprint_requested、jump_requested，由控制器每物理帧调用 step。普通速度 4.3 m/s，快跑 5.6 m/s，重力 20，跳高 1.25 米。
 - common/gdscript/character_visual.gd：读取实际速度、垂直速度和接地状态，选择六套动作；同时播放骨骼与肩部修正轨道。
 - player/gdscript/player_controller.gd：玩家输入、相机与复位。
 - player/scenes/player.tscn：胶囊、模型与相机组装；模型引用 player/assets/basic_voxel.glb，保留原玩家模型资源 UID。
 
 ## 操作与动作
 
-WASD 移动，Shift 快跑，鼠标观察，空格跳跃，Esc 释放鼠标，左键重新捕获。F5 为原生体素世界，保留碰撞就绪保护；挖掘和放置仍由 world 编排。
+WASD 移动，按住 Ctrl 慢走（0.5141 m/s），Shift 快跑，鼠标观察，空格跳跃，Esc 释放鼠标，左键重新捕获。F5 为原生体素世界，保留碰撞就绪保护；挖掘和放置仍由 world 编排。
+
+Ctrl 慢走优先于 Shift 快跑，松开 Ctrl 恢复普通移动或仍按住的快跑；鼠标释放时慢走输入无效。
 
 地面静止播放 Idle。低速播放 Walk（参考 0.5141 m/s），普通移动播放 Run（4.3 m/s），快跑播放 Sprint（5.6 m/s）。按实际速度选择而非按键意图，顶墙后停止迈步；Walk/Run 分界约 0.77 m/s，滞回 0.08，Run/Sprint 分界 4.95 m/s，滞回 0.15。播放倍率随实际速度变化；地面步态切换保留归一化周期相位，过渡 0.12 秒。复杂混合下的脚部接触仍需人工验收。
 
@@ -35,7 +37,7 @@ test_world_player.gd 使用 tmp/basic_voxel_entity_world 与独立光影设置�
 
 1.74 m 是素体净高，不自动改写碰撞。现有玩家胶囊高 1.8 m、半径 0.3 m、中心 Y=0.9；相机观察点 Y=1.35、距离 4 m。本次保留此碰撞与相机参数，碰撞回归覆盖头顶间隙、墙面、斜坡和低顶。碰撞不随摆臂、头发、帽子或裙摆扩大。
 
-现有运动参数：普通速度 4.3 m/s、快跑 5.6 m/s、重力 20 m/s²、跳高 1.25 m、加速度 25 m/s²、制动 30 m/s²、空中加速度 8 m/s²、土狼时间 0.10 s、跳跃缓冲 0.12 s。它们属于游戏设计，不从动画预览推导。
+现有运动参数：慢走 0.5141 m/s、普通速度 4.3 m/s、快跑 5.6 m/s、重力 20 m/s²、跳高 1.25 m、加速度 25 m/s²、制动 30 m/s²、空中加速度 8 m/s²、土狼时间 0.10 s、跳跃缓冲 0.12 s。它们属于游戏设计，不从动画预览推导。
 
 玩家资源为 game/entities/player/assets/basic_voxel.glb，保留原玩家模型资源 UID；旧 HK416 GLB 和四动作契约已移除，没有兼容别名。测试与状态文档随资产同步更新。
 

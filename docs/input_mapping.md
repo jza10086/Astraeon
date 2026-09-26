@@ -12,6 +12,7 @@
 | S | 向后移动 | `move_back` | project.godot |
 | A | 向左移动 | `move_left` | project.godot |
 | D | 向右移动 | `move_right` | project.godot |
+| Ctrl（按住） | 慢走，0.5141 m/s | `slow_walk` | project.godot |
 | Shift（按住） | 快跑 | `sprint` | project.godot |
 | Space | 跳跃 | `jump` | project.godot |
 | 鼠标移动 | 调整观察方向 | 无；`InputEventMouseMotion` | player_controller.gd |
@@ -21,6 +22,7 @@
 | 鼠标右键 | 在命中面相邻位置放置泥土 | `place_block` | native_world.gd 运行时注册 |
 | F6 | 打开／关闭光影设置 | `shading_settings` | world_shading.gd 运行时注册 |
 
+- Ctrl 与 Shift 同按时慢走优先，松开 Ctrl 恢复普通移动或仍按住的快跑。慢走由 player_controller.gd 消费、CharacterMotor 限速；主世界屏幕提示为 `Ctrl Walk`。鼠标释放时不接受慢走输入。
 - 打开光影设置时释放鼠标并禁用玩家输入，关闭时重新捕获；世界继续运行。Esc 当前只负责玩家鼠标释放，不是关闭光影设置的专用动作。
 - 挖掘／放置需世界就绪、未处于保存状态且鼠标已捕获；交互射线距离为 8 米。放置位置与玩家占用空间相交时拒绝放置。
 - `capture_mouse` 与 `mine_block` 共用左键。重新捕获鼠标的点击没有独立的统一事件隔离规则，不承诺该次点击绝不会同时触发挖掘。

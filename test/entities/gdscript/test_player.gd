@@ -128,9 +128,12 @@ func _run() -> void:
 				shape_tracks += 1
 		_check(shape_tracks == 8, String(clip) + " animates all shoulder shapes")
 	await _place(Vector3(0, 0.1, 3))
-	player.move_intent = Vector3.RIGHT * (0.5141 / player.walk_speed)
+	player.slow_walk_requested = true
+	player.move_intent = Vector3(1, 0, 1)
 	await _frames(20)
 	_check(animator.current_animation == "Walk" and absf(animator.speed_scale - 1.0) < 0.05, "Slow movement uses Walk at its reference speed")
+	_check(absf(Vector2(player.velocity.x, player.velocity.z).length() - 0.5141) < 0.01, "Slow diagonal speed is normalized")
+	player.slow_walk_requested = false
 	player.move_intent = Vector3.ZERO
 	await _frames(20)
 	player.jump_requested = true
@@ -162,6 +165,28 @@ func _test_window_input() -> void:
 	controller.set("input_enabled", true)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	origin = player.position
+	var ctrl: InputEventKey = InputEventKey.new()
+	ctrl.physical_keycode = KEY_CTRL
+	ctrl.pressed = true
+	Input.parse_input_event(ctrl)
+	Input.action_press("move_forward")
+	await _frames(20)
+	_check(Input.is_action_pressed("slow_walk"), "Physical Ctrl maps to slow_walk")
+	_check(absf(Vector2(player.velocity.x, player.velocity.z).length() - 0.5141) < 0.01 and animator.current_animation == "Walk", "Ctrl moves slowly with Walk animation")
+	Input.action_press("sprint")
+	await _frames(20)
+	_check(absf(Vector2(player.velocity.x, player.velocity.z).length() - 0.5141) < 0.01, "Slow walk takes priority over sprint")
+	Input.action_release("sprint")
+	ctrl.pressed = false
+	Input.parse_input_event(ctrl)
+	await _frames(20)
+	_check(absf(Vector2(player.velocity.x, player.velocity.z).length() - 4.3) < 0.01 and animator.current_animation == "Run", "Releasing Ctrl restores normal running")
+	Input.action_release("move_forward")
+	await _frames(20)
+	controller.set("input_enabled", false)
+	await _place(Vector3(0, 0.1, 3))
+	controller.set("input_enabled", true)
+	origin = player.position
 	Input.action_press("move_forward")
 	await _frames(30)
 	Input.action_press("sprint")
@@ -186,6 +211,10 @@ func _test_window_input() -> void:
 	await _frames(15)
 	Input.action_release("move_forward")
 	_check(player.position.distance_to(origin) < 0.02, "Released mouse disables movement")
+	Input.action_press("slow_walk")
+	await _frames(2)
+	_check(not player.slow_walk_requested, "Released mouse disables slow walk request")
+	Input.action_release("slow_walk")
 	var capture: InputEventAction = InputEventAction.new()
 	capture.action = "capture_mouse"
 	capture.pressed = true
