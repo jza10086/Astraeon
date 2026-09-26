@@ -41,11 +41,11 @@ func _run() -> void:
 	await _frames(60)
 	var straight_distance: float = player.position.distance_to(origin)
 	_check(straight_distance > 3.8 and straight_distance < 4.35, "Movement matches 4.3 m/s")
-	_check(animator.current_animation == "Walk_4_3" and animator.is_playing(), "Walk animation plays")
+	_check(animator.current_animation == "Run" and animator.is_playing(), "Run animation plays at normal movement speed")
 	player.sprint_requested = true
 	await _frames(30)
 	_check(absf(player.velocity.x - 5.6) < 0.02, "Sprint reaches 5.6 m/s")
-	_check(animator.current_animation == "Run_5_6" and animator.is_playing(), "Run animation plays")
+	_check(animator.current_animation == "Sprint" and animator.is_playing(), "Sprint animation plays at sprint speed")
 	player.sprint_requested = false
 	player.move_intent = Vector3.ZERO
 	await _frames(20)
@@ -59,14 +59,19 @@ func _run() -> void:
 	player.jump_requested = true
 	var peak: float = 0.0
 	var jump_seen: bool = false
+	var fall_seen: bool = false
 	for frame: int in range(60):
 		await _frames(1)
 		peak = maxf(peak, player.position.y)
-		jump_seen = jump_seen or (not player.is_on_floor() and animator.assigned_animation == "Jump")
+		jump_seen = jump_seen or (not player.is_on_floor() and animator.assigned_animation == "JumpStart")
+		fall_seen = fall_seen or (not player.is_on_floor() and player.velocity.y <= 0.0 and animator.current_animation == "Fall" and animator.is_playing())
+		if frame == 2:
+			_check(player.position.y > 0.1 and animator.current_animation_position >= 31.0 / 60.0, "Immediate physics takeoff skips anticipation")
 		if frame == 15:
 			player.jump_requested = true
 	_check(peak > 1.15 and peak < 1.4, "Jump height and no double jump")
-	_check(jump_seen, "Jump animation plays while airborne")
+	_check(jump_seen, "JumpStart samples ascent")
+	_check(fall_seen, "Fall loops during descent")
 	_check(player.is_on_floor() and animator.current_animation == "Idle", "Physics landing restores Idle")
 	await _place(Vector3(-2, 0.1, 0))
 	player.move_intent = Vector3.LEFT
@@ -102,12 +107,42 @@ func _run() -> void:
 	await _frames(20)
 	_check(player.is_on_floor() and player.position.distance_to(Vector3(0, 0, 3)) < 0.03, "Void respawn resets player")
 	var skeleton: Skeleton3D = player.find_child("Skeleton3D", true, false) as Skeleton3D
-	_check(skeleton != null and skeleton.get_bone_count() == 36, "Imported skeleton remains intact")
-	for clip: StringName in [&"Idle", &"Walk_4_3", &"Run_5_6"]:
+	_check(skeleton != null and skeleton.get_bone_count() == 19, "Imported skeleton remains intact")
+	for clip: StringName in [&"Idle", &"Walk", &"Run", &"Sprint", &"Fall"]:
 		_check(animator.get_animation(clip).loop_mode == Animation.LOOP_LINEAR, "Loop flag: " + String(clip))
-	_check(animator.get_animation(&"Jump").loop_mode == Animation.LOOP_NONE, "Jump does not loop")
-	_check(absf(animator.get_animation(&"Walk_4_3").length - 0.533333) < 0.001, "Walk duration")
-	_check(absf(animator.get_animation(&"Run_5_6").length - 0.466667) < 0.001, "Run duration")
+	_check(animator.get_animation(&"JumpStart").loop_mode == Animation.LOOP_NONE, "Jump does not loop")
+	_check(absf(animator.get_animation(&"Run").length - 0.600000) < 0.001, "Run duration")
+	_check(absf(animator.get_animation(&"Sprint").length - 0.500000) < 0.001, "Sprint duration")
+	var body: MeshInstance3D = player.get_node("Visual/Model/BasicVoxel_Rig/Skeleton3D/Body") as MeshInstance3D
+	_check(body.mesh.get_blend_shape_count() == 8, "Eight shoulder corrective shapes imported")
+	_check((body.mesh.surface_get_format(0) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS) != 0, "Eight-weight skin layout preserved")
+	for side: String in ["Left", "Right"]:
+		var scapula: int = skeleton.find_bone(side + "Scapula")
+		var shoulder: int = skeleton.find_bone(side + "Shoulder")
+		_check(scapula >= 0 and shoulder >= 0 and skeleton.get_bone_parent(scapula) == skeleton.find_bone("UpperChest") and skeleton.get_bone_parent(shoulder) == scapula, side + " scapula hierarchy")
+	for clip: StringName in [&"Idle", &"Walk", &"Run", &"Sprint", &"JumpStart", &"Fall"]:
+		var animation: Animation = animator.get_animation(clip)
+		var shape_tracks: int = 0
+		for track: int in range(animation.get_track_count()):
+			if animation.track_get_type(track) == Animation.TYPE_BLEND_SHAPE:
+				shape_tracks += 1
+		_check(shape_tracks == 8, String(clip) + " animates all shoulder shapes")
+	await _place(Vector3(0, 0.1, 3))
+	player.move_intent = Vector3.RIGHT * (0.5141 / player.walk_speed)
+	await _frames(20)
+	_check(animator.current_animation == "Walk" and absf(animator.speed_scale - 1.0) < 0.05, "Slow movement uses Walk at its reference speed")
+	player.move_intent = Vector3.ZERO
+	await _frames(20)
+	player.jump_requested = true
+	await _frames(4)
+	_check(animator.assigned_animation == "JumpStart" and not player.is_on_floor(), "Repeated jump restarts ascent after landing")
+	await _frames(60)
+	await _place(Vector3(0, 10, 3))
+	_check(not player.is_on_floor() and animator.current_animation == "Fall", "Ledge fall skips JumpStart anticipation")
+	await _frames(15)
+	_check(not player.is_on_floor() and animator.current_animation == "Fall" and animator.is_playing(), "Long fall remains animated before contact")
+	await _frames(70)
+	_check(player.is_on_floor() and animator.current_animation == "Idle", "Long fall ends only at actual landing")
 	if DisplayServer.get_name() != "headless":
 		await _test_window_input()
 	else:

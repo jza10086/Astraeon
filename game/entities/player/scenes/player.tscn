@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://ca0kead6hnv8v" path="res://game/entities/common/gdscript/character_motor.gd" id="1"]
 [ext_resource type="Script" uid="uid://cipsxa5pkxbvp" path="res://game/entities/player/gdscript/player_controller.gd" id="2"]
 [ext_resource type="Script" uid="uid://cdvrrm0agn3am" path="res://game/entities/common/gdscript/character_visual.gd" id="3"]
-[ext_resource type="PackedScene" uid="uid://b8qtjk5jryhqb" path="res://game/entities/player/assets/hk416.glb" id="4"]
+[ext_resource type="PackedScene" uid="uid://b8qtjk5jryhqb" path="res://game/entities/player/assets/basic_voxel.glb" id="4"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule"]
 radius = 0.3

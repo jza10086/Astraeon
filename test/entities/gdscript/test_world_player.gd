@@ -21,13 +21,13 @@ func _capture(name: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://tmp/v8_" + name + ".png")
+	root.get_texture().get_image().save_png("res://tmp/basic_voxel_" + name + ".png")
 
 func _run() -> void:
 	create_timer(90.0).timeout.connect(_timeout)
 	world = WORLD.instantiate() as Node3D
-	world.set("world_directory", "res://tmp/v8_entity_world")
-	world.set("shading_settings_path", "res://tmp/v8_entity_settings.cfg")
+	world.set("world_directory", "res://tmp/basic_voxel_entity_world")
+	world.set("shading_settings_path", "res://tmp/basic_voxel_entity_settings.cfg")
 	world.set("biome_layout", 1)
 	var player: CharacterMotor = world.get_node("Player") as CharacterMotor
 	player.get_node("Controller").set("input_enabled", false)
@@ -41,15 +41,15 @@ func _run() -> void:
 	await _capture("world_idle")
 	player.move_intent = Vector3.RIGHT
 	await _ticks(40)
-	_check(animator.current_animation == "Walk_4_3", "Native world walk animation")
+	_check(animator.current_animation == "Run", "Native world walk animation")
 	await _capture("world_walk")
 	player.sprint_requested = true
 	await _ticks(40)
-	_check(animator.current_animation == "Run_5_6", "Native world sprint animation")
+	_check(animator.current_animation == "Sprint", "Native world sprint animation")
 	await _capture("world_run")
 	player.jump_requested = true
 	await _ticks(12)
-	_check(not player.is_on_floor() and animator.assigned_animation == "Jump", "Native world jump")
+	_check(not player.is_on_floor() and animator.assigned_animation == "JumpStart", "Native world jump")
 	await _capture("world_jump")
 	player.move_intent = Vector3.ZERO
 	player.sprint_requested = false
@@ -59,11 +59,11 @@ func _run() -> void:
 	world.call("save_world", false)
 	while bool(world.get("saving")):
 		await process_frame
-	print("V8_WORLD_TEST failures=%d" % int(failed))
+	print("BASIC_VOXEL_WORLD_TEST failures=%d" % int(failed))
 	world.queue_free()
 	await _ticks(3)
 	quit(1 if failed else 0)
 
 func _timeout() -> void:
-	push_error("V8_WORLD_TEST timeout")
+	push_error("BASIC_VOXEL_WORLD_TEST timeout")
 	quit(1)

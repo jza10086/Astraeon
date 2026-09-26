@@ -1,83 +1,84 @@
 extends Node3D
-## Current V8 locomotion clips. Physics owns translation and jump phase.
+## Basic Voxel locomotion. Physics owns translation, takeoff and landing.
 @export var motor: CharacterMotor
 @export var animation_player: AnimationPlayer
 @export var turn_speed: float = 12.0
-@export var walk_reference_speed: float = 4.3
-@export var run_reference_speed: float = 5.6
+@export var walk_reference_speed: float = 0.5141
+@export var run_reference_speed: float = 4.3
+@export var sprint_reference_speed: float = 5.6
 @export var idle_clip: StringName = &"Idle"
-@export var walk_clip: StringName = &"Walk_4_3"
-@export var run_clip: StringName = &"Run_5_6"
-@export var jump_clip: StringName = &"Jump"
-@export var takeoff_time: float = 0.2
-@export var apex_time: float = 0.5
-@export var landing_time: float = 0.8
+@export var walk_clip: StringName = &"Walk"
+@export var run_clip: StringName = &"Run"
+@export var sprint_clip: StringName = &"Sprint"
+@export var jump_start_clip: StringName = &"JumpStart"
+@export var fall_clip: StringName = &"Fall"
+@export var takeoff_time: float = 31.0 / 60.0
 
 var _clip: StringName = &""
-var _was_airborne: bool = false
-var _landing_remaining: float = 0.0
 
 func _ready() -> void:
 	if motor == null or animation_player == null:
 		push_error("CharacterVisual requires motor and animation_player.")
 		set_process(false)
 		return
-	if walk_reference_speed <= 0.0 or run_reference_speed <= 0.0:
-		push_error("CharacterVisual reference speeds must be positive.")
+	if not (0.0 < walk_reference_speed and walk_reference_speed < run_reference_speed and run_reference_speed < sprint_reference_speed):
+		push_error("CharacterVisual requires increasing positive gait reference speeds.")
 		set_process(false)
 		return
-	for clip: StringName in [idle_clip, walk_clip, run_clip, jump_clip]:
+	for clip: StringName in [idle_clip, walk_clip, run_clip, sprint_clip, jump_start_clip, fall_clip]:
 		if not animation_player.has_animation(clip):
 			push_error("CharacterVisual missing required animation: " + String(clip))
 			set_process(false)
 			return
-	var jump_length: float = animation_player.get_animation(jump_clip).length
-	if not (0.0 <= takeoff_time and takeoff_time < apex_time and apex_time < landing_time and landing_time < jump_length):
-		push_error("CharacterVisual jump phase times are invalid.")
+	if takeoff_time < 0.0 or takeoff_time >= animation_player.get_animation(jump_start_clip).length:
+		push_error("CharacterVisual takeoff time is outside JumpStart.")
 		set_process(false)
 
 func _process(delta: float) -> void:
 	var actual: Vector3 = motor.get_real_velocity()
-	var horizontal_speed: float = Vector2(actual.x, actual.z).length()
+	var speed: float = Vector2(actual.x, actual.z).length()
 	if motor.move_intent.length_squared() > 0.001:
 		var heading: float = atan2(motor.move_intent.x, motor.move_intent.z)
 		rotation.y = lerp_angle(rotation.y, heading, 1.0 - exp(-turn_speed * delta))
 	if not motor.is_on_floor():
-		_was_airborne = true
-		_landing_remaining = 0.0
-		_play(jump_clip)
-		# Sample the baked airborne interval by vertical velocity, including
-		# early ceiling hits and long falls; never play landing in mid-air.
-		var launch_speed: float = maxf(sqrt(2.0 * motor.gravity * motor.jump_height), 0.001)
-		var phase: float = clampf(motor.velocity.y / launch_speed, -1.0, 1.0)
-		var sample_time: float = lerpf(apex_time, takeoff_time, phase) if phase >= 0.0 else lerpf(apex_time, landing_time - 0.01, -phase)
-		animation_player.seek(sample_time, true)
-		animation_player.pause()
+		if motor.velocity.y > 0.0:
+			# Skip anticipation: a button press launches immediately. Map ascent to
+			# the remaining baked poses, including shortened jumps under ceilings.
+			_play(jump_start_clip, 0.0)
+			var launch_speed: float = maxf(sqrt(2.0 * motor.gravity * motor.jump_height), 0.001)
+			var progress: float = 1.0 - clampf(motor.velocity.y / launch_speed, 0.0, 1.0)
+			var end: float = animation_player.get_animation(jump_start_clip).length
+			animation_player.seek(lerpf(takeoff_time, end, progress), true)
+			animation_player.pause()
+		else:
+			_play(fall_clip)
+			animation_player.speed_scale = 1.0
 		return
-	if _was_airborne:
-		_was_airborne = false
-		_landing_remaining = animation_player.get_animation(jump_clip).length - landing_time
-		animation_player.play(jump_clip)
-		animation_player.speed_scale = 1.0
-		animation_player.seek(landing_time, true)
-	if horizontal_speed > 0.05:
-		_landing_remaining = 0.0
-		# Match gait to achieved speed, so blocked/accelerating runners do not
-		# play full-speed sprinting. Hysteresis prevents threshold chatter.
-		var threshold: float = (walk_reference_speed + run_reference_speed) * 0.5
-		var running: bool = horizontal_speed > threshold + (-0.15 if _clip == run_clip else 0.15)
-		_play(run_clip if running else walk_clip)
-		var reference: float = run_reference_speed if running else walk_reference_speed
-		animation_player.speed_scale = clampf(horizontal_speed / reference, 0.05, 1.5)
-	elif _landing_remaining > 0.0:
-		_landing_remaining = maxf(0.0, _landing_remaining - delta)
-	else:
+	# Actual contact ends Fall; the asset has no separate landing clip.
+	if speed <= 0.05:
 		_play(idle_clip)
 		animation_player.speed_scale = 1.0
+		return
+	var sprint_threshold: float = (run_reference_speed + sprint_reference_speed) * 0.5
+	var sprinting: bool = speed > sprint_threshold + (-0.15 if _clip == sprint_clip else 0.15)
+	var walking: bool = speed < walk_reference_speed * 1.5 + (0.08 if _clip == walk_clip else -0.08)
+	var gait: StringName = sprint_clip if sprinting else (walk_clip if walking else run_clip)
+	var reference: float = sprint_reference_speed if sprinting else (walk_reference_speed if walking else run_reference_speed)
+	_play(gait)
+	animation_player.speed_scale = clampf(speed / reference, 0.05, 1.6)
 
-func _play(clip: StringName) -> void:
+func _is_gait(clip: StringName) -> bool:
+	return clip == walk_clip or clip == run_clip or clip == sprint_clip
+
+func _play(clip: StringName, blend: float = 0.12) -> void:
 	if _clip == clip:
 		return
+	var match_phase: bool = _is_gait(_clip) and _is_gait(clip)
+	var phase: float = 0.0
+	if match_phase:
+		phase = fposmod(animation_player.current_animation_position / animation_player.get_animation(_clip).length, 1.0)
 	_clip = clip
 	animation_player.speed_scale = 1.0
-	animation_player.play(clip, 0.12)
+	animation_player.play(clip, blend)
+	if match_phase:
+		animation_player.seek(phase * animation_player.get_animation(clip).length, true)
