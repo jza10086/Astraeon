@@ -20,4 +20,4 @@
 
 ## 验证证据
 
-[第一人称回归](../../test/entities/reports/first_person_20260926.md)、[慢走回归](../../test/entities/reports/slow_walk_20260926.md)、[测试入口](../../test/entities/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
+[切换瞬间回归](../../test/entities/reports/view_cut_20260926.md)、[第一人称回归](../../test/entities/reports/first_person_20260926.md)、[慢走回归](../../test/entities/reports/slow_walk_20260926.md)、[测试入口](../../test/entities/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。

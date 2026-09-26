@@ -105,6 +105,7 @@ func _ready() -> void:
     shading.profile = shading_profile
     add_child(shading)
     shading.configure(self)
+    controller.connect("view_changed", shading.reset_camera_history)
     _bind_mouse_action("mine_block", MOUSE_BUTTON_LEFT)
     _bind_mouse_action("place_block", MOUSE_BUTTON_RIGHT)
 

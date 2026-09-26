@@ -1,5 +1,7 @@
 extends Node
 ## Player input and switchable first/third-person view; one camera for world consumers.
+signal view_changed()
+
 @export var motor: CharacterMotor
 @export var camera_pivot: Node3D
 @export var spring_arm: SpringArm3D
@@ -12,13 +14,15 @@ extends Node
 @export var respawn_below: float = -20.0
 @export var input_enabled: bool = true
 
+var _view_change_pending: bool = false
+var _requested_first_person: bool = true
 var _third_person_height: float
 var _third_person_distance: float
 var _third_person_margin: float
 var _third_person_mask: int
 
 func _ready() -> void:
-	if motor == null or camera_pivot == null or spring_arm == null or camera == null or visual == null:
+	if motor == null or camera_pivot == null or spring_arm == null or camera == null or visual == null or spring_arm.shape == null:
 		push_error("PlayerController requires motor, visual and camera references.")
 		set_physics_process(false)
 		set_process_unhandled_input(false)
@@ -30,7 +34,11 @@ func _ready() -> void:
 	_third_person_mask = spring_arm.collision_mask
 	if first_person:
 		spring_arm.rotation.x = 0.0
-	set_first_person(first_person)
+	_requested_first_person = first_person
+	if first_person:
+		_apply_view(true)
+	else:
+		set_first_person(false)
 	if input_enabled:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -42,6 +50,9 @@ func _physics_process(delta: float) -> void:
 		motor.sprint_requested = Input.is_action_pressed("sprint") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		motor.jump_requested = Input.is_action_just_pressed("jump") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	motor.step(delta)
+	if _view_change_pending:
+		_view_change_pending = false
+		_apply_view(_requested_first_person)
 	if motor.global_position.y < respawn_below:
 		respawn()
 
@@ -53,24 +64,43 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("capture_mouse"):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed("toggle_view") and not event.is_echo() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		set_first_person(not first_person)
+		set_first_person(not _requested_first_person)
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
 		camera_pivot.rotation.y -= motion.relative.x * mouse_sensitivity
 		spring_arm.rotation.x = clampf(spring_arm.rotation.x - motion.relative.y * mouse_sensitivity, deg_to_rad(-85.0 if first_person else -65.0), deg_to_rad(85.0 if first_person else 20.0))
 
-## Keep the camera node stable so world raycasts and shading retain their references.
+## Queue a camera cut for physics, where shape queries are safe. No partial visual state.
 func set_first_person(enabled: bool) -> void:
+	_requested_first_person = enabled
+	_view_change_pending = true
+
+func _apply_view(enabled: bool) -> void:
 	first_person = enabled
-	visual.visible = not enabled
 	camera_pivot.position.y = eye_height if enabled else _third_person_height
 	# A zero-length, collision-free arm keeps the eye anchored inside the capsule.
 	spring_arm.spring_length = 0.0 if enabled else _third_person_distance
 	spring_arm.margin = 0.0 if enabled else _third_person_margin
 	spring_arm.collision_mask = 0 if enabled else _third_person_mask
-	camera.position = Vector3.ZERO
 	if not enabled:
 		spring_arm.rotation.x = clampf(spring_arm.rotation.x, deg_to_rad(-65.0), deg_to_rad(20.0))
+	var distance: float = 0.0
+	if not enabled:
+		# Match SpringArm's shape sweep immediately rather than waiting for its
+		# next internal tick. The same shape/mask/exclusion keeps wall clearance.
+		var query: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
+		query.shape = spring_arm.shape
+		query.transform = spring_arm.global_transform
+		query.motion = spring_arm.global_basis.z * _third_person_distance
+		query.margin = 0.0
+		query.collision_mask = _third_person_mask
+		query.exclude = [motor.get_rid()]
+		var fractions: PackedFloat32Array = motor.get_world_3d().direct_space_state.cast_motion(query)
+		distance = _third_person_distance * fractions[0]
+	camera.position = Vector3(0.0, 0.0, distance)
+	visual.visible = not enabled
+	camera_pivot.reset_physics_interpolation()
+	view_changed.emit()
 
 func respawn() -> void:
 	motor.global_position = respawn_position

@@ -147,6 +147,7 @@ func _run() -> void:
 	await _frames(70)
 	_check(player.is_on_floor() and animator.current_animation == "Idle", "Long fall ends only at actual landing")
 	if DisplayServer.get_name() != "headless":
+		await _test_camera_cut()
 		await _test_camera_modes()
 		await _test_window_input()
 	else:
@@ -273,4 +274,33 @@ func _test_camera_modes() -> void:
 	controller.set("input_enabled", false)
 	await _place(Vector3(-2.4, 0.1, 0))
 	_check(camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "Wall does not displace first person eye")
+	await _place(Vector3(0, 0.1, 3))
+
+func _test_camera_cut() -> void:
+	var controller: Node = player.get_node("Controller")
+	var camera: Camera3D = controller.get("camera") as Camera3D
+	var pivot: Node3D = controller.get("camera_pivot") as Node3D
+	var arm: SpringArm3D = controller.get("spring_arm") as SpringArm3D
+	var visual: Node3D = player.get_node("Visual") as Node3D
+	await _place(Vector3(0, 0.1, 3))
+	var before: Vector3 = camera.global_position
+	controller.call("set_first_person", false)
+	_check(not visual.visible and camera.global_position.is_equal_approx(before), "Queued view change exposes no intermediate state")
+	await controller.view_changed
+	_check(visual.visible and absf(camera.position.z - 4.0) < 0.001, "Camera is positioned on the exact cut, before another frame")
+	controller.call("set_first_person", true)
+	await controller.view_changed
+	_check(not visual.visible and camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "First person cut hides model and anchors eye atomically")
+	await _place(Vector3(-1.5, 0.1, 0))
+	pivot.rotation.y = -PI / 2.0
+	arm.rotation.x = 0.0
+	controller.call("set_first_person", false)
+	await controller.view_changed
+	var cut_distance: float = camera.position.z
+	_check(cut_distance > 0.1 and cut_distance < 1.3 and camera.global_position.x > -2.75, "Third person cut uses wall-safe position immediately")
+	await _frames(1)
+	_check(absf(camera.position.z - cut_distance) < 0.02, "Next SpringArm tick does not correct the cut position")
+	controller.call("set_first_person", true)
+	await controller.view_changed
+	pivot.rotation.y = 0.0
 	await _place(Vector3(0, 0.1, 3))

@@ -21,3 +21,5 @@ normal/ORM/emission 贴图与混合透明方块仍待接入；全局水效果不
 ## 验证证据
 
 [测试入口](../../test/shading/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
+
+角色视角切换通过世界组装连接到 reset_camera_history，立即清除 motion/post 历史并更新上一帧相机变换，避免短距离切换漏过自动阈值。相机定位与显隐由 entities 负责。

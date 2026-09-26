@@ -133,6 +133,12 @@ func _compile_materials() -> void:
 func is_ready() -> bool:
     return world != null and world.cache_coordinator.native.call("is_ready")
 
+## Explicit camera cut, including short cuts that do not exceed motion thresholds.
+func reset_camera_history() -> void:
+    motion.reset_history()
+    post.reset_history()
+    _previous_camera = _camera.global_transform
+
 func _process(delta: float) -> void:
     if world == null: return
     var diagnostic_start: int = Time.get_ticks_usec() if diagnostics_enabled else 0

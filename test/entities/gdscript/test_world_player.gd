@@ -45,6 +45,13 @@ func _run() -> void:
 	arm.rotation.x = deg_to_rad(-45.0)
 	await _ticks(2)
 	var tool: VoxelTool = world.get("voxel_tool") as VoxelTool
+	var controller: Node = player.get_node("Controller")
+	var shading: AstraeonWorldShading = world.get("shading") as AstraeonWorldShading
+	controller.call("set_first_person", false)
+	await controller.view_changed
+	_check(int(shading.motion.get("_reset")) == 2 and int(shading.post.get("_reset")) == 2, "Camera cut immediately invalidates postprocessing history")
+	controller.call("set_first_person", true)
+	await controller.view_changed
 	var hit: VoxelRaycastResult = tool.raycast(camera.global_position, -camera.global_basis.z, 8.0)
 	_check(hit != null, "First person view ray hits nearby terrain")
 	if hit != null:
