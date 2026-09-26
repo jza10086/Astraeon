@@ -5,6 +5,12 @@ extends Node3D
 @export var controller: Node
 @export var block_catalog: AstraeonBlockCatalog
 @export var water_definition: AstraeonFluidDefinition
+@export var item_catalog: AstraeonItemCatalog = preload("res://game/data/item/resources/item_catalog.tres")
+@export var inventory_definition: AstraeonInventoryDefinition = preload("res://game/data/inventory/resources/player_inventory.tres")
+var inventory: AstraeonInventoryState
+var inventory_store: AstraeonInventoryStore
+var inventory_hud: AstraeonInventoryHUD
+var inventory_interaction: AstraeonInventoryInteraction
 var content: AstraeonWorldContent
 const WATER_SURFACE_HEIGHT: float = 32.0 # Generation v2, half-open water fill.
 @export var shading_profile: AstraeonShadingProfile = preload("res://game/shading/resources/default_profile.tres")
@@ -49,6 +55,15 @@ func _ready() -> void:
     stream = AstraeonNativeStream.new()
     if not stream.open_world(world_directory, seed, biome_layout, content.state_keys):
         _status.text = stream.get_last_error()
+        return
+    inventory = AstraeonInventoryState.new()
+    inventory_store = AstraeonInventoryStore.new()
+    if not inventory.configure(item_catalog, inventory_definition):
+        _status.text = "Invalid inventory definitions"
+        return
+    var identity: Dictionary = {"generation": 2, "seed": seed, "layout": biome_layout, "states": "\n".join(content.state_keys).sha256_text()}
+    if not inventory_store.open(world_directory, identity, inventory) or not inventory_store.recover(stream, generator, content.state_keys):
+        _status.text = inventory_store.error
         return
     stream.save_generator_output = true
     var mesher: VoxelMesherBlocky = VoxelMesherBlocky.new()
@@ -108,6 +123,17 @@ func _ready() -> void:
     controller.connect("view_changed", shading.reset_camera_history)
     _bind_mouse_action("mine_block", MOUSE_BUTTON_LEFT)
     _bind_mouse_action("place_block", MOUSE_BUTTON_RIGHT)
+    inventory_interaction = AstraeonInventoryInteraction.new()
+    inventory_interaction.configure(self, inventory)
+    var inventory_layer: CanvasLayer = CanvasLayer.new()
+    inventory_layer.name = "InventoryLayer"
+    inventory_layer.layer = 20
+    add_child(inventory_layer)
+    inventory_hud = preload("res://game/ui/inventory/scenes/inventory_hud.tscn").instantiate() as AstraeonInventoryHUD
+    inventory_hud.inventory = inventory
+    inventory_hud.can_interact = func() -> bool: return ready_to_play and not saving and (bool(controller.get("input_enabled")) or inventory_hud.opened)
+    inventory_hud.open_changed.connect(_inventory_open_changed)
+    inventory_layer.add_child(inventory_hud)
 
 func _bind_mouse_action(action: StringName, button: MouseButton) -> void:
     if InputMap.has_action(action):
@@ -127,10 +153,16 @@ func _physics_process(_delta: float) -> void:
     if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
         ready_to_play = true
         controller.set_physics_process(true)
-        _status.text = "WASD Move | Ctrl Walk | Shift Sprint | V View | Space Jump | Left Mine | Right Place | Esc Release"
+        _status.text = "WASD Move | Ctrl Walk | Shift Sprint | V View | Space Jump | Left Mine | Right Place | 1-0 / Wheel Select | E Inventory | Esc Release"
 
 func _process(delta: float) -> void:
     if stream == null:
+        return
+    if inventory_store != null and not inventory_store.error.is_empty():
+        _status.text = inventory_store.error
+        controller.set_physics_process(false)
+        ready_to_play = false
+        set_physics_process(false)
         return
     _elapsed += delta
     _autosave_elapsed += delta
@@ -144,7 +176,7 @@ func _process(delta: float) -> void:
         save_world(false)
 
 func _unhandled_input(event: InputEvent) -> void:
-    if not ready_to_play or saving or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+    if not ready_to_play or saving or inventory_interaction == null or not bool(controller.get("input_enabled")) or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
         return
     if not event.is_action_pressed("mine_block") and not event.is_action_pressed("place_block"):
         return
@@ -152,12 +184,10 @@ func _unhandled_input(event: InputEvent) -> void:
     if hit == null:
         return
     var position_in_voxels: Vector3i = hit.position if event.is_action_pressed("mine_block") else hit.previous_position
-    if event.is_action_pressed("place_block"):
-        var block_box: AABB = AABB(Vector3(position_in_voxels), Vector3.ONE)
-        var player_box: AABB = AABB(player.position - Vector3(0.35, 0.0, 0.35), Vector3(0.7, 1.8, 0.7))
-        if block_box.intersects(player_box):
-            return
-    set_block(position_in_voxels, 0 if event.is_action_pressed("mine_block") else content.dirt_id)
+    var placing: bool = event.is_action_pressed("place_block")
+    inventory_interaction.edit(position_in_voxels, placing, hit.previous_position - hit.position)
+    if not inventory_interaction.message.is_empty():
+        _status.text = inventory_interaction.message
     get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
@@ -177,6 +207,8 @@ func save_world(quit_after: bool) -> void:
             save_world(true)
         return
     saving = true
+    if inventory != null:
+        inventory.locked = true
     if quit_after:
         controller.set_physics_process(false)
         _status.text = "Saving world..."
@@ -193,7 +225,15 @@ func save_world(quit_after: bool) -> void:
     while not tracker.is_complete() and not tracker.is_aborted() and Time.get_ticks_msec() < deadline:
         await get_tree().process_frame
     var success: bool = Time.get_ticks_msec() < deadline and tracker.is_complete() and not tracker.is_aborted() and stream.get_last_error().is_empty()
+    if success and inventory_store != null:
+        # Only retire the WAL after queued unload writes have drained as well.
+        if int(VoxelEngine.get_stats()["tasks"]["streaming"]) == 0:
+            success = inventory_store.checkpoint()
+        elif quit_after:
+            success = false
     saving = false
+    if inventory != null:
+        inventory.locked = false
     if not success:
         _status.text = "Save failed or timed out: " + stream.get_last_error()
         return
@@ -207,3 +247,14 @@ func set_block(position_in_voxels: Vector3i, state_id: int) -> void:
         return
     voxel_tool.set_voxel(position_in_voxels,state_id)
     # VoxelTerrain emits a versioned area invalidation for every native editing path.
+
+## Inventory and settings own separate modal intervals; the HUD refuses to open over settings.
+func _inventory_open_changed(opened: bool) -> void:
+    if not ready_to_play:
+        return
+    controller.set("input_enabled", not opened)
+    player.move_intent = Vector3.ZERO
+    player.jump_requested = false
+    player.sprint_requested = false
+    player.slow_walk_requested = false
+    Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if opened else Input.MOUSE_MODE_CAPTURED

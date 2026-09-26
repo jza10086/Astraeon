@@ -21,3 +21,7 @@
 ## 验证证据
 
 [测试入口](../../test/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
+
+## 物品栏与快捷栏
+
+新增 game/ui/inventory：底部 10 格快捷栏、居中 3×10 储物区及同源快捷栏；60×60 槽位、4 像素间隙，简单灰色矩形材质。支持 E/Esc、数字 1—0、滚轮、拖放、拆分/合并、整堆交换和 Shift 快速转移。输入互斥、持久化及范围见 [物品栏](../gameplay/inventory.md)。独立交互入口为 test/inventory/scenes/inventory_sample.tscn。

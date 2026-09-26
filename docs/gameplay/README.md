@@ -2,21 +2,21 @@
 
 ## 职责与当前进度
 
-挖掘/放置已由 native_world.gd 实现，gameplay 目录仍为职责边界。
+已实现玩家物品栏、10 槽快捷栏、物品操作事务、挖掘/放置与背包数量联动；世界场景负责装配。
 
 ## 架构与数据流
 
-玩家选择目标后调用世界编辑接口；未来背包、合成、生存应在所属功能实现。
+静态物品定义 → InventoryState → UI 操作请求；InventoryInteraction 校验目标与物品数量，经 InventoryStore 日志提交后调用世界编辑接口。
 
 ## 详细文档与入口
 
-[世界接口](../world/native_voxel_backend.md)。
+[物品栏与交互](inventory.md)、[世界接口](../world/native_voxel_backend.md)。
 
 源码与测试入口：game/gameplay/interaction、inventory、crafting、survival。
 
 ## 限制与待办
 
-没有背包扣除、掉落物、配方或生存规则；本次未提取现有交互实现。
+尚无地面掉落物、箱子实体、配方、工具耐久或生存规则。背包满时阻止产生掉落的挖掘；玩家位置仍未保存。
 
 ## 验证证据
 

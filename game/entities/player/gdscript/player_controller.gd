@@ -61,8 +61,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("release_mouse"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif event.is_action_pressed("capture_mouse"):
+	elif event.is_action_pressed("capture_mouse") and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("toggle_view") and not event.is_echo() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		set_first_person(not _requested_first_person)
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:

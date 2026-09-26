@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AstraeonItemDefinition" format=3]
+[ext_resource type="Script" path="res://game/data/item/gdscript/item_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://game/data/block/resources/astraeon_leaves.tres" id="block"]
+[resource]
+script = ExtResource("1")
+key = &"astraeon_leaves_item"
+display_name = "树叶"
+icon_color = Color(0.2,0.52,0.16,1)
+max_stack = 64
+block = ExtResource("block")
+orient_to_face = false

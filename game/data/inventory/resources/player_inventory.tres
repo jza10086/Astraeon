@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="AstraeonInventoryDefinition" format=3]
+[ext_resource type="Script" path="res://game/data/inventory/gdscript/inventory_definition.gd" id="1"]
+[resource]
+script = ExtResource("1")
+hotbar_slots = 10
+storage_rows = 3

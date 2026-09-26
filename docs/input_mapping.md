@@ -20,15 +20,15 @@
 | Esc | 释放鼠标 | `release_mouse` | project.godot |
 | 鼠标左键 | 捕获鼠标 | `capture_mouse` | project.godot |
 | 鼠标左键 | 挖掘命中的方块 | `mine_block` | native_world.gd 运行时注册 |
-| 鼠标右键 | 在命中面相邻位置放置泥土 | `place_block` | native_world.gd 运行时注册 |
+| 鼠标右键 | 放置当前快捷槽物品并扣除一个 | `place_block` | native_world.gd 运行时注册 |
 | F6 | 打开／关闭光影设置 | `shading_settings` | world_shading.gd 运行时注册 |
 
 - 默认第一人称，V 在鼠标捕获且玩家输入启用时切换视角，忽略按键重复事件；不保存视角偏好。两种视角共用相机和交互射线，主世界提示 `V View`。
 - Ctrl 与 Shift 同按时慢走优先，松开 Ctrl 恢复普通移动或仍按住的快跑。慢走由 player_controller.gd 消费、CharacterMotor 限速；主世界屏幕提示为 `Ctrl Walk`。鼠标释放时不接受慢走输入。
 - 打开光影设置时释放鼠标并禁用玩家输入，关闭时重新捕获；世界继续运行。Esc 当前只负责玩家鼠标释放，不是关闭光影设置的专用动作。
 - 挖掘／放置需世界就绪、未处于保存状态且鼠标已捕获；交互射线距离为 8 米。放置位置与玩家占用空间相交时拒绝放置。
-- `capture_mouse` 与 `mine_block` 共用左键。重新捕获鼠标的点击没有独立的统一事件隔离规则，不承诺该次点击绝不会同时触发挖掘。
-- 当前没有手动保存、背包、合成或复位快捷键；地形自动保存及正常关闭保存见 [世界后端](world/native_voxel_backend.md#当前存档格式)。
+- `capture_mouse` 与 `mine_block` 共用左键；重新捕获鼠标的点击由玩家控制器消费，不会同时挖掘。
+- 当前没有手动保存、合成或复位快捷键；地形自动保存及正常关闭保存见 [世界后端](world/native_voxel_backend.md#当前存档格式)。
 
 ## 独立光影样板
 
@@ -56,3 +56,21 @@
 - [自由相机样板](../test/shading/gdscript/shading_sample.gd)：样板专用绑定。
 
 新增、删除或修改绑定时，同步更新此表、InputMap 或运行时注册、输入消费者及屏幕操作提示；明确生效场景、菜单状态和重键冲突。只记录已经生效的功能，不为未实现功能预留空动作。全项目维护规则见 [AGENTS](../AGENTS.md)。
+
+## 玩家物品栏
+
+以下动作由 game/ui/inventory/gdscript/inventory_hud.gd 运行时注册，主世界就绪且未保存、未打开 F6 设置时生效。背包打开时禁止移动/观察/挖掘/放置，F6 不抢占面板；设置打开时 E 不打开背包。
+
+| 输入 | 动作 | 行为 |
+| --- | --- | --- |
+| E | inventory_toggle | 打开/关闭背包 |
+| Esc | release_mouse（复用） | 背包打开时优先关闭并恢复捕获；其他时候释放鼠标 |
+| 1—9、0 | hotbar_0 … hotbar_9 | 选中十个快捷槽；0 是第十槽 |
+| 滚轮上/下 | hotbar_previous / hotbar_next | 前/后槽，循环；背包打开时不切换 |
+| 左键/拖放 | 槽位 GUI 事件 | 整堆移动、合并或交换 |
+| 右键 | 槽位 GUI 事件 | 选择半堆，已有预览时每次放一个 |
+| Shift+左键 | 槽位 GUI 事件 | 储物区与快捷栏间快速转移 |
+
+物品栏内 Shift 是快速转移修饰键，不触发世界快跑。点击背景、关闭面板、无效区域取消拖放都不丢弃物品。没有丢弃快捷键。主世界提示包含 1-0 / Wheel Select 与 E Inventory。
+
+独立样板 test/inventory/scenes/inventory_sample.tscn 使用相同按键，但只操作内存中的预填物品，不运行玩家、世界或保存。Godot 编辑器 F6 用于运行该当前场景，不等同于游戏内 F6 光影设置。

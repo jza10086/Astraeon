@@ -1,0 +1,11 @@
+{
+  "game/gameplay/inventory/gdscript/inventory_state.gd": "0ff9e419ba3b5254c2bffb4381178de05e34b93effa7e68a2d4f33f9b8cd7bfc",
+  "game/gameplay/inventory/gdscript/inventory_store.gd": "ed69c158f8611ae5b4af12ca6cf5c0bafc4183f8157095138d52360f1a5df197",
+  "game/gameplay/inventory/gdscript/item_stack.gd": "21aec1261c3da11ec8b1605f27a4feac0e9b066b57cbffb951f15d819ede4327",
+  "game/gameplay/interaction/gdscript/inventory_interaction.gd": "8ab601747a5fa10aab7080c4da204343dec544f1800967e9603986593e60f57d",
+  "game/ui/inventory/gdscript/inventory_hud.gd": "8b57ae148b7c4ee97360345fb3bf9e4907dceaf488630197cc7757c2b98e9a92",
+  "game/ui/inventory/gdscript/inventory_slot.gd": "2d772057cf54f0a96d3aae6daf8ce1680e4811a8b35c85950a06829abcd90667",
+  "test/inventory/gdscript/inventory_sample.gd": "540be142cbc84ba100ae06e4f2cd03f7fbec419af96895e12f9cc88d1d63aaf6",
+  "test/inventory/gdscript/test_inventory.gd": "b9da4ede106650aa67f423eb766d58d28693060eac42e2aad8edc65e7c48e1cf",
+  "test/inventory/gdscript/test_world_inventory.gd": "bcc6426acc4314b9535af6b8ff1a5643a96a87e5985aab7c7c7009e46bd17307"
+}
