@@ -2,6 +2,8 @@
 
 当前玩家使用 HK416 V8。entities 负责实例运动、动作和视觉；world 负责地形碰撞与加载。无生物 AI、战斗或玩家状态存档。
 
+2026-09-26 已确定人物制作标准为 Basic Voxel：19 骨骼（含左右肩胛）、六动作及八个肩部修正形态键，详见 [人物资产标准](character_asset_contract.md)。当前场景、导入参数和四动作控制器尚未迁移；下文描述现有运行实现，不是新标准的验收结果。
+
 ## 模块
 以下路径相对 game/entities：
 - common/gdscript/character_motor.gd：共享 CharacterMotor 接受 move_intent、sprint_requested、jump_requested，由控制器每物理帧调用 step。普通速度 4.3 m/s，快跑 5.6 m/s，重力 20，跳高 1.25 米。
