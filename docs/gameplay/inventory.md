@@ -48,3 +48,18 @@ InventoryStore 在世界目录写 inventory_a.json / inventory_b.json 两份交�
 - 实际地图检查：test/inventory/gdscript/test_world_inventory.gd，需要图形设备（现有主世界 GPU 缓存不能在 headless 初始化）。
 
 证据见 [测试目录](../../test/inventory/README.md)。自动检查与人工手感、硬件断电、长时间性能验收分开。
+
+
+## 创造选取与分类
+
+E 背包内的「创造选取」页列出当前全部 5 种可放置方块物品，含「全部／建筑方块／自然方块／功能方块」主分组、搜索框和滚动结果区。点击领取最多一组，优先合并，容量不足时只领取可容纳数量，不覆盖原物品；保存锁定或写入失败则不领取。领取走现有背包事务与日志，获得的物品正常保存。主世界与独立样板共用该面板。
+
+这是原型的创造选块工具，对当前玩家开放；尚未引入生存／创造模式权限切换、飞行、无敌或无限放置。放置仍消耗数量。水为流体定义，不在方块物品目录中；原木的三轴朝向只显示一个木头条目。
+
+静态分类由 `AstraeonItemCatalog.creative_groups: Dictionary[StringName, String]` 定义有序 ID → 显示名；`AstraeonItemDefinition.creative_group: StringName` 引用唯一主分组，`search_tags: PackedStringArray` 保存多个 sub tag（搜索关键词）。这些是领取物品的展示分类，存放 game/data/item，引用既有 block 定义；不在 BlockDefinition 和 ItemDefinition 双份维护。新增分组修改目录映射，新增方块设置组与标签即可，不增加 UI 分支。
+
+主组 ID 使用 astraeon_ 前缀且稳定，显示名可以修改。标签当前允许中文别名、英文关键词；只影响搜索，不用于碰撞、燃烧、配方等玩法判定。验证拒绝未知分组、空标签和大小写重复标签。主组单选，标签多选；「全部」是查询视图而非存档分类。若未来配方需要语义标签，另定义受校验的 gameplay 标签，不能复用自由搜索文字。
+
+搜索对名称、物品 ID、方块 ID、分组显示名和标签做不区分大小写的包含匹配；空格分隔的词须全部命中，并与当前分组取交集。小目录按输入变化扫描；没有逐帧扫描，也不把分类写入每个 ItemStack 或体素。仅背包数量/选择槽持久化；查询词、当前分页属于临时 UI 状态。
+
+搜索框拥有焦点时 E 和数字输入文字，Esc 关闭；失去搜索焦点后仍用 E 关闭、1—0 选槽。滚轮在面板内滚动结果，不切快捷槽。

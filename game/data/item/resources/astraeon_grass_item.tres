@@ -9,3 +9,5 @@ icon_color = Color(0.36,0.65,0.23,1)
 max_stack = 64
 block = ExtResource("block")
 orient_to_face = false
+creative_group = &"astraeon_natural"
+search_tags = PackedStringArray("草", "地表", "土壤", "grass")

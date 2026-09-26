@@ -14,3 +14,5 @@ $godotExe = 'F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe'
 前两项覆盖规则/恢复/UI，图形运行另输出 tmp/inventory-ui 截图。最后一项进入隔离 tmp 世界测试真实交互，必须有图形设备以初始化现有 GPU 缓存。每个脚本成功后自动退出；检查退出码、错误输出及结尾测试摘要。正式世界从主界面「单人游戏」进入，首次为空背包。
 
 [实现与边界](../../docs/gameplay/inventory.md)。版本化验证记录在 reports/；测试存档/日志/截图原始输出在 tmp/。
+
+创造选取同样位于上述样板的 E 面板内；分类/搜索/领取边界检查：`--script res://test/inventory/gdscript/test_creative.gd`，图形模式在 tmp/inventory-work/creative.png 输出截图。

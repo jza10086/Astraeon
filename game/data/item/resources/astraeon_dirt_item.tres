@@ -9,3 +9,5 @@ icon_color = Color(0.52,0.32,0.18,1)
 max_stack = 64
 block = ExtResource("block")
 orient_to_face = false
+creative_group = &"astraeon_natural"
+search_tags = PackedStringArray("泥土", "土壤", "dirt")

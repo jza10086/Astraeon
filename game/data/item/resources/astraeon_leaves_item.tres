@@ -9,3 +9,5 @@ icon_color = Color(0.2,0.52,0.16,1)
 max_stack = 64
 block = ExtResource("block")
 orient_to_face = false
+creative_group = &"astraeon_natural"
+search_tags = PackedStringArray("树叶", "植物", "透明", "leaves")

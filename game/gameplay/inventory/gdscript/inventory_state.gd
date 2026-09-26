@@ -2,6 +2,7 @@ class_name AstraeonInventoryState
 extends RefCounted
 ## All mutations validate a complete candidate before committing. Readers receive stack copies.
 signal changed()
+var catalog: AstraeonItemCatalog
 var definition: AstraeonInventoryDefinition
 var items: Dictionary[StringName, AstraeonItemDefinition] = {}
 var selected: int = 0
@@ -11,9 +12,10 @@ var locked: bool = false
 var before_commit: Callable
 var _slots: Array[AstraeonItemStack] = []
 
-func configure(catalog: AstraeonItemCatalog, layout: AstraeonInventoryDefinition) -> bool:
-	if definition != null or not catalog.validate().is_empty() or layout.hotbar_slots != 10 or layout.storage_rows != 3:
+func configure(item_catalog: AstraeonItemCatalog, layout: AstraeonInventoryDefinition) -> bool:
+	if definition != null or not item_catalog.validate().is_empty() or layout.hotbar_slots != 10 or layout.storage_rows != 3:
 		return false
+	catalog = item_catalog
 	definition = layout
 	for item: AstraeonItemDefinition in catalog.definitions:
 		items[item.key] = item

@@ -9,3 +9,5 @@ icon_color = Color(0.64,0.43,0.23,1)
 max_stack = 64
 block = ExtResource("block")
 orient_to_face = true
+creative_group = &"astraeon_building"
+search_tags = PackedStringArray("木头", "原木", "木材", "朝向", "wood", "log")

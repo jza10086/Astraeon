@@ -40,3 +40,5 @@ C++ 承担体素基础设施热路径，GDScript 承担玩法编排、UI 和测�
 真实基准工程暂保留 benchmarks/voxelgame，属于明确的历史目录例外，不是新增测试内容的默认位置。
 
 物品栏当前闭环与限制见 [物品栏](docs/gameplay/inventory.md)；样板入口 test/inventory/scenes/inventory_sample.tscn。
+
+物品栏已增加创造选取工具：有序主组、sub tag 搜索、点击领取方块；完整生存/创造模式规则尚未实现。

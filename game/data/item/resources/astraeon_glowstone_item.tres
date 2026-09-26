@@ -9,3 +9,5 @@ icon_color = Color(0.95,0.9,0.59,1)
 max_stack = 64
 block = ExtResource("block")
 orient_to_face = false
+creative_group = &"astraeon_functional"
+search_tags = PackedStringArray("发光", "照明", "灯", "glowstone")

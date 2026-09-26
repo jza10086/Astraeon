@@ -8,6 +8,7 @@ var source_slot: int = -1
 var source_count: int = 0
 var source_revision: int = -1
 var opened: bool = false
+var creative_browser: VBoxContainer
 var _bag: CenterContainer
 var _shade: ColorRect
 var _bar: HBoxContainer
@@ -53,12 +54,21 @@ func _ready() -> void:
 	close.focus_mode = Control.FOCUS_NONE
 	close.pressed.connect(func() -> void: set_open(false))
 	heading.add_child(close)
-	column.add_child(_label("储物栏", 16, Color("343941")))
+	var tabs: TabContainer = TabContainer.new()
+	column.add_child(tabs)
+	var storage: VBoxContainer = VBoxContainer.new()
+	storage.name = "储物栏"
+	tabs.add_child(storage)
+	creative_browser = preload("res://game/ui/inventory/gdscript/creative_browser.gd").new()
+	creative_browser.name = "创造选取"
+	creative_browser.inventory = inventory
+	tabs.add_child(creative_browser)
+	tabs.tab_changed.connect(func(_tab: int) -> void: cancel_source())
 	var grid: GridContainer = GridContainer.new()
 	grid.columns = 10
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 4)
-	column.add_child(grid)
+	storage.add_child(grid)
 	for index: int in range(10, 40):
 		_add_slot(grid, index, true)
 	column.add_child(_label("快捷栏 · 1—0", 16, Color("343941")))
@@ -140,6 +150,11 @@ func _input(event: InputEvent) -> void:
 	if opened and InputMap.has_action("shading_settings") and event.is_action_pressed("shading_settings"):
 		get_viewport().set_input_as_handled()
 		return
+	if opened and event is InputEventKey and get_viewport().gui_get_focus_owner() is LineEdit:
+		if event.pressed and event.keycode == KEY_ESCAPE:
+			set_open(false)
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("inventory_toggle") and not event.is_echo():
 		if opened or not can_interact.is_valid() or bool(can_interact.call()):
 			set_open(not opened)
@@ -162,6 +177,8 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func set_open(value: bool) -> void:
+	if not value and creative_browser != null:
+		creative_browser.search.release_focus()
 	opened = value
 	_shade.visible = value
 	_bag.visible = value

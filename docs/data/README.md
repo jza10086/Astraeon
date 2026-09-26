@@ -21,3 +21,5 @@ WorldContent 将正式目录编译为共享 ID 表、外观库和存档校验输
 ## 验证证据
 
 [测试入口](../../test/data/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
+
+物品定义新增 creative_group 主分组与 search_tags 搜索标签；有序组名在 ItemCatalog.creative_groups 中维护。属于静态展示元数据，不复制进体素或背包实例。详见 [物品栏](../gameplay/inventory.md#创造选取与分类)。
