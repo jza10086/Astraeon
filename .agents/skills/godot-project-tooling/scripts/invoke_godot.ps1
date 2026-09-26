@@ -47,6 +47,10 @@ $arguments.Add($toolchain.project_path)
 
 switch ($Mode) {
     "Import" {
+        # This project adaptation resolves its guard from this skill's checkout.
+        $checkoutRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+        . (Join-Path $checkoutRoot 'tools/assert_cold_import.ps1')
+        Assert-GodotColdImport -ProjectPath $toolchain.project_path -GodotPath $toolchain.path
         $arguments.Add("--import")
     }
     "CheckScript" {

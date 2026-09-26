@@ -100,12 +100,11 @@ rather than `select:` syntax, or the full prefixed name
 7. `discover_tools({request: "runtime"})` → `runtime_get_node_state` /
    `input_simulate` to verify
 
-**Dependency-aware build order.** Create resources before scripts that reference
-them — "don't reference something that doesn't exist yet." Adapt to the project's
-dependency graph: utility scripts (no deps) → scenes (empty node trees) → scripts
-referencing scenes (use `load()`, runtime-evaluated) → autoloads via
-`autoload_manage` (not `project_set_setting`) → scripts referencing autoloads (by
-`class_name`).
+**Dependency-aware build order.** Create dependencies before their consumers.
+Use `preload()` for existing static dependencies without cycles, `load()` for
+runtime-selected paths, and `@export` for configurable dependencies. Register
+autoloads only for actual cross-scene services, via `autoload_manage`; reference
+their registered singleton names directly, without a conflicting `class_name`.
 
 ### Batch and parallelise scene construction
 
@@ -394,7 +393,7 @@ events process).
 | `NOT_FOUND` | Node path, file, or `script_edit` `old_string` not found | Root is `"."`, children relative; check `scene_get_tree` |
 | `NOT_UNIQUE` | `script_edit` `old_string` matched more than once | Widen the span or pass `replace_all` |
 | `PARENT_NOT_FOUND` | Parent dir doesn't exist | `scene_create` / `script_write` auto-create dirs; others may not |
-| `ALREADY_PLAYING` | Game already running | `game_stop` first, or use `if_running: "return"` |
+| `ALREADY_PLAYING` | Game already running | Use `if_running: "return"` or `runtime_poll: true`; stop only a verified task-owned session or one explicitly authorized by the user |
 | `COMPILATION_FAILED` | Script errors | `editor_refresh` then `editor_get_console` for details |
 | `UNSUPPORTED` | Tool/operation needs a newer Godot | The hint names the required version |
 | `LOG_UNAVAILABLE` | Log couldn't be read | On 4.5+ `source: "buffer"` works without a file; on 4.2-4.4 enable file logging (ProjectSettings -> Debug) + restart |
@@ -407,7 +406,7 @@ group (`debug_state`, breakpoints, `debug_continue`).
 
 ## 8. Checkpoint pattern
 
-For complex builds, commit progress at milestones. A standard order: project
+Follow the repository Git policy and current user authorization for commits; do not infer Git authorization from this workflow. A standard order: project
 structure + main scene → game logic scripts → input handling → win/lose
 conditions → visual feedback → regular verification (`game_start` + runtime
 checks) → headless verification (if applicable).
@@ -486,7 +485,7 @@ These are the most common sources of wasted tool calls and retries:
 | `autoload_manage` + console errors | After registering, `editor_refresh` before trusting console errors — stale cache shows false "identifier not found" |
 | `execute_code` | Annotated `destructiveHint: true`; expression-only; responses larger than a property read |
 | `editor_refresh` | Needed after external writes; especially headless |
-| `scene_delete` / `scene_close` | Console shows `_set_main_scene_state: Cannot convert argument 2 from Object to Object` when closing non-active tabs — **benign Godot engine noise** from the deferred queue, not a bug. Tabs close correctly. Don't try to fix or investigate it. |
+| `scene_delete` / `scene_close` | Console shows `_set_main_scene_state: Cannot convert argument 2 from Object to Object` when closing non-active tabs — a known diagnostic candidate. Verify the exact trigger, tab closure, unsaved-scene preservation and subsequent logs; record the error and investigate any mismatch. Never suppress all errors or infer success from this message alone. |
 | `game_start` | `scene_path` accepts `"main"`, `"current"`, or a `res://` path |
 | `node_groups` | Only way to manage groups — `node_set_property` cannot set them |
 | `classdb_get_info` | Use the `sections` param to limit output — a full dump includes hundreds of inherited properties |

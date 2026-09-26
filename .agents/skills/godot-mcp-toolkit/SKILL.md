@@ -1,7 +1,7 @@
 ---
 name: godot-mcp-toolkit
 description: >
-  Best practices for building Godot 4.x games through the Godot MCP Toolkit.
+  Best practices for building Astraeon Godot 4.7 games through the Godot MCP Toolkit.
   Covers tool selection, workflow patterns, error recovery, and token efficiency
   for MCP-connected agents.
 ---
@@ -96,12 +96,11 @@ rather than `select:` syntax, or the full prefixed name
 7. `discover_tools({request: "runtime"})` → `runtime_get_node_state` /
    `input_simulate` to verify
 
-**Dependency-aware build order.** Create resources before scripts that reference
-them — "don't reference something that doesn't exist yet." Adapt to the project's
-dependency graph: utility scripts (no deps) → scenes (empty node trees) → scripts
-referencing scenes (use `load()`, runtime-evaluated) → autoloads via
-`autoload_manage` (not `project_set_setting`) → scripts referencing autoloads (by
-`class_name`).
+**Dependency-aware build order.** Create dependencies before their consumers.
+Use `preload()` for existing static dependencies without cycles, `load()` for
+runtime-selected paths, and `@export` for configurable dependencies. Register
+autoloads only for actual cross-scene services, via `autoload_manage`; reference
+their registered singleton names directly, without a conflicting `class_name`.
 
 ### Batch and parallelise scene construction
 
@@ -315,17 +314,6 @@ vars and inspector-visible fields. Use `execute_code` for internal state.
 on the running game use `execute_code` (its default channel is the running game):
 `get_node('/root/Main/Player').call('take_damage', 25)`.
 
-### Stale live instance after a script edit (Godot < 4.4)
-
-On Godot **< 4.4** (4.2, 4.3), editing a `.gd` already attached to a **live**
-node does **not** reach that running instance: a newly-added method fails with
-`INVALID_METHOD`, and a changed method **body** runs the old code silently.
-`editor_refresh`, re-`node_set_script`, and a fresh node all keep the stale code
-— **relaunch the editor** (or disable+re-enable the plugin) before calling the
-changed members (`script_write` and `node_call_method` flag this in their hints).
-Best practice: write the full script **before** attaching it. On 4.4+ scripts
-hot-reload, so this doesn't apply.
-
 **Env var lifecycle.** `GODOT_MCP_*` env vars (e.g. `GODOT_MCP_READ_ONLY`,
 `GODOT_MCP_EDITOR_PORT`) are read when the MCP server process starts. After
 editing `.mcp.json`, reconnect the MCP client — the tool list is decided at
@@ -339,9 +327,7 @@ by setting `unique_name_in_owner` with `node_set_property`). Reference them as
 `@onready var label: Label = %ScoreLabel` — this survives reparenting. Use
 `$ChildName` only for structural direct children.
 
-**Console log sources.** `editor_get_console` buffer mode captures all output on
-Godot 4.5+ (Logger API); it falls back to file-tail on 4.2-4.4 with ~200ms
-latency. Use `source: "buffer"` (default) for real-time capture.
+**Console log sources.** On Godot 4.7 prefer `source: "buffer"` for editor-local diagnostics; file logs can be shared by different checkouts with the same project name.
 
 **Node groups.** Use `node_groups` to add/remove/list groups — not
 `node_set_property` (groups are not a node property). Batch mode supports
@@ -379,11 +365,11 @@ events process).
 | `NOT_FOUND` | Node path, file, or `script_edit` `old_string` not found | Root is `"."`, children relative; check `scene_get_tree` |
 | `NOT_UNIQUE` | `script_edit` `old_string` matched more than once | Widen the span or pass `replace_all` |
 | `PARENT_NOT_FOUND` | Parent dir doesn't exist | `scene_create` / `script_write` auto-create dirs; others may not |
-| `ALREADY_PLAYING` | Game already running | `game_stop` first, or use `if_running: "return"` |
+| `ALREADY_PLAYING` | Game already running | Use `if_running: "return"` or `runtime_poll: true`; stop only a verified task-owned session or one explicitly authorized by the user |
 | `COMPILATION_FAILED` | Script errors | `editor_refresh` then `editor_get_console` for details |
 | `UNSUPPORTED` | Tool/operation needs a newer Godot | The hint names the required version |
-| `LOG_UNAVAILABLE` | Log couldn't be read | On 4.5+ `source: "buffer"` works without a file; on 4.2-4.4 enable file logging (ProjectSettings -> Debug) + restart |
-| `LOG_BUSY` | Log read open failed — an external process may hold it | Retry shortly; on 4.5+ use `source: "buffer"` (in-memory) |
+| `LOG_UNAVAILABLE` | Log couldn't be read | On Godot 4.7 inspect `source: "buffer"`; verify the selected editor before diagnosing file logs |
+| `LOG_BUSY` | Log read open failed — an external process may hold it | Retry shortly; on Godot 4.7 use `source: "buffer"` (in-memory) |
 
 For deeper runtime diagnosis when logs aren't enough, activate the `debugger`
 group (`debug_state`, breakpoints, `debug_continue`).
@@ -392,7 +378,7 @@ group (`debug_state`, breakpoints, `debug_continue`).
 
 ## 8. Checkpoint pattern
 
-For complex builds, commit progress at milestones. A standard order: project
+Follow the repository Git policy and current user authorization for commits; do not infer Git authorization from this workflow. A standard order: project
 structure + main scene → game logic scripts → input handling → win/lose
 conditions → visual feedback → regular verification (`game_start` + runtime
 checks) → headless verification (if applicable).
@@ -471,7 +457,7 @@ These are the most common sources of wasted tool calls and retries:
 | `autoload_manage` + console errors | After registering, `editor_refresh` before trusting console errors — stale cache shows false "identifier not found" |
 | `execute_code` | Annotated `destructiveHint: true`; expression-only; responses larger than a property read |
 | `editor_refresh` | Needed after external writes; especially headless |
-| `scene_delete` / `scene_close` | Console shows `_set_main_scene_state: Cannot convert argument 2 from Object to Object` when closing non-active tabs — **benign Godot engine noise** from the deferred queue, not a bug. Tabs close correctly. Don't try to fix or investigate it. |
+| `scene_delete` / `scene_close` | Console shows `_set_main_scene_state: Cannot convert argument 2 from Object to Object` when closing non-active tabs — a known diagnostic candidate. Verify the exact trigger, tab closure, unsaved-scene preservation and subsequent logs; record the error and investigate any mismatch. Never suppress all errors or infer success from this message alone. |
 | `game_start` | `scene_path` accepts `"main"`, `"current"`, or a `res://` path |
 | `node_groups` | Only way to manage groups — `node_set_property` cannot set them |
 | `classdb_get_info` | Use the `sections` param to limit output — a full dump includes hundreds of inherited properties |

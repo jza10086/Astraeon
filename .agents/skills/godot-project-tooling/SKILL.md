@@ -42,13 +42,13 @@ Prefer the console executable on Windows. Do not scan arbitrary drives, download
 
 Follow [AGENTS.md: Godot tooling and skills](../../../AGENTS.md#godot-tooling-and-skills) for editor identity, process handling, import exclusivity, and refresh rules. `tools/check.ps1` performs the full cold-start import/startup batch; it is not a check-only command.
 
-Use one of these modes:
+Commands below run from the project root. Import calls `tools/assert_cold_import.ps1` first; query denial or ambiguous processes block only cold import. Use one of these modes:
 
 ```powershell
-& scripts/invoke_godot.ps1 -Mode Version -ProjectPath <project>
-& scripts/invoke_godot.ps1 -Mode Import -ProjectPath <project>
-& scripts/invoke_godot.ps1 -Mode CheckScript -ProjectPath <project> -ScriptPath res://path/to/check.gd
-& scripts/invoke_godot.ps1 -Mode RunScript -ProjectPath <project> -ScriptPath res://path/to/test.gd
+& ./.agents/skills/godot-project-tooling/scripts/invoke_godot.ps1 -Mode Version -ProjectPath <project>
+& ./.agents/skills/godot-project-tooling/scripts/invoke_godot.ps1 -Mode Import -ProjectPath <project>
+& ./.agents/skills/godot-project-tooling/scripts/invoke_godot.ps1 -Mode CheckScript -ProjectPath <project> -ScriptPath res://path/to/check.gd
+& ./.agents/skills/godot-project-tooling/scripts/invoke_godot.ps1 -Mode RunScript -ProjectPath <project> -ScriptPath res://path/to/test.gd
 ```
 
 `CheckScript` parses a standalone script with `--check-only`; it does not prove runtime behavior. A `RunScript` script must terminate itself, normally by extending `SceneTree` and calling `quit()`. Report engine version, command mode, exit code, and any `SCRIPT ERROR`, `ERROR:`, parser, or parse error output. Separate automated results from editor, multiplayer, device, and deployment acceptance.

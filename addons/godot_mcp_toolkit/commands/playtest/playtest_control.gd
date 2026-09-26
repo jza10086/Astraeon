@@ -64,7 +64,7 @@ static func cmd_game_start(parameters: Dictionary) -> Dictionary:
 				return MCPToolkitSuccess.ok({"status": "already_running",
 					"runtime_port": runtime_port if runtime_port > 0 else null})
 			return MCPToolkitError.fail("ALREADY_PLAYING",
-				"a game is already running; call game.stop first, or use runtime_poll:true to re-probe the runtime connection")
+				"a game is already running; use if_running:return or runtime_poll:true to inspect the existing session. Stop only a verified task-owned session or one explicitly authorized by the user")
 
 		# Mark that a play session has started so the editor-side debugger.get_log
 		# cache reads the game's log. The engine truncates godot.log fresh on every

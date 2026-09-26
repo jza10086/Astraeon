@@ -18,11 +18,13 @@
 
 - 2026-09-15 环境光表面插值、方块云合并网格与二值底面云影为项目自编；覆盖图由 Godot FastNoiseLite 生成，未引入第三方云素材。
 
-- Basic Voxel 标准素体：来自用户本地 F:/AstraBlender/Projects/basic_voxel/exports/godot/basic_voxel.glb，原样复制六动作版，SHA-256 为 383a153f18ee1132af0a55f8e076eafd3caa591475aa19f748e92f59e85028d6。制作参数见该目录 README 与 docs/character_asset_contract.md；未附独立再分发许可，不另行声明授权。
+- Basic Voxel 标准素体：来自用户本地 F:/AstraBlender/Projects/basic_voxel/exports/godot/basic_voxel.glb，原样复制六动作版，SHA-256 为 383a153f18ee1132af0a55f8e076eafd3caa591475aa19f748e92f59e85028d6。制作参数见该目录 README 与 docs/resource_specifications.md；未附独立再分发许可，不另行声明授权。
 
-- 主工程原生后端：固定 Voxel Tools 与 godot-cpp 源码保留在 native/voxel_tools/ 和 native/deps/godot-cpp/，保留各自 MIT 与第三方许可证。部署插件保留 addons/zylann.voxel/LICENSE.md。项目修改见 docs/native_voxel_backend.md。
+- 主工程原生后端：固定 Voxel Tools 与 godot-cpp 源码保留在 native/voxel_tools/ 和 native/deps/godot-cpp/，保留各自 MIT 与第三方许可证。部署插件保留 addons/zylann.voxel/LICENSE.md。项目修改见 docs/world/native_voxel_backend.md。
 
 - 历史 HK416 V8（已从游戏资源移除）的移动动作参考 CMU Graphics Lab Motion Capture Database，Subject 16 Trial 35 与 Subject 09 Trial 01。来源：https://mocap.cs.cmu.edu/ 。保留以下历史致谢，不将其未经核实地归为 Basic Voxel 的来源：
 
 The data used in this project was obtained from mocap.cs.cmu.edu.
 The database was created with funding from NSF EIA-0196217.
+
+- Water and light shafts: MakeUp Ultra Fast algorithm reference (Javier Garduño, upstream LGPL-3.0); independently adapted GPU implementation. See [implementation notes](shading/water_light_shafts.md).

@@ -6,7 +6,7 @@ const Modules := preload("res://addons/godot_mcp_toolkit/core/modules.gd")
 const FileGuard = Modules.FileGuard
 const Helpers = Modules.CommandHelpers
 
-const _TAB_CLOSE_NOISE_HINT := "Closing a non-active scene tab may produce a _set_main_scene_state error in the editor console. This is benign Godot engine noise — safe to ignore."
+const _TAB_CLOSE_NOISE_HINT := "Closing a non-active scene tab may produce a _set_main_scene_state error in the editor console. Verify the trigger and tab closure, preserve unsaved scenes, and record this diagnostic. Investigate unexpected state or subsequent errors; do not suppress errors."
 
 
 static func register(registry: MCPToolkitCommandRegistry, _server: Node) -> void:

@@ -6,6 +6,8 @@ $skillRoot = Join-Path $projectRoot '.agents/skills/godot-project-tooling'
 $resolveArgs = @{ ProjectPath = $projectRoot; ToolchainsFile = (Join-Path $skillRoot 'godot-toolchains.json') }
 if ($GodotPath) { $resolveArgs.GodotPath = $GodotPath }
 $engine = & (Join-Path $skillRoot 'scripts/resolve_godot.ps1') @resolveArgs | ConvertFrom-Json
+. (Join-Path $PSScriptRoot 'assert_cold_import.ps1')
+Assert-GodotColdImport -ProjectPath $engine.project_path -GodotPath $engine.path
 Write-Host "Godot $($engine.version) | $($engine.path)"
 [System.IO.Directory]::CreateDirectory((Join-Path $projectRoot 'tmp')) | Out-Null
 foreach ($mode in @('import', 'startup')) {

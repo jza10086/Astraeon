@@ -413,7 +413,11 @@ are in "Getting listed in the extension catalog" in
 Three checks confirm a new extension works end-to-end:
 
 1. **It loads** — register the tool, then validate GDScript (run
-   `validate_gdscript.sh` from your project root). No parse errors in the Output
+   the Astraeon PowerShell entry from the project root:
+   `& ./.agents/skills/godot-project-tooling/scripts/invoke_godot.ps1 -Mode CheckScript -ProjectPath . -ScriptPath res://addons/your_extension/your_extension.gd`).
+   Replace the example with the actual extension path. This proves parsing only;
+   use the verified editor for a full scan, wait for idle, registration and calls.
+   Cold Import requires the shared preflight. No parse errors in the Output
    panel, and the loader discovered the class (or `extensions_refresh` reports it).
 2. **It registers** — the tool appears via `discover_tools` (grouped) or in the
    tool list (ungrouped).
@@ -490,7 +494,7 @@ autonomous run on a human interview.
 | Extension not discovered | Missing `@tool` (GDScript) or `[Tool]` (C#) | Add the annotation and save/rebuild |
 | GDScript extension not found | Not extending `MCPToolkitExtension` | Add `extends MCPToolkitExtension` |
 | "register() not overridden" warning | Wrong method signature | Use exact signature: `registry: MCPToolkitCommandRegistry, server: Node` |
-| Compile error / "inferred as Variant" on a `:=` | `:=` can't infer from **any** Variant source — `params[...]`, a Variant-returning call like `MCPToolkitError.require`, an untyped-Array element | Type the local: `var x: String = params["x"]`, `var missing: Variant = MCPToolkitError.require(...)`. Never `:=` from a Variant. |
+| Compile error / "inferred as Variant" on a `:=` | `:=` can't infer from **any** Variant source — `params[...]`, a Variant-returning call like `MCPToolkitError.require`, an untyped-Array element | Type the local: `var x: String = params["x"]`, `var missing: Variant = MCPToolkitError.require(...)`. Astraeon project-authored GDScript never uses `:=`; explicitly type all locals. |
 | Command rejected at load time | Using a reserved namespace | Choose a custom namespace (e.g., `mytools.action`) |
 | Registered `notes.write` but the tool list shows `notes_write` | The server maps the wire name `a.b` to the MCP tool name `a_b` | Expected — register with the dot, call with the underscore |
 | Grouped tool not visible to LLM | Grouped tools load on demand | User (or agent) calls `discover_tools` |

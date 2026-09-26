@@ -18,4 +18,4 @@
 
 [日间](screenshots/world_shading/day.png) / [夜间发光石](screenshots/world_shading/night.png) / [平面反射水面](screenshots/world_shading/water-2.png) / [F6 设置](screenshots/world_shading/settings.png)。
 
-本轮截图为 1280×720 短时功能检查；没有重新做 1080p/1440p/4K/超宽屏人工 UI 验收。完整范围、接口与限制见 [主世界光影](../../../docs/world_shading.md)。
+本轮截图为 1280×720 短时功能检查；没有重新做 1080p/1440p/4K/超宽屏人工 UI 验收。完整范围、接口与限制见 [主世界光影](../../../docs/shading/world_shading.md)。
