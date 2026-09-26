@@ -126,7 +126,7 @@ func _physics_process(_delta: float) -> void:
     if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
         ready_to_play = true
         controller.set_physics_process(true)
-        _status.text = "WASD Move | Ctrl Walk | Shift Sprint | Space Jump | Left Mine | Right Place | Esc Release"
+        _status.text = "WASD Move | Ctrl Walk | Shift Sprint | V View | Space Jump | Left Mine | Right Place | Esc Release"
 
 func _process(delta: float) -> void:
     if stream == null:

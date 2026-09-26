@@ -147,6 +147,7 @@ func _run() -> void:
 	await _frames(70)
 	_check(player.is_on_floor() and animator.current_animation == "Idle", "Long fall ends only at actual landing")
 	if DisplayServer.get_name() != "headless":
+		await _test_camera_modes()
 		await _test_window_input()
 	else:
 		print("ENTITY_TEST window input skipped: headless display cannot capture mouse")
@@ -226,3 +227,50 @@ func _test_window_input() -> void:
 	_check(absf(player.get_node("CameraPivot").get("rotation").y + 0.25) < 0.01, "Mouse rotates camera")
 	controller.set("input_enabled", false)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _test_camera_modes() -> void:
+	var controller: Node = player.get_node("Controller")
+	var camera: Camera3D = controller.get("camera") as Camera3D
+	var pivot: Node3D = controller.get("camera_pivot") as Node3D
+	var arm: SpringArm3D = controller.get("spring_arm") as SpringArm3D
+	var visual: Node3D = player.get_node("Visual") as Node3D
+	_check(bool(controller.get("first_person")) and not visual.visible, "First person defaults to hidden self model")
+	_check(camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "First person eye stays at 1.62 meters")
+	_check(root.get_camera_3d() == camera, "First person uses existing active camera")
+	controller.set("input_enabled", true)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	var motion: InputEventMouseMotion = InputEventMouseMotion.new()
+	motion.relative = Vector2(0, -10000)
+	controller.call("_unhandled_input", motion)
+	_check(absf(arm.rotation.x - deg_to_rad(85)) < 0.001, "First person can look up with pitch limit")
+	motion.relative = Vector2(0, 10000)
+	controller.call("_unhandled_input", motion)
+	_check(absf(arm.rotation.x - deg_to_rad(-85)) < 0.001, "First person can look down with pitch limit")
+	var toggle: InputEventKey = InputEventKey.new()
+	toggle.physical_keycode = KEY_V
+	toggle.pressed = true
+	Input.parse_input_event(toggle.duplicate())
+	await _frames(3)
+	_check(not bool(controller.get("first_person")) and visual.visible and arm.spring_length == 4.0, "V restores third person model and camera arm")
+	_check(root.get_camera_3d() == camera and camera.global_position.distance_to(pivot.global_position) > 0.1, "Third person retains camera reference and offset")
+	toggle.pressed = false
+	Input.parse_input_event(toggle.duplicate())
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	toggle.pressed = true
+	Input.parse_input_event(toggle.duplicate())
+	await _frames(2)
+	_check(not bool(controller.get("first_person")), "Released mouse blocks view toggle")
+	toggle.pressed = false
+	Input.parse_input_event(toggle.duplicate())
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	toggle.pressed = true
+	Input.parse_input_event(toggle.duplicate())
+	await _frames(3)
+	_check(bool(controller.get("first_person")) and not visual.visible and camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "V returns to anchored first person")
+	toggle.pressed = false
+	Input.parse_input_event(toggle.duplicate())
+	arm.rotation.x = 0.0
+	controller.set("input_enabled", false)
+	await _place(Vector3(-2.4, 0.1, 0))
+	_check(camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "Wall does not displace first person eye")
+	await _place(Vector3(0, 0.1, 3))

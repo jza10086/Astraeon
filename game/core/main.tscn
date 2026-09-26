@@ -57,7 +57,7 @@ text = "ASTRAEON"
 [node name="Subtitle" type="Label" parent="Overlay/Layout/Content" unique_id=1447538775]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "WASD Move | Ctrl Walk | Shift Sprint | Mouse Look | Space Jump | Esc Release"
+text = "WASD Move | Ctrl Walk | Shift Sprint | V View | Space Jump | Esc Release"
 
 [node name="Player" parent="." unique_id=1927386287 instance=ExtResource("Player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 3)

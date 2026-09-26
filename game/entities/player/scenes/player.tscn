@@ -40,9 +40,10 @@ margin = 0.1
 [node name="Camera" type="Camera3D" parent="CameraPivot/SpringArm" unique_id=361412256]
 current = true
 
-[node name="Controller" type="Node" parent="." unique_id=90773444 node_paths=PackedStringArray("motor", "camera_pivot", "spring_arm", "camera")]
+[node name="Controller" type="Node" parent="." unique_id=90773444 node_paths=PackedStringArray("motor", "camera_pivot", "spring_arm", "camera", "visual")]
 script = ExtResource("2")
 motor = NodePath("..")
 camera_pivot = NodePath("../CameraPivot")
 spring_arm = NodePath("../CameraPivot/SpringArm")
 camera = NodePath("../CameraPivot/SpringArm/Camera")
+visual = NodePath("../Visual")

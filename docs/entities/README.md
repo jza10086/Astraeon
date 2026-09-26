@@ -2,7 +2,7 @@
 
 ## 职责与当前进度
 
-共享运动、玩家输入、相机与六动作控制器已接入；按住 Ctrl 慢走，松开恢复普通移动，Shift 快跑。
+共享运动、玩家输入、第一／第三人称相机与六动作控制器已接入；默认第一人称，V 切换视角；按住 Ctrl 慢走，松开恢复普通移动，Shift 快跑。
 
 ## 架构与数据流
 
@@ -20,4 +20,4 @@
 
 ## 验证证据
 
-[慢走回归](../../test/entities/reports/slow_walk_20260926.md)、[测试入口](../../test/entities/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
+[第一人称回归](../../test/entities/reports/first_person_20260926.md)、[慢走回归](../../test/entities/reports/slow_walk_20260926.md)、[测试入口](../../test/entities/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。

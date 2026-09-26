@@ -14,6 +14,7 @@
 | D | 向右移动 | `move_right` | project.godot |
 | Ctrl（按住） | 慢走，0.5141 m/s | `slow_walk` | project.godot |
 | Shift（按住） | 快跑 | `sprint` | project.godot |
+| V | 切换第一／第三人称 | `toggle_view` | project.godot |
 | Space | 跳跃 | `jump` | project.godot |
 | 鼠标移动 | 调整观察方向 | 无；`InputEventMouseMotion` | player_controller.gd |
 | Esc | 释放鼠标 | `release_mouse` | project.godot |
@@ -22,6 +23,7 @@
 | 鼠标右键 | 在命中面相邻位置放置泥土 | `place_block` | native_world.gd 运行时注册 |
 | F6 | 打开／关闭光影设置 | `shading_settings` | world_shading.gd 运行时注册 |
 
+- 默认第一人称，V 在鼠标捕获且玩家输入启用时切换视角，忽略按键重复事件；不保存视角偏好。两种视角共用相机和交互射线，主世界提示 `V View`。
 - Ctrl 与 Shift 同按时慢走优先，松开 Ctrl 恢复普通移动或仍按住的快跑。慢走由 player_controller.gd 消费、CharacterMotor 限速；主世界屏幕提示为 `Ctrl Walk`。鼠标释放时不接受慢走输入。
 - 打开光影设置时释放鼠标并禁用玩家输入，关闭时重新捕获；世界继续运行。Esc 当前只负责玩家鼠标释放，不是关闭光影设置的专用动作。
 - 挖掘／放置需世界就绪、未处于保存状态且鼠标已捕获；交互射线距离为 8 米。放置位置与玩家占用空间相交时拒绝放置。
