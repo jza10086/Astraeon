@@ -66,6 +66,7 @@
 ## Input, UI, and assets
 - Keyboard and mouse are the initial input target; gameplay reads named InputMap actions.
 - Add bindings with their actual feature, rather than shipping inactive controls.
+- Maintain docs/input_mapping.md as the project-wide keyboard/mouse mapping reference. Update it with static InputMap bindings, runtime-registered actions, consumers and on-screen hints whenever bindings change; document scene/menu conditions and shared-key conflicts. Distinguish game actions, test-scene controls and editor shortcuts.
 - Local settings use user://settings.cfg with ConfigFile defaults on first run.
 - UI baseline is 1920x1080, canvas_items stretch, expand aspect, fractional scaling. Use anchors and containers.
 - Check 2560x1440, 3840x2160, and ultrawide when real UI is introduced.

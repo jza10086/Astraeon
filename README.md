@@ -13,6 +13,7 @@ Godot 4.7 体素生存建造游戏。
 - [全项目开发与文档规则](AGENTS.md)
 - [整体进度与架构](total_development.md)
 - [资源制作与交付规格](docs/resource_specifications.md)
+- [快捷键与按键映射](docs/input_mapping.md)
 - [开发环境、MCP 与验证](docs/tooling/README.md)
 - [测试入口](test/README.md)
 - [来源与许可](docs/credits.md)

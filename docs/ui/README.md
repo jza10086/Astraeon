@@ -10,7 +10,7 @@
 
 ## 详细文档与入口
 
-[设置与 HUD](../shading/world_shading.md)、[水下与颜色弹窗](../shading/water_light_shafts.md)。
+[快捷键与按键映射](../input_mapping.md)、[设置与 HUD](../shading/world_shading.md)、[水下与颜色弹窗](../shading/water_light_shafts.md)。
 
 源码与测试入口：game/ui、game/shading/gdscript/settings_panel.gd；test/shading。
 
