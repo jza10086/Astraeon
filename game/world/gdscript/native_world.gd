@@ -1,4 +1,5 @@
 extends Node3D
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Scene orchestration only. Voxel data, generation, meshes and persistence live in C++.
 @export var player: CharacterMotor
 @export var camera: Camera3D
@@ -14,10 +15,10 @@ var inventory_interaction: AstraeonInventoryInteraction
 var content: AstraeonWorldContent
 const WATER_SURFACE_HEIGHT: float = 32.0 # Generation v2, half-open water fill.
 @export var shading_profile: AstraeonShadingProfile = preload("res://game/shading/resources/default_profile.tres")
-@export var shading_settings_path: String = "user://settings.cfg"
+@export var shading_settings_path: String = Paths.settings_file()
 @export var seed: int = 20260916
 @export var biome_layout: int = 0
-@export var world_directory: String = "user://worlds/landscape_current"
+@export var world_directory: String = Paths.worlds_directory().path_join("landscape_current")
 @export var horizontal_distance: int = 64
 @export var vertical_distance: int = 32
 @export var prediction_enabled: bool = true

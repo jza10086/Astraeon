@@ -1,4 +1,5 @@
 extends Node3D
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 const Extensions: Script = preload("res://test/shading/gdscript/shading_extensions.gd")
 const Palette: Script = preload("res://game/shading/gdscript/day_palette.gd")
@@ -16,7 +17,7 @@ const LocalLights: Script = preload("res://test/shading/gdscript/local_lights.gd
 const Details: Script = preload("res://test/shading/gdscript/environment_details.gd")
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
 @export var profile: Profile
-@export var settings_path: String = "user://settings.cfg"
+@export var settings_path: String = Paths.settings_file()
 var benchmark_mode: bool = false
 var _avatar: TestAvatar
 var _test_lamps_original: Dictionary[Vector3i, int] = {}

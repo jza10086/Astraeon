@@ -1,4 +1,5 @@
 extends Control
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Title navigation owns no world state; the existing world loads only after play.
 const CharacterSelect: Script = preload("res://game/ui/main_menu/gdscript/character_select.gd")
 var character_page: CharacterSelect
@@ -6,7 +7,7 @@ const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd"
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
 @export_file("*.tscn") var world_scene_path: String = "res://game/core/main.tscn"
 @export var default_profile: Profile = preload("res://game/shading/resources/default_profile.tres")
-@export var settings_path: String = "user://settings.cfg"
+@export var settings_path: String = Paths.settings_file()
 @onready var home: Control = %Home
 @onready var play_button: Button = %Play
 @onready var settings_button: Button = %Settings

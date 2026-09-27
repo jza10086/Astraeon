@@ -1,4 +1,5 @@
 extends RefCounted
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Current character catalog. Selection is read once when a player enters the tree.
 const Library: Script = preload("res://game/entities/common/gdscript/character_library.gd")
 const MODELS: Array[Dictionary] = [
@@ -12,7 +13,9 @@ static func definition(id: StringName) -> Dictionary:
 			return entry
 	return Library.definition(id)
 
-static func load_id(path: String = "user://settings.cfg") -> StringName:
+static func load_id(path: String = "") -> StringName:
+	if path.is_empty():
+		path = Paths.settings_file()
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
 	if error == ERR_FILE_NOT_FOUND:
@@ -27,7 +30,9 @@ static func load_id(path: String = "user://settings.cfg") -> StringName:
 		return choices[0].id
 	return &""
 
-static func save_id(id: StringName, path: String = "user://settings.cfg") -> Error:
+static func save_id(id: StringName, path: String = "") -> Error:
+	if path.is_empty():
+		path = Paths.settings_file()
 	if not _contains(available(path), id):
 		return ERR_INVALID_PARAMETER
 	var config: ConfigFile = ConfigFile.new()
@@ -54,7 +59,9 @@ static func instantiate(id: StringName) -> Node3D:
 	return scene.instantiate() as Node3D if scene != null else null
 
 ## Local catalog removal preserves packaged assets and authoring sources.
-static func available(path: String = "user://settings.cfg") -> Array[Dictionary]:
+static func available(path: String = "") -> Array[Dictionary]:
+	if path.is_empty():
+		path = Paths.settings_file()
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
 	if error != OK and error != ERR_FILE_NOT_FOUND:
@@ -83,7 +90,9 @@ static func _contains(entries: Array[Dictionary], id: StringName) -> bool:
 			return true
 	return false
 
-static func remove_id(id: StringName, path: String = "user://settings.cfg") -> Error:
+static func remove_id(id: StringName, path: String = "") -> Error:
+	if path.is_empty():
+		path = Paths.settings_file()
 	var entries: Array[Dictionary] = available(path)
 	if load_id(path).is_empty():
 		return ERR_INVALID_DATA

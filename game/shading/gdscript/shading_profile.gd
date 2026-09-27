@@ -1,5 +1,6 @@
 class_name AstraeonShadingProfile
 extends Resource
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Defaults are copied for runtime. Only exported settings enter the local config.
 @export_group("时间与天空")
 @export_range(0.0, 24.0, 0.1) var hour: float = 12.0
@@ -279,7 +280,9 @@ func settings_properties() -> Array[Dictionary]:
 	return result
 
 ## Load known, type-checked fields; missing fields retain current defaults.
-func load_settings(path: String = "user://settings.cfg") -> Error:
+func load_settings(path: String = "") -> Error:
+	if path.is_empty():
+		path = Paths.settings_file()
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
 	if error != OK:
@@ -312,7 +315,9 @@ func load_settings(path: String = "user://settings.cfg") -> Error:
 			set(key, value)
 	return OK
 
-func save_settings(path: String = "user://settings.cfg") -> Error:
+func save_settings(path: String = "") -> Error:
+	if path.is_empty():
+		path = Paths.settings_file()
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
 	if error != OK and error != ERR_FILE_NOT_FOUND:

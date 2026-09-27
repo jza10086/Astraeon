@@ -271,7 +271,7 @@ BasicVoxel_Rig/Skeleton3D/Body
 
 ## 外部人物运行时导入
 
-用户目录为 `user://characters/`，Windows 当前默认位置 `%APPDATA%/Godot/app_userdata/ASTRAEON/characters`。本阶段采用平铺 GLB 文件，无 character.json；文件名（不含扩展名）作为显示名，完整文件名构成稳定选择 ID。更名相当于新人物。只扫描目录第一层，不接受 .blend/.gltf 或额外脚本。
+外部人物目录为项目根目录下的 `external_data/characters/`，由 project_paths.gd 统一解析。本阶段采用平铺 GLB 文件，无 character.json；文件名（不含扩展名）作为显示名，完整文件名构成稳定选择 ID。更名相当于新人物。只扫描目录第一层，不接受 .blend/.gltf 或额外脚本。
 
 交付须为自包含 GLB 2.0，贴图和缓冲区嵌入文件，单文件不超过 128 MiB。沿用本文件的 19 根主体骨名称、层级、静止变换和骨架根变换；允许附属骨。场景须有网格、单个 Skeleton3D、根节点下的 AnimationPlayer，六动作名字和时长沿用当前标准。动画和衣物形态键随 GLB 交付，不自动从素体复制。
 

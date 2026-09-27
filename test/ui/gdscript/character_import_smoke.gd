@@ -15,7 +15,7 @@ func check(ok: bool, message: String) -> void:
 func run() -> void:
 	root.get_node("MCPRuntimeServer").call("_stop_server")
 	create_timer(60).timeout.connect(func() -> void: quit(2))
-	check(Library.ensure_directory() == OK, "Create real user character directory")
+	check(Library.ensure_directory() == OK, "Create project character directory")
 	print("CHARACTERS_DIRECTORY=" + ProjectSettings.globalize_path(Library.directory))
 	Library.set_directory("res://tmp/character_import_%d" % Time.get_ticks_usec())
 	Library.ensure_directory()

@@ -1,5 +1,6 @@
 class_name AstraeonWorldShading
 extends Node3D
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Scene-local effects assembly. Native cache owns derived section lighting and bounded uploads.
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 const Palette: Script = preload("res://game/shading/gdscript/day_palette.gd")
@@ -14,7 +15,7 @@ const Planar: Script = preload("res://game/shading/gdscript/planar_reflection.gd
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
 const FrameTimeLabel: Script = preload("res://game/ui/gdscript/frame_time_label.gd")
 @export var profile: Profile = preload("res://game/shading/resources/default_profile.tres")
-@export var settings_path: String = "user://settings.cfg"
+@export var settings_path: String = Paths.settings_file()
 var world: Node3D
 var _settings: Profile
 var _cloud_profile: Profile

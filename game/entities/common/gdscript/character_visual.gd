@@ -1,8 +1,9 @@
 extends Node3D
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Basic Voxel locomotion. Physics owns translation, takeoff and landing.
 const Models: Script = preload("res://game/entities/common/gdscript/character_models.gd")
 @export var model_id: StringName = &""
-@export var settings_path: String = "user://settings.cfg"
+@export var settings_path: String = Paths.settings_file()
 @export var motor: CharacterMotor
 var animation_player: AnimationPlayer
 @export var turn_speed: float = 12.0

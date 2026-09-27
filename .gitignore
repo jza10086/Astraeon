@@ -10,3 +10,18 @@
 
 # Native dependencies restored using dependency-lock.json
 /benchmarks/voxelgame/project/addons/zylann.voxel/bin/
+
+# Project-local imported data and runtime state; track only directory scaffolding.
+/external_data/**
+!/external_data/.gdignore
+!/external_data/README.md
+!/external_data/characters/
+!/external_data/characters/.gitkeep
+!/external_data/blocks/
+!/external_data/blocks/.gitkeep
+/runtime_data/**
+!/runtime_data/.gdignore
+!/runtime_data/worlds/
+!/runtime_data/worlds/.gitkeep
+!/runtime_data/logs/
+!/runtime_data/logs/.gitkeep

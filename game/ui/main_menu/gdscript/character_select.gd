@@ -1,8 +1,9 @@
 extends PanelContainer
+const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Main-menu-only selection and isolated 3D preview; never touches a live player.
 signal closed(selected: bool)
 const Models: Script = preload("res://game/entities/common/gdscript/character_models.gd")
-var settings_path: String = "user://settings.cfg"
+var settings_path: String = Paths.settings_file()
 var selected_id: StringName = &""
 var current_id: StringName = &""
 var selection_changed: bool = false

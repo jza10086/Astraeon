@@ -6,7 +6,7 @@ const Sample: Script = preload("res://test/shading/gdscript/shading_sample.gd")
 const Details: Script = preload("res://test/shading/gdscript/environment_details.gd")
 var _failures: int = 0
 var _checks: int = 0
-var _output: String = "user://lighting_validation"
+var _output: String = "res://tmp/lighting_validation"
 var _sample: Sample
 var _render: SubViewport
 

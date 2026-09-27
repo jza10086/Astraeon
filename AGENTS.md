@@ -67,7 +67,10 @@
 - Keyboard and mouse are the initial input target; gameplay reads named InputMap actions.
 - Add bindings with their actual feature, rather than shipping inactive controls.
 - Maintain docs/input_mapping.md as the project-wide keyboard/mouse mapping reference. Update it with static InputMap bindings, runtime-registered actions, consumers and on-screen hints whenever bindings change; document scene/menu conditions and shared-key conflicts. Distinguish game actions, test-scene controls and editor shortcuts.
-- Local settings use user://settings.cfg with ConfigFile defaults on first run.
+- **Project-local storage is mandatory:** project-authored code must never read or write application files through `user://`, AppData, or other OS user directories. Use `game/core/gdscript/project_paths.gd`; development data lives under this checkout, exported desktop data beside the executable. No fallback to old locations and no automatic old-format/path migration.
+- External imports live in root `external_data/`: `characters/` for self-contained GLBs, `blocks/` for installed .aebpack content. Runtime state lives in root `runtime_data/`: `settings.cfg` for ConfigFile settings, `worlds/` for all save slots (including inventory and derived caches), and `logs/` for application logs. Test output stays in root `tmp/`.
+- Keep `external_data/.gdignore` and `runtime_data/.gdignore`; imported/runtime files are read as filesystem data, never editor-imported assets. Ignore contents in Git except the directory scaffolding and guide. Preserve atomic/recoverable writes; report exact I/O errors without switching storage locations.
+- ConfigFile defaults apply only when the project-local settings file is absent. Core paths are not based on the process working directory. User-selected source files may be read for explicit import; their contents are copied to external_data before use.
 - UI baseline is 1920x1080, canvas_items stretch, expand aspect, fractional scaling. Use anchors and containers.
 - Check 2560x1440, 3840x2160, and ultrawide when real UI is introduced.
 - Record third-party assets and dependencies in docs/credits.md and retain required license files.

@@ -51,7 +51,7 @@
 
 ## 配置与接口
 
-配置默认模板是 `game/shading/resources/default_profile.tres`。运行时复制，保存于根工程的 `user://settings.cfg`，节名 `shading`，格式 `astraeon-shading-20260926-underwater`。不读取旧样板配置格式；不支持的文件会提示并使用默认值，保存采用临时文件再替换。其他模块的配置节保留。
+配置默认模板是 `game/shading/resources/default_profile.tres`。运行时复制，保存于根工程的 `runtime_data/settings.cfg`，节名 `shading`，格式 `astraeon-shading-20260926-underwater`。不读取旧样板配置格式；不支持的文件会提示并使用默认值，保存采用临时文件再替换。其他模块的配置节保留。
 
 新增 UI 元数据位于 `shading_controls.gd`：统一名称、分组及模式依赖。所有开关采用选择框，关闭后隐藏无效参数。SSAO 的采样策略是引擎公开的枚举，不是项目低／中／高预设；半分辨率、半径、模糊等仍独立可调。
 

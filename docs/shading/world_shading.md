@@ -1,6 +1,6 @@
 # 主世界光影接入
 
-主入口仍为 `game/core/main.tscn`。`native_world.gd` 装配场景局部的 `AstraeonWorldShading`，不创建 autoload，也不依赖 test 目录。F6 打开/关闭分类设置菜单；菜单打开时暂停玩家输入，世界仍继续运行。偏好继续写入 `user://settings.cfg` 的 shading 节，当前格式为 `astraeon-shading-20260926-underwater`。主场景可导出指定 shading_profile 和 shading_settings_path。
+主入口仍为 `game/core/main.tscn`。`native_world.gd` 装配场景局部的 `AstraeonWorldShading`，不创建 autoload，也不依赖 test 目录。F6 打开/关闭分类设置菜单；菜单打开时暂停玩家输入，世界仍继续运行。偏好继续写入 `runtime_data/settings.cfg` 的 shading 节，当前格式为 `astraeon-shading-20260926-underwater`。主场景可导出指定 shading_profile 和 shading_settings_path。
 
 ## 数据与生命周期
 
