@@ -6,6 +6,7 @@ var checks: int = 0
 var player: CharacterMotor
 var animator: AnimationPlayer
 var world: Node3D
+var model_id: StringName = &"basic_voxel"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -27,9 +28,15 @@ func _place(at: Vector3) -> void:
 	await _frames(15)
 
 func _run() -> void:
+	var runtime: Node = root.get_node_or_null("MCPRuntimeServer")
+	if runtime != null:
+		runtime.call("_stop_server")
+	if "klukai" in OS.get_cmdline_user_args():
+		model_id = &"klukai"
 	create_timer(60.0).timeout.connect(_on_timeout)
 	world = WORLD.instantiate() as Node3D
 	player = world.get_node("Player") as CharacterMotor
+	player.get_node("Visual").set("model_id", model_id)
 	player.get_node("Controller").set("input_enabled", false)
 	root.add_child(world)
 	animator = player.get_node("Visual/Model/AnimationPlayer") as AnimationPlayer
@@ -107,13 +114,13 @@ func _run() -> void:
 	await _frames(20)
 	_check(player.is_on_floor() and player.position.distance_to(Vector3(0, 0, 3)) < 0.03, "Void respawn resets player")
 	var skeleton: Skeleton3D = player.find_child("Skeleton3D", true, false) as Skeleton3D
-	_check(skeleton != null and skeleton.get_bone_count() == 19, "Imported skeleton remains intact")
+	_check(skeleton != null and skeleton.get_bone_count() == (67 if model_id == &"klukai" else 19), "Imported skeleton remains intact")
 	for clip: StringName in [&"Idle", &"Walk", &"Run", &"Sprint", &"Fall"]:
 		_check(animator.get_animation(clip).loop_mode == Animation.LOOP_LINEAR, "Loop flag: " + String(clip))
 	_check(animator.get_animation(&"JumpStart").loop_mode == Animation.LOOP_NONE, "Jump does not loop")
 	_check(absf(animator.get_animation(&"Run").length - 0.600000) < 0.001, "Run duration")
 	_check(absf(animator.get_animation(&"Sprint").length - 0.500000) < 0.001, "Sprint duration")
-	var body: MeshInstance3D = player.get_node("Visual/Model/BasicVoxel_Rig/Skeleton3D/Body") as MeshInstance3D
+	var body: MeshInstance3D = skeleton.find_child("Body", true, false) as MeshInstance3D
 	_check(body.mesh.get_blend_shape_count() == 8, "Eight shoulder corrective shapes imported")
 	_check((body.mesh.surface_get_format(0) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS) != 0, "Eight-weight skin layout preserved")
 	for side: String in ["Left", "Right"]:
@@ -126,7 +133,7 @@ func _run() -> void:
 		for track: int in range(animation.get_track_count()):
 			if animation.track_get_type(track) == Animation.TYPE_BLEND_SHAPE:
 				shape_tracks += 1
-		_check(shape_tracks == 8, String(clip) + " animates all shoulder shapes")
+		_check(shape_tracks == (752 if model_id == &"klukai" else 8), String(clip) + " animates all shoulder shapes")
 	await _place(Vector3(0, 0.1, 3))
 	player.slow_walk_requested = true
 	player.move_intent = Vector3(1, 0, 1)
@@ -152,7 +159,7 @@ func _run() -> void:
 		await _test_window_input()
 	else:
 		print("ENTITY_TEST window input skipped: headless display cannot capture mouse")
-	print("ENTITY_TEST checks=%d failures=%d" % [checks, failures.size()])
+	print("ENTITY_TEST model=%s checks=%d failures=%d" % [model_id, checks, failures.size()])
 	world.queue_free()
 	await _frames(2)
 	quit(0 if failures.is_empty() else 1)

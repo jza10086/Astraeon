@@ -1,6 +1,6 @@
 # 玩家与生物实体
 
-当前玩家使用 Basic Voxel 标准素体：19 骨骼、六套动作与八个肩部修正形态键。entities 负责实例运动、动作和视觉；world 负责地形碰撞与加载。无生物 AI、战斗或玩家状态存档。
+当前玩家可在主菜单选择 Basic Voxel 标准素体或 Klukai；两者遵守 19 根主体骨、六套动作与肩部修正形态键标准。entities 负责实例运动、动作和视觉；world 负责地形碰撞与加载。无生物 AI、战斗或玩家状态存档。
 
 ## 模块
 
@@ -9,7 +9,7 @@
 - common/gdscript/character_motor.gd：共享 CharacterMotor 接受 move_intent、slow_walk_requested、sprint_requested、jump_requested，由控制器每物理帧调用 step。普通速度 4.3 m/s，快跑 5.6 m/s，重力 20，跳高 1.25 米。
 - common/gdscript/character_visual.gd：读取实际速度、垂直速度和接地状态，选择六套动作；同时播放骨骼与肩部修正轨道。
 - player/gdscript/player_controller.gd：玩家输入、相机与复位。
-- player/scenes/player.tscn：胶囊、模型与相机组装；模型引用 player/assets/basic_voxel.glb，保留原玩家模型资源 UID。
+- player/scenes/player.tscn：胶囊、模型与相机组装；Visual 在进入场景树时按已保存的模型 ID 实例化资产。
 
 ## 操作与动作
 
@@ -47,7 +47,15 @@ test_world_player.gd 使用 tmp/basic_voxel_entity_world 与独立光影设置�
 
 现有运动参数：慢走 0.5141 m/s、普通速度 4.3 m/s、快跑 5.6 m/s、重力 20 m/s²、跳高 1.25 m、加速度 25 m/s²、制动 30 m/s²、空中加速度 8 m/s²、土狼时间 0.10 s、跳跃缓冲 0.12 s。它们属于游戏设计，不从动画预览推导。
 
-玩家资源为 game/entities/player/assets/basic_voxel.glb，保留原玩家模型资源 UID；旧 HK416 GLB 和四动作契约已移除，没有兼容别名。测试与状态文档随资产同步更新。
+标准素体资源为 game/entities/player/assets/basic_voxel.glb，保留其资源 UID；旧 HK416 GLB 和四动作契约已移除，没有兼容别名。测试与状态文档随资产同步更新。
 
 
 验证记录见 [资产核对](../../test/entities/reports/basic_voxel_asset_20260926.md)和[接入回归](../../test/entities/reports/basic_voxel_integration_20260926.md)。
+
+## 人物选择与实例化
+
+`common/gdscript/character_models.gd` 保存当前模型目录：`basic_voxel`（标准素体）和 `klukai`（Klukai）。主菜单提供选择、预览和确认；配置写入 `user://settings.cfg` 的 `[character] model`，缺少该项时默认标准素体。保存先载入并保留其他设置节，再写临时文件并重命名；未知 ID 或无法解析的配置不静默兼容。
+
+`CharacterVisual` 只在 `_ready` 中读取一次选择并创建 `Model/AnimationPlayer`。两种模型共用现有运动、碰撞、相机和六动作状态控制器；没有游戏内替换入口。预览使用独立 SubViewport，不创建运动实体或世界地形。退出预览释放模型并停止其视口更新。
+
+Klukai 保留 48 根头发附属骨；本次不添加次级物理。模型切换不改变胶囊、速度、眼高和角色状态，不是运行时换装系统。资源契约见 [人物资源](../resource_specifications.md#klukai-角色变体)，验证见 [模型选择回归](../../test/ui/reports/2026-09-27_character_selection.md)。

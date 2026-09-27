@@ -24,12 +24,16 @@ func _capture(name: String) -> void:
 	root.get_texture().get_image().save_png("res://tmp/first_person_" + name + ".png")
 
 func _run() -> void:
+	var runtime: Node = root.get_node_or_null("MCPRuntimeServer")
+	if runtime != null:
+		runtime.call("_stop_server")
 	create_timer(90.0).timeout.connect(_timeout)
 	world = WORLD.instantiate() as Node3D
 	world.set("world_directory", "res://tmp/first_person_entity_world")
 	world.set("shading_settings_path", "res://tmp/first_person_entity_settings.cfg")
 	world.set("biome_layout", 1)
 	var player: CharacterMotor = world.get_node("Player") as CharacterMotor
+	player.get_node("Visual").set("model_id", &"klukai" if "klukai" in OS.get_cmdline_user_args() else &"basic_voxel")
 	player.get_node("Controller").set("input_enabled", false)
 	root.add_child(world)
 	while not bool(world.get("ready_to_play")):
@@ -60,7 +64,9 @@ func _run() -> void:
 		var mine: InputEventAction = InputEventAction.new()
 		mine.action = "mine_block"
 		mine.pressed = true
+		controller.set("input_enabled", true)
 		world.call("_unhandled_input", mine)
+		controller.set("input_enabled", false)
 		_check(tool.get_voxel(hit.position) == 0, "First person mining uses camera ray")
 		world.call("set_block", hit.position, original)
 	arm.rotation.x = 0.0

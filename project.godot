@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="ASTRAEON"
-run/main_scene="res://game/core/main.tscn"
+run/main_scene="res://game/ui/main_menu/scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 

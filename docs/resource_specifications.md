@@ -257,3 +257,14 @@ BasicVoxel_Rig/Skeleton3D/Body
 
 
 运动和碰撞参数属于 [实体行为](entities/character_entities.md)，不由制作规格推导。资产核对证据见 [交付验证](../test/entities/reports/basic_voxel_asset_20260926.md)。
+
+## Klukai 角色变体
+
+- 来源：`F:/AstraBlender/Projects/klukai_voxel/klukai_voxel.glb` 与同目录 README；项目资产为 `game/entities/player/assets/klukai_voxel.glb`。原文件不修改，14,669,684 字节，SHA-256 `cb7458b4f1432331258eca222dd322ccefa5839c4a9bba919606a6a87ad963f6`。
+- 与标准素体共用 19 根主体骨的名称、层级和静止变换；增加 12 条、每条 4 根的头发骨链，共 67 根骨骼。附属骨不改变主体骨契约，也不参与人物移动碰撞。
+- 328 个网格，其中 94 个带各 8 个肩部修正形态键；六动作每套包含 752 条形态轨道。服装修正目标随动作一并导出，不将素体形态增量直接复制到不同拓扑。
+- 动作仍为 `Idle / Walk / Run / Sprint / JumpStart / Fall`，时长与上述基准相同；保持 240 FPS 导入、关闭优化和压缩。JumpStart 不循环，其余循环。根运动不驱动游戏位置。
+- 动画播放器路径为 `AnimationPlayer`，骨架为 `Klukai_Rig/Skeleton3D`。游戏公共逻辑不依赖具体 Rig 名称。头发骨当前无独立动画轨道，也未启用 Godot 物理。
+- Godot 导入提取的 `klukai_voxel_Body sleeve wrist mask.png` 及其 `.import` 一并纳入资源；这张小贴图使用无损压缩（`compress/mode=0`），避免当前 D3D12 的 VRAM 压缩纹理创建错误。GLB 原始交付仍自包含。
+
+这是一整个角色变体，可在主菜单与标准素体之间选择；尚不支持服装部件拼装或游戏内切换。运行时行为由 [entities](entities/character_entities.md#人物选择与实例化) 定义。

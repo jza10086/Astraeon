@@ -1,7 +1,10 @@
 extends Node3D
 ## Basic Voxel locomotion. Physics owns translation, takeoff and landing.
+const Models: Script = preload("res://game/entities/common/gdscript/character_models.gd")
+@export var model_id: StringName = &""
+@export var settings_path: String = "user://settings.cfg"
 @export var motor: CharacterMotor
-@export var animation_player: AnimationPlayer
+var animation_player: AnimationPlayer
 @export var turn_speed: float = 12.0
 @export var walk_reference_speed: float = 0.5141
 @export var run_reference_speed: float = 4.3
@@ -17,6 +20,16 @@ extends Node3D
 var _clip: StringName = &""
 
 func _ready() -> void:
+	if model_id.is_empty():
+		model_id = Models.load_id(settings_path)
+	var model: Node3D = Models.instantiate(model_id)
+	if model == null:
+		push_error("CharacterVisual cannot load selected model: " + String(model_id))
+		set_process(false)
+		return
+	model.name = "Model"
+	add_child(model)
+	animation_player = model.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if motor == null or animation_player == null:
 		push_error("CharacterVisual requires motor and animation_player.")
 		set_process(false)

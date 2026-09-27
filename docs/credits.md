@@ -28,3 +28,5 @@ The data used in this project was obtained from mocap.cs.cmu.edu.
 The database was created with funding from NSF EIA-0196217.
 
 - Water and light shafts: MakeUp Ultra Fast algorithm reference (Javier Garduño, upstream LGPL-3.0); independently adapted GPU implementation. See [implementation notes](shading/water_light_shafts.md).
+
+- Klukai 角色变体：用户本地 `F:/AstraBlender/Projects/klukai_voxel/klukai_voxel.glb`，原样复制，SHA-256 `cb7458b4f1432331258eca222dd322ccefa5839c4a9bba919606a6a87ad963f6`。包含角色、六套动作、衣物肩部修正和头发附属骨；未附独立再分发许可，不另行声明授权。交付参数见 [资源规格](resource_specifications.md#klukai-角色变体)。

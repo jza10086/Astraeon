@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://ca0kead6hnv8v" path="res://game/entities/common/gdscript/character_motor.gd" id="1"]
 [ext_resource type="Script" uid="uid://cipsxa5pkxbvp" path="res://game/entities/player/gdscript/player_controller.gd" id="2"]
 [ext_resource type="Script" uid="uid://cdvrrm0agn3am" path="res://game/entities/common/gdscript/character_visual.gd" id="3"]
-[ext_resource type="PackedScene" uid="uid://b8qtjk5jryhqb" path="res://game/entities/player/assets/basic_voxel.glb" id="4"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule"]
 radius = 0.3
@@ -21,12 +20,10 @@ script = ExtResource("1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("Capsule")
 
-[node name="Visual" type="Node3D" parent="." unique_id=1239544367 node_paths=PackedStringArray("motor", "animation_player")]
+[node name="Visual" type="Node3D" parent="." unique_id=1239544367 node_paths=PackedStringArray("motor")]
 script = ExtResource("3")
 motor = NodePath("..")
-animation_player = NodePath("Model/AnimationPlayer")
 
-[node name="Model" parent="Visual" unique_id=806828217 instance=ExtResource("4")]
 
 [node name="CameraPivot" type="Node3D" parent="." unique_id=651741482]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)

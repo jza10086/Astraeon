@@ -4,7 +4,7 @@ Godot 4.7 体素生存建造游戏。
 
 ## 启动
 
-新检出先按 [原生后端构建说明](docs/world/native_voxel_backend.md#构建与验证)构建扩展，再用指定 Godot 打开 `project.godot`，F5 运行 `game/core/main.tscn`。DLL 不纳入 Git。
+新检出先按 [原生后端构建说明](docs/world/native_voxel_backend.md#构建与验证)构建扩展，再用指定 Godot 打开 `project.godot`，F5 进入主界面，在左下角「切换人物」选择模型，再选择「单人游戏」进入世界（`game/core/main.tscn`）。DLL 不纳入 Git。
 
 验证前阅读 [开发流程](docs/tooling/development.md)。`tools/check.ps1` 是包含冷导入与启动的检查批次，不能与同 checkout 编辑器并用。
 

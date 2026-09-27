@@ -1,0 +1,240 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://game/ui/main_menu/gdscript/main_menu.gd" id="1"]
+
+[ext_resource type="Theme" path="res://game/ui/resources/menu_theme.tres" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+bg_color = Color(0.09, 0.105, 0.115, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.28, 0.31, 0.32, 1)
+content_margin_left = 36.0
+content_margin_top = 28.0
+content_margin_right = 36.0
+content_margin_bottom = 28.0
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.065, 0.079, 0.09, 1)
+
+[node name="Home" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Brand" type="VBoxContainer" parent="Home"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.22
+anchor_right = 0.5
+anchor_bottom = 0.22
+offset_left = -400.0
+offset_top = -55.0
+offset_right = 400.0
+offset_bottom = 85.0
+grow_horizontal = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Home/Brand"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.95, 0.93, 1)
+theme_override_font_sizes/font_size = 88
+text = "ASTRAEON"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Home/Brand"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.62, 0.63, 1)
+theme_override_font_sizes/font_size = 22
+text = "探索 · 生存 · 建造"
+horizontal_alignment = 1
+
+[node name="Menu" type="VBoxContainer" parent="Home"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.48
+anchor_right = 0.5
+anchor_bottom = 0.48
+offset_left = -300.0
+offset_right = 300.0
+grow_horizontal = 2
+theme_override_constants/separation = 16
+
+[node name="Play" type="Button" parent="Home/Menu"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(600, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+tooltip_text = "进入当前单人世界；已有地形改动会自动读取。"
+text = "单人游戏"
+
+[node name="Multiplayer" type="Button" parent="Home/Menu"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(600, 72)
+layout_mode = 2
+focus_mode = 0
+disabled = true
+theme_override_font_sizes/font_size = 28
+text = "多人游戏 · 暂未开放"
+
+[node name="RowGap" type="Control" parent="Home/Menu"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Secondary" type="HBoxContainer" parent="Home/Menu"]
+layout_mode = 2
+
+[node name="Settings" type="Button" parent="Home/Menu/Secondary"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "设置"
+
+[node name="Quit" type="Button" parent="Home/Menu/Secondary"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "退出游戏"
+
+[node name="Status" type="Label" parent="Home/Menu"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.63, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 20
+text = "从这里，开始你的世界"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Footer" type="MarginContainer" parent="Home"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -78.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 28
+
+[node name="Row" type="HBoxContainer" parent="Home/Footer"]
+layout_mode = 2
+
+[node name="Characters" type="Button" parent="Home/Footer/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+text = "切换人物"
+
+[node name="Build" type="Label" parent="Home/Footer/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.43, 0.49, 0.51, 1)
+theme_override_font_sizes/font_size = 18
+text = "ASTRAEON / 开发中"
+
+[node name="Hint" type="Label" parent="Home/Footer/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.43, 0.49, 0.51, 1)
+theme_override_font_sizes/font_size = 18
+text = "方向键 / Tab 选择    Enter 确认    Esc 返回"
+
+[node name="SettingsPage" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.08
+anchor_right = 0.5
+anchor_bottom = 0.92
+offset_left = -480.0
+offset_right = 480.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="Column" type="VBoxContainer" parent="SettingsPage"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="SettingsPage/Column"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "设置"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="SettingsPage/Column"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.62, 0.68, 0.69, 1)
+text = "画面与环境"
+horizontal_alignment = 1
+
+[node name="SettingsScroll" type="ScrollContainer" parent="SettingsPage/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+follow_focus = true
+
+[node name="SettingsBody" type="VBoxContainer" parent="SettingsPage/Column/SettingsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SettingsStatus" type="Label" parent="SettingsPage/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.65, 0.72, 0.72, 1)
+autowrap_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="SettingsPage/Column"]
+layout_mode = 2
+
+[node name="Back" type="Button" parent="SettingsPage/Column/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "返回"
+
+[node name="Apply" type="Button" parent="SettingsPage/Column/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "保存并返回"
+
+[node name="QuitDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "退出游戏"
+dialog_text = "确定退出 ASTRAEON？"
+ok_button_text = "退出游戏"
+cancel_button_text = "继续停留"
