@@ -54,8 +54,10 @@ test_world_player.gd 使用 tmp/basic_voxel_entity_world 与独立光影设置�
 
 ## 人物选择与实例化
 
-`common/gdscript/character_models.gd` 保存当前模型目录：`basic_voxel`（标准素体）和 `klukai`（Klukai）。主菜单提供选择、预览、确认和本地列表删除；配置写入 `user://settings.cfg` 的 `[character] model`，缺少该项时默认标准素体。同节的 `removed`（PackedStringArray）记录从可选列表移除的模型 ID，不删除资源文件。删除当前模型时在同一次配置写入中保存剩余模型，最后一项不可删除。保存先载入并保留其他设置节，再写临时文件并重命名；未知 ID 或无法解析的配置不静默兼容。
+`common/gdscript/character_models.gd` 合并内置与外部模型目录；内置人物为`basic_voxel`（标准素体）和 `klukai`（Klukai）。主菜单提供选择、预览、确认和本地列表删除；配置写入 `user://settings.cfg` 的 `[character] model`，缺少该项时默认标准素体。同节的 `removed`（PackedStringArray）记录隐藏的内置模型 ID，不删除内置资源。外部模型 ID 为 `user/<完整文件名>`，由 `character_library.gd` 扫描 `user://characters/*.glb` 生成，不需要手改目录代码。删除当前内置模型时在同一次配置写入中保存剩余模型；删除当前外部模型先保存剩余选择，再删除用户目录中的单个 GLB，最后一项不可删除。保存先载入并保留其他设置节，再写临时文件并重命名；未知 ID 或无法解析的配置不静默兼容。
 
 `CharacterVisual` 只在 `_ready` 中读取一次选择并创建 `Model/AnimationPlayer`。两种模型共用现有运动、碰撞、相机和六动作状态控制器；没有游戏内替换入口。预览使用独立 SubViewport，不创建运动实体或世界地形。退出预览释放模型并停止其视口更新。
 
 Klukai 保留 48 根头发附属骨；本次不添加次级物理。模型切换不改变胶囊、速度、眼高和角色状态，不是运行时换装系统。资源契约见 [人物资源](../resource_specifications.md#klukai-角色变体)，验证见 [模型选择回归](../../test/ui/reports/2026-09-27_character_selection.md)。
+
+外部 GLB 使用 GLTFDocument 在运行时加载并生成 PackedScene，不加载外部脚本或编辑器 `.import`。按内容哈希缓存已校验场景；每次打开人物菜单重新扫描，预览/实例化前检查文件变化。外部选择失效时使用首个可用项；外部文件全部消失且内置人物都被隐藏时，标准素体作为可用回退。不更改正在世界中运行的实体。

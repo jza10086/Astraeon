@@ -268,3 +268,13 @@ BasicVoxel_Rig/Skeleton3D/Body
 - Godot 导入提取的 `klukai_voxel_Body sleeve wrist mask.png` 及其 `.import` 一并纳入资源；这张小贴图使用无损压缩（`compress/mode=0`），避免当前 D3D12 的 VRAM 压缩纹理创建错误。GLB 原始交付仍自包含。
 
 这是一整个角色变体，可在主菜单与标准素体之间选择；尚不支持服装部件拼装或游戏内切换。运行时行为由 [entities](entities/character_entities.md#人物选择与实例化) 定义。
+
+## 外部人物运行时导入
+
+用户目录为 `user://characters/`，Windows 当前默认位置 `%APPDATA%/Godot/app_userdata/ASTRAEON/characters`。本阶段采用平铺 GLB 文件，无 character.json；文件名（不含扩展名）作为显示名，完整文件名构成稳定选择 ID。更名相当于新人物。只扫描目录第一层，不接受 .blend/.gltf 或额外脚本。
+
+交付须为自包含 GLB 2.0，贴图和缓冲区嵌入文件，单文件不超过 128 MiB。沿用本文件的 19 根主体骨名称、层级、静止变换和骨架根变换；允许附属骨。场景须有网格、单个 Skeleton3D、根节点下的 AnimationPlayer，六动作名字和时长沿用当前标准。动画和衣物形态键随 GLB 交付，不自动从素体复制。
+
+运行时以 240 FPS、保留不可变轨道、不裁剪生成场景；启用切线和命名蒙皮，关闭网格压缩。显式设置 JumpStart 不循环，其余五动作循环；此路径不执行编辑器导入优化或动画压缩，也不读取 `.import`。当前校验不替代服装变形、脚底对齐和穿模的人工验收。
+
+按钮导入先校验，再复制临时文件并重命名发布；同名不同内容不覆盖。直接放入目录的文件在打开人物菜单时校验，失败文件保留并显示原因，不加入可选列表。更新同名 GLB 后重新打开菜单即可刷新。不修改 Blender 来源文件，也不提供任意骨架自动重定向。

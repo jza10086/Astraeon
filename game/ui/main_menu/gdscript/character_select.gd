@@ -8,6 +8,9 @@ var current_id: StringName = &""
 var selection_changed: bool = false
 var model_buttons: Dictionary[StringName, Button] = {}
 var current_labels: Dictionary[StringName, Label] = {}
+var import_button: Button
+var import_dialog: FileDialog
+var busy: bool = false
 var folder_button: Button
 var delete_button: Button
 var preview_model: Node3D
@@ -42,8 +45,20 @@ func _ready() -> void:
 	heading.clip_text = true
 	heading.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(heading)
+	import_button = Button.new()
+	import_button.text = "导入人物"
+	import_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	import_button.pressed.connect(func() -> void: import_dialog.popup_centered_ratio(0.75))
+	header.add_child(import_button)
+	import_dialog = FileDialog.new()
+	import_dialog.title = "导入人物 GLB"
+	import_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	import_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	import_dialog.filters = PackedStringArray(["*.glb ; 人物 GLB"])
+	import_dialog.file_selected.connect(import_character)
+	add_child(import_dialog)
 	folder_button = Button.new()
-	folder_button.text = "打开文件所在位置"
+	folder_button.text = "打开人物文件夹"
 	folder_button.custom_minimum_size.y = 64
 	folder_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	folder_button.pressed.connect(open_folder)
@@ -52,7 +67,7 @@ func _ready() -> void:
 	delete_button.text = "删除"
 	delete_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	delete_button.pressed.connect(delete_selected)
-	delete_button.tooltip_text = "从人物列表删除，保留模型文件；至少保留一个人物。"
+	delete_button.tooltip_text = "内置人物从列表隐藏；外部人物删除目录内的 GLB。至少保留一个人物。"
 	header.add_child(delete_button)
 	var content: HBoxContainer = HBoxContainer.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -124,6 +139,7 @@ func open(path: String) -> void:
 	heading.text = "选择人物"
 	show()
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	Models.Library.scan()
 	message.hide()
 	var id: StringName = Models.load_id(path)
 	current_id = id
@@ -133,7 +149,7 @@ func open(path: String) -> void:
 		use_button.set_pressed_no_signal(false)
 		use_button.text = "使用此人物"
 		use_button.disabled = true
-		folder_button.disabled = true
+		folder_button.disabled = Models.Library.ensure_directory() != OK
 		delete_button.disabled = true
 	else:
 		preview(id)
@@ -142,8 +158,12 @@ func open(path: String) -> void:
 		model_buttons[id].grab_focus()
 	elif not model_buttons.is_empty():
 		model_buttons.values()[0].grab_focus()
+	if not Models.Library.errors.is_empty():
+		_error("部分人物未能导入：\n" + "\n".join(Models.Library.errors))
 
 func preview(id: StringName) -> void:
+	if busy:
+		return
 	var model: Node3D = Models.instantiate(id)
 	if model == null:
 		_error("人物载入失败，请重新选择。")
@@ -206,8 +226,7 @@ func _sync_selection() -> void:
 	folder_button.tooltip_text = location
 
 func model_folder() -> String:
-	var entry: Dictionary = Models.definition(selected_id)
-	return ProjectSettings.globalize_path(String(entry.path).get_base_dir()) if not entry.is_empty() else ""
+	return ProjectSettings.globalize_path(Models.Library.directory)
 
 func open_folder() -> void:
 	var location: String = model_folder()
@@ -223,6 +242,8 @@ func _error(text: String) -> void:
 	message.show()
 
 func confirm() -> void:
+	if busy:
+		return
 	if selected_id == current_id:
 		_sync_selection()
 		return
@@ -237,8 +258,12 @@ func confirm() -> void:
 	_sync_selection()
 
 func delete_selected() -> void:
+	if busy:
+		return
 	var error: Error = Models.remove_id(selected_id, settings_path)
 	if error != OK:
+		current_id = Models.load_id(settings_path)
+		_sync_selection()
 		_error("删除失败：" + error_string(error))
 		return
 	current_id = Models.load_id(settings_path)
@@ -248,7 +273,8 @@ func delete_selected() -> void:
 	model_buttons[current_id].grab_focus()
 
 func cancel() -> void:
-	_close(false)
+	if not busy:
+		_close(false)
 
 func _close(selected: bool) -> void:
 	hide()
@@ -258,3 +284,26 @@ func _close(selected: bool) -> void:
 		preview_model.queue_free()
 		preview_model = null
 	closed.emit(selected or selection_changed)
+
+func import_character(path: String) -> void:
+	if busy:
+		return
+	busy = true
+	import_button.disabled = true
+	delete_button.disabled = true
+	use_button.disabled = true
+	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_error("正在导入人物…")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var result: Dictionary = Models.Library.import_file(path)
+	busy = false
+	import_button.disabled = false
+	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	if result.has("error"):
+		_sync_selection()
+		_error(String(result.error))
+		return
+	_build_list()
+	preview(result.id)
+	model_buttons[result.id].grab_focus()

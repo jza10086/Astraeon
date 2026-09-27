@@ -1,5 +1,6 @@
 extends RefCounted
 ## Current character catalog. Selection is read once when a player enters the tree.
+const Library: Script = preload("res://game/entities/common/gdscript/character_library.gd")
 const MODELS: Array[Dictionary] = [
 	{"id": &"basic_voxel", "name": "标准素体", "path": "res://game/entities/player/assets/basic_voxel.glb"},
 	{"id": &"klukai", "name": "Klukai", "path": "res://game/entities/player/assets/klukai_voxel.glb"},
@@ -9,7 +10,7 @@ static func definition(id: StringName) -> Dictionary:
 	for entry: Dictionary in MODELS:
 		if entry.id == id:
 			return entry
-	return {}
+	return Library.definition(id)
 
 static func load_id(path: String = "user://settings.cfg") -> StringName:
 	var config: ConfigFile = ConfigFile.new()
@@ -19,7 +20,12 @@ static func load_id(path: String = "user://settings.cfg") -> StringName:
 	if error != OK:
 		return &""
 	var id: StringName = StringName(str(config.get_value("character", "model", "basic_voxel")))
-	return id if _contains(available(path), id) else &""
+	var choices: Array[Dictionary] = available(path)
+	if _contains(choices, id):
+		return id
+	if String(id).begins_with("user/") and not choices.is_empty():
+		return choices[0].id
+	return &""
 
 static func save_id(id: StringName, path: String = "user://settings.cfg") -> Error:
 	if not _contains(available(path), id):
@@ -39,6 +45,8 @@ static func _save(config: ConfigFile, path: String) -> Error:
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary), ProjectSettings.globalize_path(path))
 
 static func instantiate(id: StringName) -> Node3D:
+	if String(id).begins_with("user/"):
+		return Library.instantiate(id)
 	var entry: Dictionary = definition(id)
 	if entry.is_empty():
 		return null
@@ -61,6 +69,12 @@ static func available(path: String = "user://settings.cfg") -> Array[Dictionary]
 	for entry: Dictionary in MODELS:
 		if not String(entry.id) in removed:
 			result.append(entry)
+	# Populate external entries lazily when entering a world directly.
+	Library.ensure_scanned()
+	result.append_array(Library.entries)
+	# External files can disappear outside the game; retain a usable built-in fallback.
+	if result.is_empty():
+		result.append(MODELS[0])
 	return result
 
 static func _contains(entries: Array[Dictionary], id: StringName) -> bool:
@@ -75,6 +89,16 @@ static func remove_id(id: StringName, path: String = "user://settings.cfg") -> E
 		return ERR_INVALID_DATA
 	if entries.size() <= 1 or not _contains(entries, id):
 		return ERR_INVALID_PARAMETER
+	if String(id).begins_with("user/"):
+		var current: StringName = load_id(path)
+		if current == id:
+			for entry: Dictionary in entries:
+				if entry.id != id:
+					var saved: Error = save_id(entry.id, path)
+					if saved != OK:
+						return saved
+					break
+		return Library.delete_file(id)
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
 	if error != OK and error != ERR_FILE_NOT_FOUND:
