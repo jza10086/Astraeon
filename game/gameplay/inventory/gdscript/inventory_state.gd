@@ -11,6 +11,8 @@ var locked: bool = false
 ## Optional durable commit guard(snapshot, edit_context) -> bool. Called before publication.
 var before_commit: Callable
 var _slots: Array[AstraeonItemStack] = []
+## Independent transient stack, deliberately excluded from snapshots.
+var _cursor: AstraeonItemStack
 
 func configure(item_catalog: AstraeonItemCatalog, layout: AstraeonInventoryDefinition) -> bool:
 	if definition != null or not item_catalog.validate().is_empty() or layout.hotbar_slots != 10 or layout.storage_rows != 3:
@@ -52,6 +54,7 @@ func restore(data: Dictionary) -> bool:
 			return false
 		candidate.append(AstraeonItemStack.new(items[key], int(quantity)))
 	_slots = candidate
+	_cursor = null
 	selected = int(choice)
 	revision += 1
 	changed.emit()
@@ -67,11 +70,16 @@ func _copy_slots() -> Array[AstraeonItemStack]:
 	return result
 
 func _commit(candidate: Array[AstraeonItemStack], choice: int, context: Dictionary = {}) -> bool:
+	return _commit_with_cursor(candidate, choice, _cursor, context)
+
+## Publish slot and cursor changes together, only after the durable slot write succeeds.
+func _commit_with_cursor(candidate: Array[AstraeonItemStack], choice: int, cursor: AstraeonItemStack, context: Dictionary = {}) -> bool:
 	if locked:
 		return false
 	if before_commit.is_valid() and not bool(before_commit.call(_encode(candidate, choice), context)):
 		return false
 	_slots = candidate
+	_cursor = cursor
 	selected = choice
 	revision += 1
 	changed.emit()
@@ -172,3 +180,74 @@ func quick_move(source: int) -> bool:
 		return false
 	candidate[source] = AstraeonItemStack.new(from.item, left) if left > 0 else null
 	return _commit(candidate, selected)
+
+## Returns a copy; the cursor never reserves an inventory slot or enters the save payload.
+func cursor_stack() -> AstraeonItemStack:
+	return _cursor.copy() if _cursor != null else null
+
+func _set_cursor(stack: AstraeonItemStack) -> void:
+	_cursor = stack
+	revision += 1
+	changed.emit()
+
+## Creative catalog: left adds one (or replaces a different item); middle copies a full stack.
+func creative_pick(key: StringName, whole_stack: bool = false) -> bool:
+	if locked or not items.has(key) or items[key].block == null:
+		return false
+	var count: int = items[key].max_stack if whole_stack else 1
+	if not whole_stack and _cursor != null and _cursor.item.key == key:
+		count = mini(_cursor.count + 1, items[key].max_stack)
+	_set_cursor(AstraeonItemStack.new(items[key], count))
+	return true
+
+## Creative middle-click on an owned slot copies its type without consuming the source.
+func clone_to_cursor(index: int) -> bool:
+	var stack: AstraeonItemStack = stack_at(index)
+	if locked or stack == null:
+		return false
+	_set_cursor(AstraeonItemStack.new(stack.item, stack.item.max_stack))
+	return true
+
+## Left picks up/deposits a stack; right picks up half or deposits one. Different items swap.
+func click_slot(index: int, right: bool = false) -> bool:
+	if locked or index < 0 or index >= _slots.size():
+		return false
+	var candidate: Array[AstraeonItemStack] = _copy_slots()
+	var target: AstraeonItemStack = candidate[index]
+	var carried: AstraeonItemStack = cursor_stack()
+	if carried == null:
+		if target == null:
+			return false
+		var amount: int = ceili(target.count / 2.0) if right else target.count
+		carried = AstraeonItemStack.new(target.item, amount)
+		target.count -= amount
+		if target.count == 0:
+			candidate[index] = null
+	elif target != null and target.item.key != carried.item.key:
+		candidate[index] = carried
+		carried = target
+	else:
+		var capacity_left: int = carried.item.max_stack - (target.count if target != null else 0)
+		var amount: int = mini(1 if right else carried.count, capacity_left)
+		if amount == 0:
+			return false
+		candidate[index] = AstraeonItemStack.new(carried.item, amount + (target.count if target != null else 0))
+		carried.count -= amount
+		if carried.count == 0:
+			carried = null
+	return _commit_with_cursor(candidate, selected, carried)
+
+## Deletion is allowed even while saving: pickup already removed these items durably.
+## Closing the bag discards the entire transient stack; no ground drop is spawned.
+func discard_cursor(one: bool = false) -> void:
+	if _cursor == null:
+		return
+	var remaining: AstraeonItemStack = cursor_stack()
+	remaining.count -= 1 if one else remaining.count
+	_set_cursor(remaining if remaining.count > 0 else null)
+
+## Shift-clicking the creative trash removes stored and carried items in one guarded transaction.
+func clear_inventory() -> bool:
+	var empty: Array[AstraeonItemStack] = []
+	empty.resize(_slots.size())
+	return _commit_with_cursor(empty, selected, null)

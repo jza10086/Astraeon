@@ -1,20 +1,24 @@
 class_name AstraeonInventoryHUD
 extends Control
-## Ten-slot hotbar and a 10x3 storage grid. Both views reference the same inventory.
+## Creative categories above, search at upper right, storage at lower right.
+## Slots and the independent transient mouse stack are owned by InventoryState.
 signal open_changed(opened: bool)
 var inventory: AstraeonInventoryState
 var can_interact: Callable
-var source_slot: int = -1
-var source_count: int = 0
-var source_revision: int = -1
 var opened: bool = false
+var page: StringName = &""
 var creative_browser: VBoxContainer
 var _bag: CenterContainer
 var _shade: ColorRect
 var _bar: HBoxContainer
 var _selected_name: Label
-var _instructions: Label
-var _cursor_preview: Label
+var _cursor_preview: Control
+var _storage: VBoxContainer
+var _title: Label
+var _trash: Button
+var _search_tab: Button
+var _storage_tab: Button
+var _tabs: Dictionary[StringName, Button] = {}
 var _slots: Array[AstraeonInventorySlot] = []
 
 func _ready() -> void:
@@ -30,6 +34,21 @@ func _ready() -> void:
 	_bag.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_bag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bag)
+	var shell: VBoxContainer = VBoxContainer.new()
+	shell.add_theme_constant_override("separation", 0)
+	_bag.add_child(shell)
+	var top: HBoxContainer = HBoxContainer.new()
+	top.custom_minimum_size.y = 50
+	shell.add_child(top)
+	var category_scroll: ScrollContainer = ScrollContainer.new()
+	category_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	top.add_child(category_scroll)
+	var categories: HBoxContainer = HBoxContainer.new()
+	category_scroll.add_child(categories)
+	for key: StringName in inventory.catalog.creative_groups:
+		_add_tab(categories, key, inventory.catalog.creative_groups[key])
+	_search_tab = _add_tab(top, &"search", "搜索")
 	var frame: PanelContainer = PanelContainer.new()
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color("b9babc")
@@ -40,45 +59,56 @@ func _ready() -> void:
 	style.content_margin_top = 18
 	style.content_margin_bottom = 18
 	frame.add_theme_stylebox_override("panel", style)
-	_bag.add_child(frame)
+	shell.add_child(frame)
 	var column: VBoxContainer = VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
 	frame.add_child(column)
 	var heading: HBoxContainer = HBoxContainer.new()
 	column.add_child(heading)
-	var title: Label = _label("物品栏", 24, Color("202329"))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(title)
+	_title = _label("", 24, Color("202329"))
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(_title)
 	var close: Button = Button.new()
-	close.text = "关闭  [E / Esc]"
+	close.text = "关闭 [E / Esc]"
 	close.focus_mode = Control.FOCUS_NONE
 	close.pressed.connect(func() -> void: set_open(false))
 	heading.add_child(close)
-	var tabs: TabContainer = TabContainer.new()
-	column.add_child(tabs)
-	var storage: VBoxContainer = VBoxContainer.new()
-	storage.name = "储物栏"
-	tabs.add_child(storage)
-	creative_browser = preload("res://game/ui/inventory/gdscript/creative_browser.gd").new()
-	creative_browser.name = "创造选取"
-	creative_browser.inventory = inventory
-	tabs.add_child(creative_browser)
-	tabs.tab_changed.connect(func(_tab: int) -> void: cancel_source())
+	_storage = VBoxContainer.new()
+	_storage.custom_minimum_size = Vector2(660, 304)
+	column.add_child(_storage)
+	_storage.add_child(_label("储物栏", 18, Color("343941")))
 	var grid: GridContainer = GridContainer.new()
 	grid.columns = 10
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 4)
-	storage.add_child(grid)
+	_storage.add_child(grid)
 	for index: int in range(10, 40):
 		_add_slot(grid, index, true)
+	_storage.add_child(_label("左键拿起 / 放下 · 右键拆半 / 放一个\n中键复制一组 · Shift+左键快速转移", 16, Color("343941")))
+	creative_browser = preload("res://game/ui/inventory/gdscript/creative_browser.gd").new()
+	creative_browser.inventory = inventory
+	column.add_child(creative_browser)
 	column.add_child(_label("快捷栏 · 1—0", 16, Color("343941")))
 	var quick: HBoxContainer = HBoxContainer.new()
 	quick.add_theme_constant_override("separation", 4)
 	column.add_child(quick)
 	for index: int in range(10):
 		_add_slot(quick, index, true)
-	_instructions = _label("左键移动 / 合并 · 右键拆半 / 放一个 · Shift+左键快速转移", 15, Color("343941"))
-	column.add_child(_instructions)
+	column.add_child(_label("手上物品不占栏位 · 点击面板外或关闭背包会移除手上物品", 15, Color("343941")))
+	var lower: HBoxContainer = HBoxContainer.new()
+	lower.custom_minimum_size.y = 50
+	shell.add_child(lower)
+	_trash = Button.new()
+	_trash.text = "移除物品"
+	_trash.custom_minimum_size = Vector2(104, 48)
+	_trash.focus_mode = Control.FOCUS_NONE
+	_trash.tooltip_text = "左键移除手上整组 · 右键移除一个\nShift+左键清空储物栏与快捷栏"
+	_trash.gui_input.connect(_trash_input)
+	lower.add_child(_trash)
+	var spacer: Control = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lower.add_child(spacer)
+	_storage_tab = _add_tab(lower, &"storage", "储物栏")
 	var bottom: MarginContainer = MarginContainer.new()
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	bottom.offset_top = -116
@@ -92,8 +122,6 @@ func _ready() -> void:
 	_selected_name = _label("", 20, Color.WHITE)
 	_selected_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_selected_name.add_theme_color_override("font_shadow_color", Color.BLACK)
-	_selected_name.add_theme_constant_override("shadow_offset_x", 2)
-	_selected_name.add_theme_constant_override("shadow_offset_y", 2)
 	centered.add_child(_selected_name)
 	_bar = HBoxContainer.new()
 	_bar.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -102,12 +130,11 @@ func _ready() -> void:
 	centered.add_child(_bar)
 	for index: int in range(10):
 		_add_slot(_bar, index, false)
-	_cursor_preview = _label("", 20, Color.WHITE)
-	_cursor_preview.add_theme_color_override("font_shadow_color", Color.BLACK)
-	_cursor_preview.add_theme_constant_override("shadow_offset_x", 2)
-	_cursor_preview.add_theme_constant_override("shadow_offset_y", 2)
+	_cursor_preview = preload("res://game/ui/inventory/gdscript/item_icon.gd").new()
+	_cursor_preview.z_index = 100
 	add_child(_cursor_preview)
 	inventory.changed.connect(_refresh)
+	set_page(inventory.catalog.creative_groups.keys()[0] if not inventory.catalog.creative_groups.is_empty() else &"search")
 	set_open(false)
 	_refresh()
 
@@ -127,6 +154,49 @@ func _add_slot(parent: Control, index: int, in_bag: bool) -> void:
 	slot.in_bag = in_bag
 	parent.add_child(slot)
 	_slots.append(slot)
+
+func _add_tab(parent: Control, key: StringName, title: String) -> Button:
+	var button: Button = Button.new()
+	button.text = title
+	button.custom_minimum_size = Vector2(104, 48)
+	button.toggle_mode = true
+	var normal: StyleBoxFlat = StyleBoxFlat.new()
+	normal.bg_color = Color("85878c")
+	normal.border_color = Color("dadbdd")
+	normal.set_border_width_all(2)
+	var active: StyleBoxFlat = normal.duplicate()
+	active.bg_color = Color("b9babc")
+	active.border_color = Color("ededec")
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = Color("a5a7ac")
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("pressed", active)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("hover_pressed", active)
+	button.add_theme_color_override("font_color", Color("202329"))
+	button.add_theme_color_override("font_pressed_color", Color("202329"))
+	button.add_theme_color_override("font_hover_color", Color("202329"))
+	button.add_theme_color_override("font_hover_pressed_color", Color("202329"))
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(func() -> void: set_page(key))
+	parent.add_child(button)
+	_tabs[key] = button
+	return button
+
+## Tab switching preserves the carried stack. Only the dedicated search page uses query text.
+func set_page(key: StringName) -> void:
+	if not _tabs.has(key):
+		return
+	page = key
+	for tab: StringName in _tabs:
+		_tabs[tab].set_pressed_no_signal(tab == key)
+	_storage.visible = key == &"storage"
+	_trash.visible = key == &"storage"
+	creative_browser.visible = key != &"storage"
+	creative_browser.search.release_focus()
+	_title.text = "储物栏" if key == &"storage" else ("搜索方块" if key == &"search" else inventory.catalog.creative_groups[key])
+	if key != &"storage":
+		creative_browser.show_page(&"" if key == &"search" else key, key == &"search")
 
 func _register_inputs() -> void:
 	var bindings: Dictionary[StringName, int] = {&"inventory_toggle": KEY_E}
@@ -177,76 +247,51 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func set_open(value: bool) -> void:
-	if not value and creative_browser != null:
+	if not value:
 		creative_browser.search.release_focus()
+		inventory.discard_cursor()
 	opened = value
 	_shade.visible = value
 	_bag.visible = value
 	_bar.visible = not value
 	_selected_name.visible = not value
-	cancel_source()
+	_refresh()
 	open_changed.emit(value)
 
 func _refresh() -> void:
 	var stack: AstraeonItemStack = inventory.stack_at(inventory.selected)
 	_selected_name.text = (stack.item.display_name if stack != null else "空槽") + "   ·   E 物品栏"
-	if source_slot >= 0 and source_revision != inventory.revision:
-		cancel_source()
+	_cursor_preview.stack = inventory.cursor_stack()
+	_cursor_preview.visible = opened and _cursor_preview.stack != null
+	_cursor_preview.queue_redraw()
+	set_process(_cursor_preview.visible)
+	if _cursor_preview.visible:
+		_process(0.0)
 
-func cancel_source() -> void:
-	source_slot = -1
-	source_count = 0
-	if _cursor_preview != null:
-		_cursor_preview.hide()
-	set_process(false)
-	for slot: AstraeonInventorySlot in _slots:
-		slot.queue_redraw()
-
-func slot_clicked(index: int, right: bool, quick: bool) -> void:
+func slot_clicked(index: int, button: MouseButton, quick: bool = false) -> void:
 	if inventory.locked:
 		return
 	if not opened:
 		inventory.select(index)
-		return
-	if quick:
+	elif button == MOUSE_BUTTON_MIDDLE:
+		inventory.clone_to_cursor(index)
+	elif button == MOUSE_BUTTON_LEFT and quick:
 		inventory.quick_move(index)
-		cancel_source()
-		return
-	if source_slot < 0:
-		var stack: AstraeonItemStack = inventory.stack_at(index)
-		if stack == null:
-			return
-		source_slot = index
-		source_count = ceili(stack.count / 2.0) if right else stack.count
-		source_revision = inventory.revision
-	elif source_slot == index:
-		cancel_source()
-	else:
-		var old_source: int = source_slot
-		var old_count: int = source_count
-		var old_stack: AstraeonItemStack = inventory.stack_at(old_source)
-		var moved: bool = inventory.move(old_source, index, 1 if right else old_count, source_revision)
-		cancel_source()
-		var remaining: AstraeonItemStack = inventory.stack_at(old_source)
-		if moved and remaining != null and remaining.item.key == old_stack.item.key:
-			var carried: int = old_count - (old_stack.count - remaining.count)
-			if carried > 0:
-				source_slot = old_source
-				source_count = mini(carried, remaining.count)
-				source_revision = inventory.revision
-	if source_slot >= 0:
-		_cursor_preview.text = inventory.stack_at(source_slot).item.display_name + " × " + str(source_count)
-		_cursor_preview.show()
-		set_process(true)
-		_process(0.0)
-	for slot: AstraeonInventorySlot in _slots:
-		slot.queue_redraw()
+	elif button in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		inventory.click_slot(index, button == MOUSE_BUTTON_RIGHT)
 
 func _process(_delta: float) -> void:
-	if _cursor_preview != null:
-		_cursor_preview.position = get_local_mouse_position() + Vector2(18, 18)
+	_cursor_preview.position = get_local_mouse_position() - Vector2(30, 30)
 
 func _background_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		cancel_source()
+	if opened and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		inventory.discard_cursor(event.button_index == MOUSE_BUTTON_RIGHT)
 		accept_event()
+
+func _trash_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.shift_pressed:
+			inventory.clear_inventory()
+		else:
+			inventory.discard_cursor(event.button_index == MOUSE_BUTTON_RIGHT)
+		_trash.accept_event()

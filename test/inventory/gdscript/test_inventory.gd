@@ -91,15 +91,15 @@ func test_ui() -> void:
 	var state: AstraeonInventoryState = sample.inventory
 	check(hud._slots.size() == 50, "40 bag slots plus ten views of the hotbar")
 	var before: int = state.stack_at(0).count
-	hud.slot_clicked(0, true, false)
-	hud.slot_clicked(20, false, false)
+	hud.slot_clicked(0, MOUSE_BUTTON_RIGHT)
+	hud.slot_clicked(20, MOUSE_BUTTON_LEFT)
 	check(state.stack_at(20).count == ceili(before / 2.0), "Right click half then left click deposit")
-	hud.slot_clicked(0, false, false)
-	hud.slot_clicked(21, true, false)
-	hud.slot_clicked(22, true, false)
-	check(state.stack_at(21).count == 1 and state.stack_at(22).count == 1 and hud.source_slot == 0, "Repeated right click distributes single items")
+	hud.slot_clicked(0, MOUSE_BUTTON_LEFT)
+	hud.slot_clicked(21, MOUSE_BUTTON_RIGHT)
+	hud.slot_clicked(22, MOUSE_BUTTON_RIGHT)
+	check(state.stack_at(21).count == 1 and state.stack_at(22).count == 1 and state.cursor_stack() != null, "Repeated right click distributes single items")
 	hud.set_open(false)
-	check(hud.source_slot == -1 and state.stack_at(0) != null, "Closing cancels preview without loss")
+	check(state.cursor_stack() == null and state.stack_at(0) == null, "Closing deletes carried stack without restoring source")
 	for index: int in range(10):
 		var event: InputEventKey = InputEventKey.new()
 		event.physical_keycode = KEY_0 if index == 9 else KEY_1 + index
@@ -123,12 +123,11 @@ func test_ui() -> void:
 		check(hud.get_global_rect().encloses(frame.get_global_rect()), "Bag fits " + str(resolution))
 		var first: Rect2 = hud._slots[0].get_global_rect()
 		check(is_equal_approx(first.size.x, first.size.y), "Square slots " + str(resolution))
-	var drag: Dictionary = {"inventory": state, "source": 20, "revision": state.revision, "count": state.stack_at(20).count}
-	var target: AstraeonInventorySlot = hud._slots[3]
-	check(target._can_drop_data(Vector2.ZERO, drag), "Accept matching live drag")
-	target._drop_data(Vector2.ZERO, drag)
-	check(state.stack_at(20) == null and state.stack_at(13) != null, "Drop transfers source")
-	check(not target._can_drop_data(Vector2.ZERO, drag), "Reject stale drag after mutation")
+	hud.set_page(&"storage")
+	hud.slot_clicked(20, MOUSE_BUTTON_LEFT)
+	check(state.stack_at(20) == null and state.cursor_stack() != null, "Pickup immediately frees source")
+	hud.slot_clicked(13, MOUSE_BUTTON_LEFT)
+	check(state.stack_at(13) != null and state.cursor_stack() == null, "Click deposits carried stack")
 	if DisplayServer.get_name() != "headless":
 		root.size = Vector2i(1920,1080)
 		await process_frame

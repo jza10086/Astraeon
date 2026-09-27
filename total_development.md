@@ -41,6 +41,6 @@ C++ 承担体素基础设施热路径，GDScript 承担玩法编排、UI 和测�
 
 物品栏当前闭环与限制见 [物品栏](docs/gameplay/inventory.md)；样板入口 test/inventory/scenes/inventory_sample.tscn。
 
-物品栏已增加创造选取工具：有序主组、sub tag 搜索、点击领取方块；完整生存/创造模式规则尚未实现。
+创造背包已接入分类标签、右上搜索、右下储物栏；左键取一个、中键取一组至独立鼠标堆叠，点击放入、关闭直接移除。完整生存/创造模式规则尚未实现。
 
 人物选择闭环已接入：主菜单左下角入口 → 可滚动模型列表与独立动画预览 → 保存选择 → 进入世界实例化。只支持主菜单选择，游戏内不替换实体模型；详见 [UI](docs/ui/README.md#人物选择菜单) 与 [entities](docs/entities/character_entities.md#人物选择与实例化)。

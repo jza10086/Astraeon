@@ -1,0 +1,10 @@
+{
+  "game/gameplay/inventory/gdscript/inventory_state.gd": "e02f67b829182829948dcd0847ae5afb38ce2b9fe9ac5c13dd5a18b95bccd468",
+  "game/ui/inventory/gdscript/creative_browser.gd": "9cc6979ac4493aa2ba7605b68291fe647068be14485f45046bb5c02eaf828b97",
+  "game/ui/inventory/gdscript/creative_cell.gd": "58fd15fd4ad4368c6dfc71ed7b57b8ce78f0d77a5f0ddd4992ccfaa7dbadea17",
+  "game/ui/inventory/gdscript/inventory_hud.gd": "0fae6357f3994e9bab15b97e3842502e40cf485ac9df8415df3a1da5b2691d78",
+  "game/ui/inventory/gdscript/inventory_slot.gd": "c3a51ea0192bca9ed365ba000783d7f298aebe23012415aad04b6b015eddd804",
+  "game/ui/inventory/gdscript/item_icon.gd": "98f1e7869ade4e78384bf63cf87d6a0c30f28d4eefc6f949bb233fdd0494e4cd",
+  "test/inventory/gdscript/test_creative.gd": "23f4991d966e7627c45d5eee142865f0b5ebc005fb2636b83651a432b2b158b8",
+  "test/inventory/gdscript/test_inventory.gd": "e87cab8ed87224e240187a473fba3d762aac7bc2eecb265b02d14f8aa90cfaea"
+}

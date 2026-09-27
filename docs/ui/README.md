@@ -24,9 +24,9 @@
 
 ## 物品栏与快捷栏
 
-新增 game/ui/inventory：底部 10 格快捷栏、居中 3×10 储物区及同源快捷栏；60×60 槽位、4 像素间隙，简单灰色矩形材质。支持 E/Esc、数字 1—0、滚轮、拖放、拆分/合并、整堆交换和 Shift 快速转移。输入互斥、持久化及范围见 [物品栏](../gameplay/inventory.md)。独立交互入口为 test/inventory/scenes/inventory_sample.tscn。
+新增 game/ui/inventory：底部 10 格快捷栏、居中 3×10 储物区及同源快捷栏；60×60 槽位、4 像素间隙，简单灰色矩形材质。支持 E/Esc、数字 1—0、滚轮、点击取放、拆分/合并、整堆交换和 Shift 快速转移。输入互斥、持久化及范围见 [物品栏](../gameplay/inventory.md)。独立交互入口为 test/inventory/scenes/inventory_sample.tscn。
 
-物品栏「创造选取」页支持主组分页、名称/ID/sub tag 搜索、点击领取一组及满栏反馈；搜索框隔离 E/数字快捷键。详见 [分类设计](../gameplay/inventory.md#创造选取与分类)。
+创造背包采用上方分类标签、右上搜索、右下储物栏，目录左键拿一个、中键拿一组；独立鼠标堆叠跟随指针、不预留槽位，点击实际槽位才放入。关闭背包直接移除手上物品；储物页提供移除格。搜索框隔离 E/数字快捷键。详见 [分类设计](../gameplay/inventory.md#创造选取与分类)。
 
 ## 人物选择菜单
 
