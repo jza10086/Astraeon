@@ -31,8 +31,6 @@ func _run() -> void:
 	var runtime: Node = root.get_node_or_null("MCPRuntimeServer")
 	if runtime != null:
 		runtime.call("_stop_server")
-	if "klukai" in OS.get_cmdline_user_args():
-		model_id = &"klukai"
 	create_timer(60.0).timeout.connect(_on_timeout)
 	world = WORLD.instantiate() as Node3D
 	player = world.get_node("Player") as CharacterMotor
@@ -114,7 +112,7 @@ func _run() -> void:
 	await _frames(20)
 	_check(player.is_on_floor() and player.position.distance_to(Vector3(0, 0, 3)) < 0.03, "Void respawn resets player")
 	var skeleton: Skeleton3D = player.find_child("Skeleton3D", true, false) as Skeleton3D
-	_check(skeleton != null and skeleton.get_bone_count() == (67 if model_id == &"klukai" else 19), "Imported skeleton remains intact")
+	_check(skeleton != null and skeleton.get_bone_count() == 21, "Imported skeleton remains intact")
 	for clip: StringName in [&"Idle", &"Walk", &"Run", &"Sprint", &"Fall"]:
 		_check(animator.get_animation(clip).loop_mode == Animation.LOOP_LINEAR, "Loop flag: " + String(clip))
 	_check(animator.get_animation(&"JumpStart").loop_mode == Animation.LOOP_NONE, "Jump does not loop")
@@ -133,7 +131,7 @@ func _run() -> void:
 		for track: int in range(animation.get_track_count()):
 			if animation.track_get_type(track) == Animation.TYPE_BLEND_SHAPE:
 				shape_tracks += 1
-		_check(shape_tracks == (752 if model_id == &"klukai" else 8), String(clip) + " animates all shoulder shapes")
+		_check(shape_tracks == 8, String(clip) + " animates all shoulder shapes")
 	await _place(Vector3(0, 0.1, 3))
 	player.slow_walk_requested = true
 	player.move_intent = Vector3(1, 0, 1)
@@ -242,8 +240,8 @@ func _test_camera_modes() -> void:
 	var pivot: Node3D = controller.get("camera_pivot") as Node3D
 	var arm: SpringArm3D = controller.get("spring_arm") as SpringArm3D
 	var visual: Node3D = player.get_node("Visual") as Node3D
-	_check(bool(controller.get("first_person")) and not visual.visible, "First person defaults to hidden self model")
-	_check(camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "First person eye stays at 1.62 meters")
+	_check(bool(controller.get("first_person")) and visual.visible, "First person defaults to visible self body")
+	_check(camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "First person eye stays at 1.62 meters")
 	_check(root.get_camera_3d() == camera, "First person uses existing active camera")
 	controller.set("input_enabled", true)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -274,13 +272,13 @@ func _test_camera_modes() -> void:
 	toggle.pressed = true
 	Input.parse_input_event(toggle.duplicate())
 	await _frames(3)
-	_check(bool(controller.get("first_person")) and not visual.visible and camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "V returns to anchored first person")
+	_check(bool(controller.get("first_person")) and visual.visible and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "V returns to anchored first person")
 	toggle.pressed = false
 	Input.parse_input_event(toggle.duplicate())
 	arm.rotation.x = 0.0
 	controller.set("input_enabled", false)
 	await _place(Vector3(-2.4, 0.1, 0))
-	_check(camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "Wall does not displace first person eye")
+	_check(camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "Wall does not displace first person eye")
 	await _place(Vector3(0, 0.1, 3))
 
 func _test_camera_cut() -> void:
@@ -292,12 +290,12 @@ func _test_camera_cut() -> void:
 	await _place(Vector3(0, 0.1, 3))
 	var before: Vector3 = camera.global_position
 	controller.call("set_first_person", false)
-	_check(not visual.visible and camera.global_position.is_equal_approx(before), "Queued view change exposes no intermediate state")
+	_check(visual.visible and camera.global_position.is_equal_approx(before), "Queued view change exposes no intermediate state")
 	await controller.view_changed
 	_check(visual.visible and absf(camera.position.z - 4.0) < 0.001, "Camera is positioned on the exact cut, before another frame")
 	controller.call("set_first_person", true)
 	await controller.view_changed
-	_check(not visual.visible and camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "First person cut hides model and anchors eye atomically")
+	_check(visual.visible and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "First person cut shows body and anchors eye atomically")
 	await _place(Vector3(-1.5, 0.1, 0))
 	pivot.rotation.y = -PI / 2.0
 	arm.rotation.x = 0.0

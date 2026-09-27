@@ -22,4 +22,4 @@
 
 [切换瞬间回归](../../test/entities/reports/view_cut_20260926.md)、[第一人称回归](../../test/entities/reports/first_person_20260926.md)、[慢走回归](../../test/entities/reports/slow_walk_20260926.md)、[测试入口](../../test/entities/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
 
-人物模型：主菜单可选择标准素体或 Klukai，实体生成时读取一次本地选择，游戏内不支持替换。详见 [人物选择与实例化](character_entities.md#人物选择与实例化)。
+人物模型：主菜单可选择标准素体或导入人物，实体生成时读取一次本地选择，游戏内不支持替换。详见 [人物选择与实例化](character_entities.md#人物选择与实例化)。

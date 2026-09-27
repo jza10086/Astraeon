@@ -4,7 +4,6 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 const Library: Script = preload("res://game/entities/common/gdscript/character_library.gd")
 const MODELS: Array[Dictionary] = [
 	{"id": &"basic_voxel", "name": "标准素体", "path": "res://game/entities/player/assets/basic_voxel.glb"},
-	{"id": &"klukai", "name": "Klukai", "path": "res://game/entities/player/assets/klukai_voxel.glb"},
 ]
 
 static func definition(id: StringName) -> Dictionary:

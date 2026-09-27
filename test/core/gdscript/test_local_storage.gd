@@ -36,9 +36,9 @@ func run() -> void:
 	config.save(temporary)
 	var selected: Dictionary = Content.selected(PackedStringArray(), temporary)
 	check(selected.get("paths", PackedStringArray()) == PackedStringArray([Paths.blocks_directory().path_join("example.aebpack")]), "Content paths use project blocks directory")
-	check(Models.save_id(&"klukai", temporary) == OK and Models.load_id(temporary) == &"klukai", "Character selection roundtrip")
+	check(Models.save_id(&"basic_voxel", temporary) == OK and Models.load_id(temporary) == &"basic_voxel", "Character selection roundtrip")
 	var profile: Profile = Profile.new()
-	check(profile.save_settings(temporary) == OK and Profile.new().load_settings(temporary) == OK and Models.load_id(temporary) == &"klukai", "Shared settings preserve character selection")
+	check(profile.save_settings(temporary) == OK and Profile.new().load_settings(temporary) == OK and Models.load_id(temporary) == &"basic_voxel", "Shared settings preserve character selection")
 	menu.queue_free()
 	await process_frame
 	print("LOCAL_STORAGE_TEST checks=%d failures=%d" % [checks, failures])

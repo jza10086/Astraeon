@@ -2,7 +2,7 @@ extends RefCounted
 const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## External, self-contained GLBs. Editor imports and scripts are never loaded here.
 const BASE: PackedScene = preload("res://game/entities/player/assets/basic_voxel.glb")
-const CLIPS: Dictionary[StringName, float] = {&"Idle": 3.0, &"Walk": 64.0 / 60.0, &"Run": 0.6, &"Sprint": 0.5, &"JumpStart": 44.0 / 60.0, &"Fall": 1.0}
+const CLIPS: Dictionary[StringName, float] = {&"Idle": 3.0, &"Walk": 64.0 / 60.0, &"Run": 0.6, &"Sprint": 0.5, &"JumpStart": 44.0 / 60.0, &"Fall": 1.0, &"HoldBlock_R": 2.0, &"HoldBlock_L": 2.0}
 static var directory: String = Paths.characters_directory()
 static var entries: Array[Dictionary] = []
 static var errors: PackedStringArray = []

@@ -18,6 +18,9 @@ var animation_player: AnimationPlayer
 @export var fall_clip: StringName = &"Fall"
 @export var takeoff_time: float = 31.0 / 60.0
 
+const BodyView: Script = preload("res://game/entities/common/gdscript/first_person_body.gd")
+var body_view: RefCounted
+var view_pivot: Node3D
 var _clip: StringName = &""
 
 func _ready() -> void:
@@ -30,6 +33,7 @@ func _ready() -> void:
 		return
 	model.name = "Model"
 	add_child(model)
+	body_view = BodyView.new(model)
 	animation_player = model.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if motor == null or animation_player == null:
 		push_error("CharacterVisual requires motor and animation_player.")
@@ -51,7 +55,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var actual: Vector3 = motor.get_real_velocity()
 	var speed: float = Vector2(actual.x, actual.z).length()
-	if motor.move_intent.length_squared() > 0.001:
+	if view_pivot != null:
+		global_basis = view_pivot.global_basis * Basis(Vector3.UP, PI)
+	elif motor.move_intent.length_squared() > 0.001:
 		var heading: float = atan2(motor.move_intent.x, motor.move_intent.z)
 		rotation.y = lerp_angle(rotation.y, heading, 1.0 - exp(-turn_speed * delta))
 	if not motor.is_on_floor():
@@ -96,3 +102,11 @@ func _play(clip: StringName, blend: float = 0.12) -> void:
 	animation_player.play(clip, blend)
 	if match_phase:
 		animation_player.seek(phase * animation_player.get_animation(clip).length, true)
+
+## Keep the normal rig and animations; only the head triangles are omitted locally.
+func set_body_view(pivot: Node3D) -> void:
+	view_pivot = pivot
+	body_view.call("apply", pivot != null)
+	if pivot != null:
+		global_basis = pivot.global_basis * Basis(Vector3.UP, PI)
+	reset_physics_interpolation()

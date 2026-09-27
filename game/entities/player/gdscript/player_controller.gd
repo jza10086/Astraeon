@@ -9,6 +9,7 @@ signal view_changed()
 @export var visual: Node3D
 @export var first_person: bool = true
 @export var eye_height: float = 1.62
+@export var eye_forward: float = 0.22
 @export var mouse_sensitivity: float = 0.0025
 @export var respawn_position: Vector3 = Vector3(0.0, 0.1, 3.0)
 @export var respawn_below: float = -20.0
@@ -50,6 +51,8 @@ func _physics_process(delta: float) -> void:
 		motor.sprint_requested = Input.is_action_pressed("sprint") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		motor.jump_requested = Input.is_action_just_pressed("jump") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	motor.step(delta)
+	if first_person:
+		camera_pivot.position = Vector3.UP * eye_height - camera_pivot.basis.z * eye_forward
 	if _view_change_pending:
 		_view_change_pending = false
 		_apply_view(_requested_first_person)
@@ -78,7 +81,7 @@ func set_first_person(enabled: bool) -> void:
 
 func _apply_view(enabled: bool) -> void:
 	first_person = enabled
-	camera_pivot.position.y = eye_height if enabled else _third_person_height
+	camera_pivot.position = Vector3.UP * eye_height - camera_pivot.basis.z * eye_forward if enabled else Vector3.UP * _third_person_height
 	# A zero-length, collision-free arm keeps the eye anchored inside the capsule.
 	spring_arm.spring_length = 0.0 if enabled else _third_person_distance
 	spring_arm.margin = 0.0 if enabled else _third_person_margin
@@ -99,7 +102,8 @@ func _apply_view(enabled: bool) -> void:
 		var fractions: PackedFloat32Array = motor.get_world_3d().direct_space_state.cast_motion(query)
 		distance = _third_person_distance * fractions[0]
 	camera.position = Vector3(0.0, 0.0, distance)
-	visual.visible = not enabled
+	visual.visible = true
+	visual.call("set_body_view", camera_pivot if enabled else null)
 	camera_pivot.reset_physics_interpolation()
 	view_changed.emit()
 

@@ -28,9 +28,9 @@ func run() -> void:
 	page.call("open", settings)
 	check((page.get("model_buttons") as Dictionary).has(&"user/dropped.glb"), "Dropped model discovered on open: " + str(Library.errors))
 	# Same handler used by the import dialog, preserving the original source.
-	await page.call("import_character", "res://game/entities/player/assets/klukai_voxel.glb")
-	var id: StringName = &"user/klukai_voxel.glb"
-	check(page.get("selected_id") == id, "Imported Klukai preview: " + (page.get("message") as Label).text)
+	await page.call("import_character", "res://game/entities/player/assets/basic_voxel.glb")
+	var id: StringName = &"user/basic_voxel.glb"
+	check(page.get("selected_id") == id, "Imported Basic Voxel preview: " + (page.get("message") as Label).text)
 	if page.get("selected_id") == id:
 		var animator: AnimationPlayer = (page.get("preview_model") as Node3D).get_node("AnimationPlayer") as AnimationPlayer
 		check(animator.is_playing() and animator.current_animation == "Idle", "Runtime GLB plays Idle")
@@ -41,12 +41,12 @@ func run() -> void:
 		player.get_node("Visual").set("settings_path", settings)
 		player.get_node("Controller").set("input_enabled", false)
 		root.add_child(player)
-		check(player.get_node("Visual").get("model_id") == id and player.find_child("Skeleton3D", true, false).get_bone_count() == 67, "Player instantiates external character")
+		check(player.get_node("Visual").get("model_id") == id and player.find_child("Skeleton3D", true, false).get_bone_count() == 21, "Player instantiates external character")
 		player.queue_free()
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://tmp/character_import.png")
 		page.call("delete_selected")
-		check(not FileAccess.file_exists(Library.directory.path_join("klukai_voxel.glb")) and FileAccess.file_exists("res://game/entities/player/assets/klukai_voxel.glb"), "Delete only imported copy")
+		check(not FileAccess.file_exists(Library.directory.path_join("basic_voxel.glb")) and FileAccess.file_exists("res://game/entities/player/assets/basic_voxel.glb"), "Delete only imported copy")
 	var bad: String = Library.directory.path_join("invalid.glb")
 	var file: FileAccess = FileAccess.open(bad, FileAccess.WRITE)
 	file.store_string("not a model")

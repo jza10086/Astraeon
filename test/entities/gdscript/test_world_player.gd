@@ -33,7 +33,7 @@ func _run() -> void:
 	world.set("shading_settings_path", "res://tmp/first_person_entity_settings.cfg")
 	world.set("biome_layout", 1)
 	var player: CharacterMotor = world.get_node("Player") as CharacterMotor
-	player.get_node("Visual").set("model_id", &"klukai" if "klukai" in OS.get_cmdline_user_args() else &"basic_voxel")
+	player.get_node("Visual").set("model_id", &"basic_voxel")
 	player.get_node("Controller").set("input_enabled", false)
 	root.add_child(world)
 	while not bool(world.get("ready_to_play")):
@@ -44,8 +44,8 @@ func _run() -> void:
 	var animator: AnimationPlayer = player.get_node("Visual/Model/AnimationPlayer") as AnimationPlayer
 	var camera: Camera3D = world.get("camera") as Camera3D
 	var arm: SpringArm3D = player.get_node("CameraPivot/SpringArm") as SpringArm3D
-	_check(root.get_camera_3d() == camera and camera.global_position.distance_to(player.global_position + Vector3(0, 1.62, 0)) < 0.001, "World camera is the first person eye")
-	_check(not (player.get_node("Visual") as Node3D).visible, "Self model is hidden in world")
+	_check(root.get_camera_3d() == camera and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "World camera is the first person eye")
+	_check((player.get_node("Visual") as Node3D).visible, "Self body is visible in world")
 	arm.rotation.x = deg_to_rad(-45.0)
 	await _ticks(2)
 	var tool: VoxelTool = world.get("voxel_tool") as VoxelTool

@@ -18,7 +18,7 @@
 
 - 2026-09-15 环境光表面插值、方块云合并网格与二值底面云影为项目自编；覆盖图由 Godot FastNoiseLite 生成，未引入第三方云素材。
 
-- Basic Voxel 标准素体：来自用户本地 F:/AstraBlender/Projects/basic_voxel/exports/godot/basic_voxel.glb，原样复制六动作版，SHA-256 为 383a153f18ee1132af0a55f8e076eafd3caa591475aa19f748e92f59e85028d6。制作参数见该目录 README 与 docs/resource_specifications.md；未附独立再分发许可，不另行声明授权。
+- Basic Voxel 标准素体：来自用户本地 F:/AstraBlender/Projects/basic_voxel/exports/godot/basic_voxel.glb，原样复制八动作握持骨版，SHA-256 为 b2db9553bebf48a143d37d2f80ad6594f34badb0c853a859aa695300e59e75d4。制作参数见该目录 README 与 docs/resource_specifications.md；未附独立再分发许可，不另行声明授权。
 
 - 主工程原生后端：固定 Voxel Tools 与 godot-cpp 源码保留在 native/voxel_tools/ 和 native/deps/godot-cpp/，保留各自 MIT 与第三方许可证。部署插件保留 addons/zylann.voxel/LICENSE.md。项目修改见 docs/world/native_voxel_backend.md。
 
@@ -28,5 +28,3 @@ The data used in this project was obtained from mocap.cs.cmu.edu.
 The database was created with funding from NSF EIA-0196217.
 
 - Water and light shafts: MakeUp Ultra Fast algorithm reference (Javier Garduño, upstream LGPL-3.0); independently adapted GPU implementation. See [implementation notes](shading/water_light_shafts.md).
-
-- Klukai 角色变体：用户本地 `F:/AstraBlender/Projects/klukai_voxel/klukai_voxel.glb`，原样复制，SHA-256 `cb7458b4f1432331258eca222dd322ccefa5839c4a9bba919606a6a87ad963f6`。包含角色、六套动作、衣物肩部修正和头发附属骨；未附独立再分发许可，不另行声明授权。交付参数见 [资源规格](resource_specifications.md#klukai-角色变体)。
