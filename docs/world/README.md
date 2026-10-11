@@ -18,7 +18,7 @@ C++ 生成、流式加载、网格/碰撞、保存及权威缓存。
 
 ## 限制与待办
 
-无流体模拟、玩家位置/生命值存档或多人写入协议；玩家背包与掉落物已通过 gameplay 日志与地形编辑配对保存，详见 [掉落物](../entities/dropped_items.md)。历史 GDScript 后端已删除。
+无流体模拟、玩家位置存档或多人写入协议。生命、饱食度和模式已由 gameplay 保存，见 [玩家状态](../gameplay/modes.md#保存与职责)；玩家背包与掉落物已通过 gameplay 日志与地形编辑配对保存，详见 [掉落物](../entities/dropped_items.md)。历史 GDScript 后端已删除。
 
 ## 验证证据
 

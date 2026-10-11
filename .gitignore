@@ -8,8 +8,27 @@
 /export_credentials.cfg
 /exports/
 
-# Native dependencies restored using dependency-lock.json
+# Rebuildable deployed binaries; keep native source and dependency locks.
+/addons/zylann.voxel/bin/
 /benchmarks/voxelgame/project/addons/zylann.voxel/bin/
+
+# Local Python bytecode and spreadsheet lock files.
+__pycache__/
+*.py[cod]
+~$*.xlsx
+
+# Local environment secrets; retain distributable configuration examples.
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Windows Explorer metadata.
+Thumbs.db
+Desktop.ini
+
+# Do not ignore *.uid, *.import, test/**/reports, or docs/**/tmp.
+# Those paths contain resource identities, import settings and versioned evidence.
 
 # Offline compiled content is reproducible from manifests.
 /game/data/content/packages/*.aebpack

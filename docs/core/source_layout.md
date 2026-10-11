@@ -4,23 +4,29 @@
 Astraeon/
 ├─ game/
 │  ├─ core/main.tscn                     # 应用入口与装配
-│  ├─ data/block/
-│  │  ├─ gdscript/                      # Resource 类型
-│  │  └─ resources/                     # 静态配置、编辑示例
-│  ├─ data/fluid/                       # 流体类型与静态水定义
+│  ├─ data/
+│  │  ├─ block/gdscript/                # 方块与状态 Resource 类型
+│  │  ├─ fluid/gdscript/                # 流体 Resource 类型
+│  │  ├─ item/                          # 物品 Resource 类型
+│  │  ├─ inventory/                     # 静态物品栏配置
+│  │  ├─ content/authoring/astraeon/     # 格式 2 原版包工程及完整方块、物品、流体
+│  │  ├─ content/gdscript/              # 包工程、编译内容与加载接口
+│  │  ├─ content/packages/              # 可重建的 .aebpack，不提交编译产物
+│  │  └─ native/content/               # 原生内容包读取与校验
 │  ├─ world/
 │  │  ├─ gdscript/native_world.gd        # 当前世界编排
-│  │  ├─ gdscript/world_content.gd      # 从正式定义构建共享 ID 与外观库
+│  │  ├─ gdscript/world_content.gd      # 从编译内容包组装共享 ID 与外观库
 │  │  └─ native/                        # .gdignore，仅项目 C++
 │  │     ├─ generation/
 │  │     ├─ persistence/
 │  │     └─ streaming/
 │  ├─ entities/
 │  │  ├─ common/gdscript/               # 共享移动与动画组件
-│  │  └─ player/
-│  │     ├─ gdscript/                   # 输入、相机
-│  │     ├─ scenes/player.tscn
-│  │     └─ assets/basic_voxel.glb
+│  │  ├─ player/
+│  │  │  ├─ gdscript/                   # 输入、相机与持物
+│  │  │  └─ scenes/player.tscn
+│  │  ├─ dropped_items/                # 地面掉落物编排
+│  │  └─ native/dropped_items/         # 原生掉落物运动
 │  ├─ shading/                          # 光影组件、原生派生光场及主世界装配
 │  ├─ gameplay/
 │  │  ├─ interaction/                   # 挖掘/放置职责
@@ -32,7 +38,13 @@ Astraeon/
 │  ├─ voxel_tools/                      # 上游代码及必要接入补丁
 │  ├─ deps/godot-cpp/
 │  └─ dependency_lock.json
-├─ addons/zylann.voxel/                 # 扩展描述与部署二进制
+├─ addons/
+│  ├─ zylann.voxel/                    # 扩展描述；bin/ 部署二进制不提交
+│  ├─ astraeon_content/                # 内容编辑器与导出接入
+│  └─ godot_mcp_toolkit/               # 编辑器开发工具
+├─ content_sources/                   # 原始制作图片，不参与游戏导出
+├─ external_data/                     # 本地导入内容；人物为同目录 TP/FP 配对
+├─ runtime_data/                      # 本地设置、世界存档与日志
 ├─ test/                               # 新统一测试目录，见下文
 ├─ tools/                              # 生产构建与开发工具
 ├─ docs/                               # 架构、接口、开发规范
@@ -42,6 +54,8 @@ Astraeon/
 ## 同模块语言分层
 
 功能模块一般采用 gdscript/、native/、scenes/、resources/、assets/、shaders/，按实际需要建立。大模块可先按功能分层，例如 entities/player/gdscript。C++ 继续负责体素热路径，GDScript 负责编排、界面和测试驱动。
+
+不预设根级 assets、autoload、shared 目录。共享类型和功能资源仍归所属模块；合成在开发计划内，但当前尚未实现。原版资源制作入口见 [内容包](../data/content_packages.md)，人物文件与本地存储边界见 [本地数据目录](local_storage.md)。
 
 所有项目自编原生类的源文件位于 game/<module>/native。构建工具同步到 tmp/native-build/voxel_tools/astraeon/<module>，生成显式源文件清单，并与上游编译为同一扩展。该 tmp 路径仅为构建输出，不是可编辑源码。未列入清单的旧文件不能参与编译。使用上游源码根目录 include 路径，避免依赖旧 astraeon 目录深度。
 
