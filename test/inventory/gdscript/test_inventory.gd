@@ -1,7 +1,7 @@
 extends SceneTree
 var checks: int = 0
 var failures: Array[String] = []
-const CATALOG: AstraeonItemCatalog = preload("res://game/data/item/resources/item_catalog.tres")
+const CATALOG: AstraeonItemCatalog = preload("res://test/data/resources/item_reference/item_catalog.tres")
 const LAYOUT: AstraeonInventoryDefinition = preload("res://game/data/inventory/resources/player_inventory.tres")
 
 func check(value: bool, message: String) -> void:
@@ -20,17 +20,17 @@ func _initialize() -> void:
 func run() -> void:
 	var state: AstraeonInventoryState = fresh()
 	check(state.snapshot().slots.size() == 40, "40 shared slots")
-	check(state.insert(&"astraeon_dirt_item", 80) == 0 and state.stack_at(0).count == 64 and state.stack_at(1).count == 16, "Insertion splits stacks")
+	check(state.insert(&"astraeon:dirt_item", 80) == 0 and state.stack_at(0).count == 64 and state.stack_at(1).count == 16, "Insertion splits stacks")
 	var copy: AstraeonItemStack = state.stack_at(0)
 	copy.count = 1
 	check(state.stack_at(0).count == 64, "Readers cannot mutate slots")
 	check(state.move(0, 10, 32, state.revision) and state.stack_at(0).count == 32 and state.stack_at(10).count == 32, "Split")
 	check(state.move(10, 1, 32, state.revision) and state.stack_at(1).count == 48 and state.stack_at(10) == null, "Merge")
 	check(not state.move(0, 2, 1, state.revision - 1), "Reject stale drag")
-	check(state.insert(&"astraeon_log_item", 4) == 0, "Insert wood")
-	check(state.move(2, 0, 4, state.revision) and state.stack_at(0).item.key == &"astraeon_log_item", "Swap full stacks")
+	check(state.insert(&"astraeon:log_item", 4) == 0, "Insert wood")
+	check(state.move(2, 0, 4, state.revision) and state.stack_at(0).item.key == &"astraeon:log_item", "Swap full stacks")
 	check(not state.move(0, 1, 1, state.revision), "Do not swap partial incompatible stacks")
-	check(state.quick_move(0) and state.stack_at(0) == null and state.stack_at(10).item.key == &"astraeon_log_item", "Quick transfer")
+	check(state.quick_move(0) and state.stack_at(0) == null and state.stack_at(10).item.key == &"astraeon:log_item", "Quick transfer")
 	var snapshot: Dictionary = state.snapshot()
 	state.before_commit = func(_candidate: Dictionary, _context: Dictionary) -> bool: return false
 	check(not state.consume(1, 1) and state.snapshot() == snapshot, "Failed durable guard is atomic")
@@ -38,25 +38,28 @@ func run() -> void:
 	check(not state.consume(1, 999), "No negative quantities")
 	check(state.select(9) and not state.select(10), "Exactly ten hotbar slots")
 	var full: AstraeonInventoryState = fresh()
-	check(full.insert(&"astraeon_dirt_item", 2561) == 1 and full.capacity(&"astraeon_log_item") == 0, "Capacity and leftovers")
+	check(full.insert(&"astraeon:dirt_item", 2561) == 1 and full.capacity(&"astraeon:log_item") == 0, "Capacity and leftovers")
 	var malformed: Dictionary = state.snapshot().duplicate(true)
-	malformed.slots[0] = {"item": "astraeon_missing", "count": 1}
+	malformed.slots[0] = {"item": "astraeon:missing", "count": 1}
 	check(not state.restore(malformed), "Reject unknown item")
-	var wood: AstraeonItemDefinition = state.items[&"astraeon_log_item"]
-	check(wood.state_key(Vector3i.LEFT) == "astraeon_log/axis_x" and wood.state_key(Vector3i.BACK) == "astraeon_log/axis_z", "Placement face chooses axis")
+	var wood: AstraeonItemDefinition = state.items[&"astraeon:log_item"]
+	check(wood.state_key(Vector3i.LEFT) == "astraeon:log/axis_x" and wood.state_key(Vector3i.BACK) == "astraeon:log/axis_z", "Placement face chooses axis")
 	var content: AstraeonWorldContent = AstraeonWorldContent.new()
-	check(content.build(load("res://game/data/block/resources/block_catalog.tres"), load("res://game/data/fluid/resources/astraeon_water.tres")), "Current block content")
-	var identity: Dictionary = {"generation": 2, "seed": 42, "layout": 0, "states": "\n".join(content.state_keys).sha256_text()}
+	check(content.build(PackedStringArray(["res://game/data/content/packages/astraeon.aebpack"])), "Current block content")
+	var identity: Dictionary = {"generation": 2, "seed": 42, "layout": 0, "world_id": ""}
 	var directory: String = "res://tmp/inventory-test/" + str(Time.get_ticks_usec())
+	var registry: RefCounted = ClassDB.instantiate("AstraeonContentRegistry")
+	var registered: Dictionary = registry.resolve(directory, content.bundle.contracts, PackedStringArray(content.bundle.packages.keys()))
+	identity.world_id = registered.world_id
 	var store: AstraeonInventoryStore = AstraeonInventoryStore.new()
 	state = fresh()
 	check(store.open(directory, identity, state), "Open inventory save")
-	check(state.insert(&"astraeon_log_item", 1, {"position": Vector3i(-1, 40, -1), "state": "astraeon_air/default"}) == 0, "Write-ahead mining")
+	check(state.insert(&"astraeon:log_item", 1, {"position": Vector3i(-1, 40, -1), "state": "astraeon:air/default"}) == 0, "Write-ahead mining")
 	var restored: AstraeonInventoryState = fresh()
 	var recovered: AstraeonInventoryStore = AstraeonInventoryStore.new()
 	check(recovered.open(directory, identity, restored) and restored.stack_at(0).count == 1 and recovered.pending.size() == 1, "Recover inventory and pending edit together: " + recovered.error)
 	var stream: AstraeonNativeStream = AstraeonNativeStream.new()
-	check(stream.open_world(directory, 42, 0, content.state_keys), "Open native stream")
+	check(stream.open_world(directory, 42, 0, content.state_keys, identity.world_id), "Open native stream")
 	var generator: AstraeonNativeGenerator = AstraeonNativeGenerator.new()
 	generator.seed = 42
 	generator.configure_content(content.state_keys)
@@ -68,7 +71,7 @@ func run() -> void:
 	var third: AstraeonInventoryStore = AstraeonInventoryStore.new()
 	check(third.open(directory, identity, fresh()) and third.pending.is_empty(), "Checkpoint survives reopen")
 	# Simulate an interrupted overwrite of the newer checkpoint; the prior WAL remains replayable.
-	var broken: FileAccess = FileAccess.open(directory.path_join("inventory_a.json"), FileAccess.WRITE)
+	var broken: FileAccess = FileAccess.open(directory.path_join("inventory_" + ("a" if recovered._sequence % 2 == 0 else "b") + ".json"), FileAccess.WRITE)
 	broken.store_string("{")
 	broken.close()
 	var interrupted: AstraeonInventoryStore = AstraeonInventoryStore.new()

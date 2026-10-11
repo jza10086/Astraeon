@@ -11,6 +11,10 @@
 # Native dependencies restored using dependency-lock.json
 /benchmarks/voxelgame/project/addons/zylann.voxel/bin/
 
+# Offline compiled content is reproducible from manifests.
+/game/data/content/packages/*.aebpack
+/game/data/content/packages/*.receipt.json
+
 # Project-local imported data and runtime state; track only directory scaffolding.
 /external_data/**
 !/external_data/.gdignore

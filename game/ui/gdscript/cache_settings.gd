@@ -7,7 +7,7 @@ var status: Label
 var metrics_label: Label
 var metric_clock: float = 0.0
 var widgets: Dictionary[String, SpinBox] = {}
-const LABELS: Dictionary[String,String] = {"cpu_mib":"CPU 管理预算 / MiB","gpu_mib":"GPU 光照页预算 / MiB (1–128)","retain_m":"数据保留环 / m","mesh_seconds":"CPU 网格保留 / s","region_handles":"Region 句柄上限","commit_usec":"共用提交预算 / μs","upload_usec":"光照上传软预算 / μs","upload_bytes":"光照上传上限 / byte","slice_visits":"传播访问数 / 工作片","slice_usec":"传播软预算 / μs","prediction_seconds":"预测时间 / s","prediction_max_m":"最大预测偏移 / m"}
+const LABELS: Dictionary[String,String] = {"visual_cpu_mib":"方块视觉 CPU / MiB","visual_gpu_mib":"方块视觉 GPU / MiB","visual_warm_seconds":"视觉温缓存 / s","visual_upload_usec":"视觉上传 / μs","visual_upload_bytes":"视觉上传 / byte","visual_jobs":"视觉读取并发","cpu_mib":"CPU 管理预算 / MiB","gpu_mib":"GPU 光照页预算 / MiB (1–128)","retain_m":"数据保留环 / m","mesh_seconds":"CPU 网格保留 / s","region_handles":"Region 句柄上限","commit_usec":"共用提交预算 / μs","upload_usec":"光照上传软预算 / μs","upload_bytes":"光照上传上限 / byte","slice_visits":"传播访问数 / 工作片","slice_usec":"传播软预算 / μs","prediction_seconds":"预测时间 / s","prediction_max_m":"最大预测偏移 / m"}
 func configure(owner_coordinator: Node) -> void:
     coordinator = owner_coordinator
     var toggle: CheckButton = CheckButton.new()
@@ -59,6 +59,9 @@ func _process(delta: float) -> void:
     var hits: int = int(m.get("map_hits",0))
     var misses: int = int(m.get("map_misses",0))
     metrics_label.text = "地图命中 %.1f%% · 淘汰 %d\n体素 / 光照 / 网格：%.1f / %.1f / %.1f MiB\n临时数据 %.1f MiB · GPU 光照 %.0f MiB\n读入/传播队列 %d · 光照上传等待 %d\n天气上传等待 %d · 本帧光照提交 %.3f ms\n光照批次年龄 %.1f ms\n最长单任务 %.3f ms（%s）" % [100.0*hits/maxi(1,hits+misses),int(m.get("map_evictions",0)),float(m.get("voxel_bytes",0))/1048576.0,float(m.get("light_bytes",0))/1048576.0,float(m.get("derived_bytes",0))/1048576.0,float(m.get("temporary_bytes",0))/1048576.0,float(m.get("gpu_bytes",0))/1048576.0,int(m.get("queue",0)),int(m.get("pending_light_uploads",0)),int(m.get("pending_weather_uploads",0)),float(m.get("upload_usec",0))/1000.0,float(m.get("light_latency_usec",0))/1000.0,float(m.get("single_task_peak_usec",0))/1000.0,str(m.get("single_task_peak_name","—"))]
+    var visual: Dictionary = m.get("visuals", {})
+    metrics_label.text += "\n视觉 CPU/GPU %.2f/%.2f MiB · 命中 %d · 读取 %d · 上传 %d\n视觉等待 %d · 超预算 %d · %s" % [float(visual.get("cpu_bytes",0))/1048576.0,float(visual.get("gpu_bytes",0))/1048576.0,int(visual.get("hits",0)),int(visual.get("reads",0)),int(visual.get("uploads",0)),int(visual.get("pending",0))+int(visual.get("queued",0)),int(visual.get("upload_overruns",0)),String(visual.get("pressure",""))]
+    if not visual.get("failures", []).is_empty(): metrics_label.text += "\n视觉读取失败：" + str(visual.failures)
 func sync() -> void:
     for key: String in widgets:
         widgets[key].set_value_no_signal(float(coordinator.policy.values[key]))

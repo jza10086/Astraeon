@@ -33,7 +33,7 @@ func reset_history() -> void:
 	_mutex.unlock()
 func update(p: Profile, camera: Camera3D, sun: DirectionalLight3D) -> void:
 	var was_enabled: bool = enabled
-	enabled = p.motion_enabled if motion_stage else p.rays_mode == 1 or p.chroma_enabled
+	enabled = p.motion_enabled if motion_stage else p.chroma_enabled
 	if enabled and not was_enabled: reset_history()
 	if not enabled: return
 	var target: Vector3 = camera.global_position + sun.global_basis.z * 1000.0
@@ -47,7 +47,7 @@ func update(p: Profile, camera: Camera3D, sun: DirectionalLight3D) -> void:
 		uv.x,uv.y,valid,p.rays_decay,
 		p.motion_steps if motion_stage else p.rays_steps,p.motion_radius if motion_stage else p.rays_radius,
 		p.motion_edge if motion_stage else p.rays_edge,p.chroma_pixels if p.chroma_enabled else 0.0,
-		p.chroma_start,p.chroma_falloff,1.0 if p.rays_mode == 1 else 0.0,float(packed_color)])
+		p.chroma_start,p.chroma_falloff,0.0,float(packed_color)])
 	var inverse: Projection = camera.get_camera_projection().inverse()
 	for column: int in range(4):
 		for row: int in range(4): values.append(inverse[column][row])

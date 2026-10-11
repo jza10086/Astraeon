@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3 uid="uid://cxcsov8cam1mb"]
+
+[ext_resource type="Script" uid="uid://cek7vjlmvfu7l" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1_ubt05"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2_qrbwe"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_4l2hp"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="4_u8rh5"]
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_7cvrt"]
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="6_lqg2s"]
+[ext_resource type="Script" uid="uid://dywa800mwjb7y" path="res://game/data/content/gdscript/block_asset.gd" id="7_31flb"]
+
+[sub_resource type="Resource" id="Resource_x0tm3"]
+script = ExtResource("1_ubt05")
+
+[sub_resource type="Resource" id="Resource_ajjrv"]
+script = ExtResource("2_qrbwe")
+base_color = Color(0.18, 0.42, 0.12, 1)
+alpha_mode = 1
+double_sided = true
+
+[sub_resource type="Resource" id="Resource_a4jku"]
+script = ExtResource("3_4l2hp")
+default_surface = SubResource("Resource_ajjrv")
+breaking = SubResource("Resource_x0tm3")
+foliage_layers = true
+
+[sub_resource type="Resource" id="Resource_oylpa"]
+script = ExtResource("4_u8rh5")
+key = &"astraeon:leaves"
+appearance = SubResource("Resource_a4jku")
+display_name = "树叶"
+hardness = 0.2
+required_tool_tag = &"astraeon:foliage"
+light_opacity = 1
+
+[sub_resource type="Resource" id="Resource_yaogi"]
+script = ExtResource("6_lqg2s")
+key = &"astraeon:leaves_item"
+display_name = "树叶"
+icon_color = Color(0.2, 0.52, 0.16, 1)
+creative_group = &"astraeon_natural"
+search_tags = PackedStringArray("树叶", "植物", "透明", "leaves")
+tool_tags = PackedStringArray()
+
+[resource]
+script = ExtResource("7_31flb")
+block = SubResource("Resource_oylpa")
+item = SubResource("Resource_yaogi")
+image_slots = Dictionary[String, StringName]({
+"breaking": &"breaking_common",
+"surface/default": &"leaves_surface_default"
+})

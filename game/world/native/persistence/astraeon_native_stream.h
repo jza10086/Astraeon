@@ -14,7 +14,7 @@ namespace zylann::voxel {
 class AstraeonNativeStream : public VoxelStream {
     GDCLASS(AstraeonNativeStream, VoxelStream)
 public:
-    bool open_world(String directory, int seed, int biome_layout, PackedStringArray state_keys);
+    bool open_world(String directory, int seed, int biome_layout, PackedStringArray state_keys, String world_id);
     String get_last_error() const;
     int64_t get_saved_blocks() const;
     Dictionary get_metrics() const;
@@ -50,7 +50,7 @@ private:
     std::string _directory;
     String _error;
     int _seed = 0, _biome_layout = 0, _state_count = 0;
-    String _state_hash;
+    String _world_id;
     std::atomic<int64_t> _saved{0}, _loaded{0}, _save_usec{0}, _load_usec{0}, _save_requests{0}, _load_requests{0};
 };
 }

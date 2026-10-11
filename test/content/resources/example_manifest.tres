@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AstraeonContentManifest" format=3]
+
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="1_gnvbk"]
+[ext_resource type="Resource" path="res://test/content/resources/example/blocks/stone.tres" id="2_opeql"]
+[ext_resource type="Resource" path="res://test/content/resources/example/blocks/leaves.tres" id="3_uhyit"]
+[ext_resource type="Resource" path="res://test/content/resources/example/blocks/glow.tres" id="4_dhern"]
+[ext_resource type="Script" path="res://game/data/fluid/gdscript/fluid_definition.gd" id="5_cxi0l"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/item_asset.gd" id="6_74b81"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/content_manifest.gd" id="7_of10s"]
+
+[resource]
+script = ExtResource("7_of10s")
+display_name = "Example blocks"
+dependencies = PackedStringArray()
+blocks = Array[ExtResource("1_gnvbk")]([ExtResource("2_opeql"), ExtResource("3_uhyit"), ExtResource("4_dhern")])
+image_sources = Dictionary[StringName, String]({
+&"example_leaves_surface_default": "example/images/example_leaves_surface_default.png"
+})

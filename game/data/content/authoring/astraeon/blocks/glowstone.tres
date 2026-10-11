@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3 uid="uid://ewfy4ahhvvr8"]
+
+[ext_resource type="Script" uid="uid://cek7vjlmvfu7l" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1_nsbnp"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2_nu1px"]
+[ext_resource type="Script" uid="uid://b7gmj8uec5dxo" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="3_8iq7t"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="4_xpd03"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="5_2v61v"]
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="6_8wv47"]
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="7_uxiv2"]
+[ext_resource type="Script" uid="uid://dywa800mwjb7y" path="res://game/data/content/gdscript/block_asset.gd" id="8_vdqfo"]
+
+[sub_resource type="Resource" id="Resource_m180a"]
+script = ExtResource("1_nsbnp")
+
+[sub_resource type="Resource" id="Resource_idwhv"]
+script = ExtResource("2_nu1px")
+emission_energy = 3.0
+
+[sub_resource type="Resource" id="Resource_18wod"]
+script = ExtResource("3_8iq7t")
+energy = 3.0
+range = 10.0
+local_offset = Vector3(0, 0.6, 0)
+
+[sub_resource type="Resource" id="Resource_hl7x0"]
+script = ExtResource("4_xpd03")
+default_surface = SubResource("Resource_idwhv")
+breaking = SubResource("Resource_m180a")
+light = SubResource("Resource_18wod")
+
+[sub_resource type="Resource" id="Resource_1tne2"]
+script = ExtResource("5_2v61v")
+key = &"astraeon:glowstone"
+appearance = SubResource("Resource_hl7x0")
+display_name = "发光石"
+hardness = 0.3
+required_tool_tag = &"astraeon:pickaxe"
+light_emission = 15
+
+[sub_resource type="Resource" id="Resource_6orkp"]
+script = ExtResource("7_uxiv2")
+key = &"astraeon:glowstone_item"
+display_name = "发光石"
+icon_color = Color(0.95, 0.9, 0.59, 1)
+creative_group = &"astraeon_functional"
+search_tags = PackedStringArray("发光", "照明", "灯", "glowstone")
+tool_tags = PackedStringArray()
+
+[resource]
+script = ExtResource("8_vdqfo")
+block = SubResource("Resource_1tne2")
+item = SubResource("Resource_6orkp")
+image_slots = Dictionary[String, StringName]({
+"breaking": &"breaking_common"
+})

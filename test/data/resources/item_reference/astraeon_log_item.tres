@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AstraeonItemDefinition" format=3]
+[ext_resource type="Script" path="res://game/data/item/gdscript/item_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://test/data/resources/block_reference/astraeon_log.tres" id="block"]
+[resource]
+script = ExtResource("1")
+key = &"astraeon:log_item"
+display_name = "木头"
+icon_color = Color(0.64,0.43,0.23,1)
+max_stack = 64
+block = ExtResource("block")
+orient_to_face = true
+creative_group = &"astraeon_building"
+search_tags = PackedStringArray("木头", "原木", "木材", "朝向", "wood", "log")

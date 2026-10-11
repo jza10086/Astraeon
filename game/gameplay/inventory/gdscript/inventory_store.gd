@@ -3,6 +3,7 @@ extends RefCounted
 ## Write-ahead snapshots pair the player's inventory with unreconciled terrain edits.
 ## Two checked files protect interrupted writes. FileAccess.flush is not a hardware power-loss guarantee.
 var error: String = ""
+var dropped_items: RefCounted
 var pending: Dictionary[String, Dictionary] = {}
 var _directory: String
 var _identity: Dictionary
@@ -33,7 +34,7 @@ func open(directory: String, identity: Dictionary, inventory: AstraeonInventoryS
 		if body.sha256_text() != envelope.get("sha256", "") or parser.parse(body) != OK or not parser.data is Dictionary:
 			continue
 		var data: Dictionary = parser.data
-		if not AstraeonInventoryState._integer(data.get("version")) or int(data.get("version", -1)) != 1 or not _same_world(data.get("world")):
+		if not AstraeonInventoryState._integer(data.get("version")) or int(data.get("version", -1)) != 4 or not _same_world(data.get("world")):
 			return _fail("物品栏版本或世界标识不匹配")
 		if not AstraeonInventoryState._integer(data.get("sequence")) or int(data.sequence) < 1:
 			continue
@@ -42,6 +43,15 @@ func open(directory: String, identity: Dictionary, inventory: AstraeonInventoryS
 	if found and best.is_empty():
 		return _fail("物品栏存档损坏，无法恢复")
 	if not best.is_empty():
+		if not best.get("player") is Dictionary or not inventory.player_state.restore(best.player):
+			return _fail("玩家模式或状态无效")
+		if not best.get("drops") is Dictionary:
+			return _fail("缺少当前掉落物存档")
+		if dropped_items != null:
+			if not dropped_items.call("restore", best.drops):
+				return _fail(dropped_items.call("get_error"))
+		elif not AstraeonInventoryState._integer(best.drops.get("next_id")) or int(best.drops.next_id) != 1 or not best.drops.get("chunks") is Dictionary or not best.drops.chunks.is_empty():
+			return _fail("掉落物系统未配置")
 		if not best.get("inventory") is Dictionary or not inventory.restore(best.inventory) or not best.get("edits") is Dictionary:
 			return _fail("物品栏包含未知物品或非法数量")
 		for key: String in best.edits:
@@ -54,6 +64,9 @@ func open(directory: String, identity: Dictionary, inventory: AstraeonInventoryS
 			pending[key] = edit
 		_sequence = int(best.sequence)
 	inventory.before_commit = commit
+	inventory.player_state.before_commit = commit_player
+	if best.is_empty():
+		return _write(inventory.snapshot(), pending)
 	return true
 
 func commit(snapshot: Dictionary, context: Dictionary = {}) -> bool:
@@ -75,8 +88,14 @@ func checkpoint() -> bool:
 	pending.clear()
 	return true
 
-func _write(snapshot: Dictionary, edits: Dictionary[String, Dictionary]) -> bool:
-	var body: String = JSON.stringify({"version": 1, "sequence": _sequence + 1, "world": _identity, "inventory": snapshot, "edits": edits})
+func commit_player(candidate: Dictionary) -> bool:
+	if _inventory.locked or not error.is_empty():
+		return false
+	return _write(_inventory.snapshot(), pending, candidate)
+
+func _write(snapshot: Dictionary, edits: Dictionary[String, Dictionary], player_candidate: Dictionary = {}) -> bool:
+	var drops: Dictionary = dropped_items.call("snapshot") if dropped_items != null else {"next_id": 1, "chunks": {}}
+	var body: String = JSON.stringify({"version": 4, "player": _inventory.player_state.snapshot() if player_candidate.is_empty() else player_candidate, "drops": drops, "sequence": _sequence + 1, "world": _identity, "inventory": snapshot, "edits": edits})
 	var path: String = _directory.path_join("inventory_" + ("a" if (_sequence + 1) % 2 == 0 else "b") + ".json")
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -120,4 +139,4 @@ func _fail(message: String) -> bool:
 	return false
 
 func _same_world(value: Variant) -> bool:
-	return value is Dictionary and AstraeonInventoryState._integer(value.get("generation")) and int(value.generation) == int(_identity.generation) and AstraeonInventoryState._integer(value.get("seed")) and AstraeonInventoryState._integer(value.get("layout")) and int(value.seed) == int(_identity.seed) and int(value.layout) == int(_identity.layout) and value.get("states") == _identity.states
+	return value is Dictionary and AstraeonInventoryState._integer(value.get("generation")) and int(value.generation) == int(_identity.generation) and AstraeonInventoryState._integer(value.get("seed")) and AstraeonInventoryState._integer(value.get("layout")) and int(value.seed) == int(_identity.seed) and int(value.layout) == int(_identity.layout) and value.get("world_id") == _identity.world_id

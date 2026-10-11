@@ -1,7 +1,7 @@
 extends SceneTree
 var checks: int = 0
 var failures: Array[String] = []
-const CATALOG: AstraeonItemCatalog = preload("res://game/data/item/resources/item_catalog.tres")
+const CATALOG: AstraeonItemCatalog = preload("res://test/data/resources/item_reference/item_catalog.tres")
 const LAYOUT: AstraeonInventoryDefinition = preload("res://game/data/inventory/resources/player_inventory.tres")
 func check(value: bool, label: String) -> void:
 	checks += 1
@@ -10,17 +10,18 @@ func check(value: bool, label: String) -> void:
 func fresh() -> AstraeonInventoryState:
 	var state: AstraeonInventoryState = AstraeonInventoryState.new()
 	state.configure(CATALOG, LAYOUT)
+	state.player_state.set_mode(AstraeonPlayerState.Mode.CREATIVE)
 	return state
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
 	check(CATALOG.validate().is_empty(), "Catalog validation")
-	check(CATALOG.find_blocks().size() == 5, "All five blocks without axis duplicates")
-	check(CATALOG.find_blocks(&"astraeon_natural").size() == 3, "Natural group")
-	check(CATALOG.find_blocks(&"astraeon_functional", "灯").size() == 1, "Group plus tag")
-	check(CATALOG.find_blocks(&"", "WOOD 朝向").size() == 1, "Case-insensitive AND terms")
-	check(CATALOG.find_blocks(&"", "astraeon_grass").size() == 1, "Stable ID search")
-	check(CATALOG.find_blocks(&"", "不存在").is_empty(), "Empty result")
+	check(CATALOG.find_items().size() == 9, "All nine items without axis duplicates")
+	check(CATALOG.find_items(&"astraeon_natural").size() == 3, "Natural group")
+	check(CATALOG.find_items(&"astraeon_functional", "灯").size() == 1, "Group plus tag")
+	check(CATALOG.find_items(&"", "WOOD 朝向").size() == 1, "Case-insensitive AND terms")
+	check(CATALOG.find_items(&"", "astraeon:grass").size() == 1, "Stable ID search")
+	check(CATALOG.find_items(&"", "不存在").is_empty(), "Empty result")
 	var copy: AstraeonItemCatalog = AstraeonItemCatalog.new()
 	copy.definitions = [CATALOG.definitions[0].duplicate()]
 	copy.definitions[0].creative_group = &"unknown"
@@ -30,25 +31,25 @@ func run() -> void:
 	copy.definitions[0].search_tags = PackedStringArray(["wood", "WOOD"])
 	check(not copy.validate().is_empty(), "Reject repeated tags")
 	var state: AstraeonInventoryState = fresh()
-	state.insert(&"astraeon_dirt_item", 2560)
+	state.insert(&"astraeon:dirt_item", 2560)
 	var full: Dictionary = state.snapshot()
-	check(state.creative_pick(&"astraeon_log_item") and state.cursor_stack().count == 1 and state.snapshot() == full, "Full backpack can carry one extra item")
-	state.creative_pick(&"astraeon_log_item")
+	check(state.creative_pick(&"astraeon:log_item") and state.cursor_stack().count == 1 and state.snapshot().slots == full.slots, "Full backpack can carry one extra item")
+	state.creative_pick(&"astraeon:log_item")
 	check(state.cursor_stack().count == 2, "Repeated click adds one")
-	state.creative_pick(&"astraeon_log_item", true)
-	check(state.cursor_stack().count == 64 and state.snapshot() == full, "Middle copies max stack without reserving space")
-	state.creative_pick(&"astraeon_log_item")
+	state.creative_pick(&"astraeon:log_item", true)
+	check(state.cursor_stack().count == 64 and state.snapshot().slots == full.slots, "Middle copies max stack without reserving space")
+	state.creative_pick(&"astraeon:log_item")
 	check(state.cursor_stack().count == 64, "Cursor respects max stack")
 	var isolated: AstraeonItemStack = state.cursor_stack()
 	isolated.count = 1
 	check(state.cursor_stack().count == 64, "Cursor readers get copies")
-	check(state.click_slot(0) and state.stack_at(0).item.key == &"astraeon_log_item" and state.cursor_stack().item.key == &"astraeon_dirt_item", "Full bag click swaps without loss")
+	check(state.click_slot(0) and state.stack_at(0).item.key == &"astraeon:log_item" and state.cursor_stack().item.key == &"astraeon:dirt_item", "Full bag click swaps without loss")
 	state.discard_cursor(true)
 	check(state.cursor_stack().count == 63, "Right removal deletes one")
 	state.discard_cursor()
 	check(state.cursor_stack() == null, "Discard entire cursor")
 	state = fresh()
-	state.insert(&"astraeon_dirt_item", 5)
+	state.insert(&"astraeon:dirt_item", 5)
 	check(state.click_slot(0, true) and state.cursor_stack().count == 3 and state.stack_at(0).count == 2, "Half pickup rounds up and removes immediately")
 	check(state.click_slot(1, true) and state.cursor_stack().count == 2 and state.stack_at(1).count == 1, "Right deposit places one")
 	check(state.click_slot(0) and state.cursor_stack() == null and state.stack_at(0).count == 4, "Merge carried remainder")
@@ -58,30 +59,34 @@ func run() -> void:
 	check(state.stack_at(0).count == 64 and state.cursor_stack().count == 4, "Partial merge retains excess on cursor")
 	check(not state.click_slot(0) and state.cursor_stack().count == 4, "Full same-type target leaves cursor unchanged")
 	state.locked = true
-	check(not state.creative_pick(&"astraeon_log_item") and not state.click_slot(2), "Save lock rejects pickup and deposit")
+	check(not state.creative_pick(&"astraeon:log_item") and not state.click_slot(2), "Save lock rejects pickup and deposit")
 	state.discard_cursor()
-	check(state.cursor_stack() == null, "Close may discard transient cursor during save")
+	check(state.cursor_stack().count == 4, "Save lock preserves durable cursor")
 	state.locked = false
+	state.discard_cursor()
 	var stored: Dictionary = state.snapshot()
 	state.before_commit = func(_snapshot: Dictionary, _context: Dictionary) -> bool: return false
 	check(not state.click_slot(0) and state.cursor_stack() == null and state.snapshot() == stored, "Failed pickup does not duplicate")
-	state.creative_pick(&"astraeon_log_item", true)
-	check(not state.click_slot(0) and state.cursor_stack().count == 64 and state.cursor_stack().item.key == &"astraeon_log_item" and state.snapshot() == stored, "Failed swap keeps both sides unchanged")
+	state.before_commit = Callable()
+	state.creative_pick(&"astraeon:log_item", true)
+	stored = state.snapshot()
+	state.before_commit = func(_snapshot: Dictionary, _context: Dictionary) -> bool: return false
+	check(not state.click_slot(0) and state.cursor_stack().count == 64 and state.cursor_stack().item.key == &"astraeon:log_item" and state.snapshot() == stored, "Failed swap keeps both sides unchanged")
 	check(not state.clear_inventory() and state.cursor_stack() != null and state.snapshot() == stored, "Failed trash-all is atomic")
 	state.before_commit = Callable()
-	check(state.clear_inventory() and state.cursor_stack() == null and state.capacity(&"astraeon_dirt_item") == 2560, "Trash-all clears stored and cursor")
-	state.insert(&"astraeon_dirt_item", 3)
-	state.creative_pick(&"astraeon_log_item")
+	check(state.clear_inventory() and state.cursor_stack() == null and state.capacity(&"astraeon:dirt_item") == 2560, "Trash-all clears stored and cursor")
+	state.insert(&"astraeon:dirt_item", 3)
+	state.creative_pick(&"astraeon:log_item")
 	check(state.quick_move(0) and state.cursor_stack().count == 1, "Quick move preserves independent cursor")
-	# Pickup is already durable; restoring a snapshot never restores a transient cursor.
+	# Carried items recover together with the already-decremented source slot.
 	var directory: String = "res://tmp/cursor-save/" + str(Time.get_ticks_usec())
 	var store: AstraeonInventoryStore = AstraeonInventoryStore.new()
-	var identity: Dictionary = {"generation":2,"seed":10,"layout":0,"states":"cursor-test"}
+	var identity: Dictionary = {"generation":2,"seed":10,"layout":0,"world_id":"cursor-test"}
 	check(store.open(directory, identity, state), "Open cursor persistence fixture")
 	state.discard_cursor()
 	check(state.click_slot(10), "Durable pickup")
 	var restored: AstraeonInventoryState = fresh()
-	check(AstraeonInventoryStore.new().open(directory, identity, restored) and restored.stack_at(10) == null and restored.cursor_stack() == null, "Reopen does not duplicate picked-up items")
+	check(AstraeonInventoryStore.new().open(directory, identity, restored) and restored.stack_at(10) == null and restored.cursor_stack().count == 3, "Reopen preserves carried items without duplicating the source")
 	await test_ui()
 	print("CREATIVE_TEST ", JSON.stringify({"checks":checks,"failures":failures}))
 	quit(0 if failures.is_empty() else 1)
@@ -97,7 +102,7 @@ func test_ui() -> void:
 	check(hud._search_tab.get_global_rect().end.x == hud._storage_tab.get_global_rect().end.x and hud._search_tab.global_position.y < hud._storage_tab.global_position.y, "Search upper right and storage lower right aligned")
 	hud.set_page(&"search")
 	await process_frame
-	check(browser.results.size() == 5 and browser.search.visible, "Search page initially lists all blocks")
+	check(browser.results.size() == 9 and browser.search.visible, "Search page initially lists all items")
 	browser.search.text = "灯"
 	browser.refresh()
 	check(browser.results.size() == 1, "Search UI filter")
@@ -118,10 +123,10 @@ func test_ui() -> void:
 	event.button_index = MOUSE_BUTTON_LEFT
 	var before: Dictionary = state.snapshot()
 	cell._gui_input(event)
-	check(state.cursor_stack().count == 1 and state.snapshot() == before, "Catalog left takes one onto cursor only")
+	check(state.cursor_stack().count == 1 and state.snapshot().slots == before.slots, "Catalog left takes one onto cursor only")
 	event.button_index = MOUSE_BUTTON_MIDDLE
 	cell._gui_input(event)
-	check(state.cursor_stack().count == 64 and state.snapshot() == before, "Catalog middle takes full stack onto cursor")
+	check(state.cursor_stack().count == 64 and state.snapshot().slots == before.slots, "Catalog middle takes full stack onto cursor")
 	hud.set_page(&"storage")
 	check(state.cursor_stack().count == 64 and hud._storage.visible, "Changing tab preserves held stack")
 	hud.slot_clicked(20, MOUSE_BUTTON_RIGHT)
@@ -136,7 +141,7 @@ func test_ui() -> void:
 	hud.set_open(false)
 	check(state.cursor_stack() == null and state.stack_at(21) == null, "Closing deletes cursor instead of returning it")
 	hud.set_open(true)
-	state.creative_pick(&"astraeon_log_item", true)
+	state.creative_pick(&"astraeon:log_item", true)
 	event.button_index = MOUSE_BUTTON_LEFT
 	hud._background_input(event)
 	check(state.cursor_stack() == null, "Click outside deletes held stack")
@@ -163,7 +168,7 @@ func test_ui() -> void:
 		hud.set_page(&"search")
 		browser.search.text = ""
 		browser.refresh()
-		state.creative_pick(&"astraeon_log_item", true)
+		state.creative_pick(&"astraeon:log_item", true)
 		await process_frame
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://tmp/inventory-work/cursor_creative.png")
@@ -189,3 +194,4 @@ func pointer_click(control: Control, button: MouseButton) -> void:
 		event.global_position = point
 		Input.parse_input_event(event)
 		await process_frame
+

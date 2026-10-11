@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AstraeonFluidDefinition" format=3 uid="uid://b3b5h41bdbjux"]
+
+[ext_resource type="Script" uid="uid://cdov7pxtpxkp8" path="res://game/shading/water/gdscript/water_appearance.gd" id="1_sga7y"]
+[ext_resource type="Script" uid="uid://cruhi482xufjl" path="res://game/data/fluid/gdscript/fluid_definition.gd" id="2_0etfi"]
+
+[sub_resource type="Resource" id="Resource_c760n"]
+script = ExtResource("1_sga7y")
+
+[resource]
+script = ExtResource("2_0etfi")
+key = &"astraeon:water"
+display_name = "水"
+appearance = SubResource("Resource_c760n")

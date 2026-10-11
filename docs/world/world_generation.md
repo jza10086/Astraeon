@@ -10,7 +10,7 @@
 
 ## 数据与渲染接入
 
-主场景显式引用 game/data/block/resources/block_catalog.tres 与 game/data/fluid/resources/astraeon_water.tres。AstraeonWorldContent 在启动时校验并排序方块/状态 key，保留 astraeon_air/default 为 0，末尾追加水；共享状态表同时用于 C++ 生成角色解析、VoxelBlockyLibrary 模型索引及存档校验。生成器必须先 configure_content，一次配置后禁止重新配置。生成热路径没有逐体素 GDScript 调用。
+主场景读取 `game/data/content/packages/astraeon.aebpack`，WorldContent 从轻量定义构建模型并使用世界追加注册表，空气 `astraeon:air/default` 固定为0。生成器启动时 configure_content 解析必需内容，一次配置后禁止重配，热路径没有逐体素GDScript调用。详见 [内容包](../data/content_packages.md)。
 
 shading 的 BlockLibraryBuilder 启动时编译共享六面图集，支持当前不透明/裁剪颜色贴图、常量自发光及状态旋转。normal/ORM/emission 贴图与混合透明方块尚未接入；不存在逐方块 Material 或 Node。共享水资源提供基础颜色、透明度、粗糙度和高光。主世界已接入原生水网格、波纹、深度吸收、SSR/平面反射与水下判断；这些效果由场景光影配置驱动，不代表按流体资源字段完成全部接入。详见 [主世界光影](../shading/world_shading.md)和[水资源接口](../shading/water_appearance.md)。
 

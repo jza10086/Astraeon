@@ -2,7 +2,7 @@
 [ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="1"]
 [resource]
 script = ExtResource("1")
-key = &"shading_test_air"
+key = &"shading_test:air"
 display_name = "Shading test air"
 collision_enabled = false
 hardness = 0.0

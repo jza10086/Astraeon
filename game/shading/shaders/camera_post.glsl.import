@@ -11,3 +11,4 @@ source_file="res://game/shading/shaders/camera_post.glsl"
 dest_files=["res://.godot/imported/camera_post.glsl-8d5ea591ecce19382d3e22cb0fdef504.res"]
 
 [params]
+

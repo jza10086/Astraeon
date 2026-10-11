@@ -1,0 +1,10 @@
+{
+  "game/data/content/gdscript/content_manifest.gd": "47dd5c799303b9dd4ae4e8ba69895e39ff6d3fa6b58d362377af22feb633796e",
+  "game/data/content/gdscript/block_asset.gd": "f368776cd27470e50026d6c495a5750a02fe30ac963b3091b99e34ac9a90a006",
+  "game/data/content/gdscript/item_asset.gd": "98b19027932f48756c4ef3583c410fb617b08840f7dc3e5ae600ad28257f47b9",
+  "tools/content/project_resolver.gd": "1d2d0adc844c3abcf4a50e9c78b3eaecbbc9e662d8dd3a3f534423e531f2ff1c",
+  "tools/content/compiler.gd": "f6f5982350bf0bf589d7b2580b9d94ee84d1ec644134074114f3be312729ab0f",
+  "addons/astraeon_content/export_guard.gd": "89eac875051979d730d861ea20f7fbcdbc13bfbdbe16fa6787a9ec2c47fc90f9",
+  "test/content/gdscript/test_authoring.gd": "9a902e8d5334fbb5380e5867b2804512b412b8e0c1edb1c45fdabc551cf7369a",
+  "game/data/content/packages/astraeon.aebpack": "73b8969054d051bb0853faf288bb4ff9bc46fd6159a5bab18fb2b9227151a331"
+}

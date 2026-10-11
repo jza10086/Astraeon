@@ -9,6 +9,7 @@ func _run() -> void:
     world.shading_settings_path = "res://tmp/cache-smoke/no-settings.cfg"
     world.horizontal_distance = 64
     world.biome_layout = 1
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     started = Time.get_ticks_msec()
     var last_report: int = 0

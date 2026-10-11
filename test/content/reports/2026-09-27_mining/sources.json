@@ -1,0 +1,8 @@
+{
+  "game/gameplay/interaction/gdscript/mining_progress.gd": "17c0a2603d232b6b8409d7a7d8f8414843e1cf6db24687f5ec2397a864173a62",
+  "game/data/block/gdscript/block_definition.gd": "7edac9797f10b1ca5daee9ac71b0f90c1c06139fd7d09ab035474d25bb432523",
+  "game/data/item/gdscript/item_definition.gd": "0a4a9b088fb9f915c7119c46bf20bfd38263f562ba34c2b03bae0a39794e3d57",
+  "game/data/native/content/astraeon_content_pack.cpp": "69915a893a444268c2d4f2c9eb96171cb18e0b5e01aca3eeca9dc40b8ad31286",
+  "tools/content/compiler.gd": "f6f9dc6651b035fce71fdc7499e1b2def1ccac8b259393bc9ec270156263851c",
+  "game/data/content/packages/astraeon.aebpack": "0fbbba3bb166ca0e7352750e4e8eb3d80393cb76be502bf75f16ccf15bceb747"
+}

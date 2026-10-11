@@ -7,42 +7,32 @@ const PLANT_SHADER: Shader = preload("res://game/shading/shaders/plant.gdshader"
 var materials: Array[ShaderMaterial] = []
 var rebuilt_sections: int = 0
 var last_build_usec: int = 0
+var _content: AstraeonWorldContent
+var _visual_hashes: PackedStringArray = []
 var _volume: Volume
 var _parent: Node3D
 var _mesher: VoxelMesherBlocky
 var _nodes: Dictionary[Vector3i, MeshInstance3D] = {}
 var _dirty: Dictionary[Vector3i, bool] = {}
+const Foliage: Script = preload("res://game/shading/blocks/gdscript/foliage_rendering.gd")
+var _foliage_mode: int = -1
 
 func configure(volume: Volume, parent: Node3D, texture: ImageTexture3D) -> void:
 	_volume = volume
 	_parent = parent
 	var models: Array[VoxelBlockyModel] = [VoxelBlockyModelEmpty.new()]
-	var catalog: AstraeonBlockCatalog = preload("res://test/shading/resources/blocks/catalog.tres")
-	var keys: Array[StringName] = [&"shading_test_stone", &"shading_test_lamp", &"shading_test_wood", &"shading_test_leaves"]
+	_content = AstraeonWorldContent.new()
+	assert(_content.build(PackedStringArray(["res://tmp/content/shading_test.aebpack"])), _content.error)
+	var keys: Array[String] = ["shading_test:stone/default", "shading_test:lamp/default", "shading_test:wood/default", "shading_test:leaves/default"]
 	for i: int in range(keys.size()):
-		var definition: AstraeonBlockDefinition
-		for candidate: AstraeonBlockDefinition in catalog.definitions:
-			if candidate.key == keys[i]:
-				definition = candidate
-		assert(definition != null, "Missing shading fixture definition")
-		var model: VoxelBlockyModelCube = AstraeonBlockLibraryBuilder.build_block(definition, Basis.IDENTITY)
-		assert(model != null, "Invalid shading fixture appearance")
-		var compiled: ORMMaterial3D = model.get_material_override(0)
-		var material: ShaderMaterial = ShaderMaterial.new()
-		material.shader = PLANT_SHADER if i == 3 else LIGHT_SHADER
-		LightPages.bind_fixture(material,texture,volume.origin,volume.size)
-		material.set_shader_parameter("base_color", Color.WHITE)
-		material.set_shader_parameter("use_block_atlas", true)
-		material.set_shader_parameter("block_atlas", compiled.albedo_texture)
-		material.set_shader_parameter("block_cutout", definition.appearance.default_surface.alpha_mode == AstraeonBlockSurface.AlphaMode.CUTOUT)
-		material.set_shader_parameter("block_alpha_cutoff", definition.appearance.default_surface.alpha_cutoff)
-		material.set_shader_parameter("self_emission", definition.appearance.default_surface.emission_energy)
-		material.set_shader_parameter("material_roughness", definition.appearance.default_surface.roughness)
-		material.set_shader_parameter("material_specular", definition.appearance.default_surface.specular)
+		var id: int = _content.state_keys.find(keys[i])
+		var model: VoxelBlockyModelCube = _content.library.models[id] as VoxelBlockyModelCube
+		var material: ShaderMaterial = model.get_material_override(0)
+		LightPages.bind_fixture(material, texture, volume.origin, volume.size)
 		materials.append(material)
-		model.set_material_override(0, material)
-		# Lamp surfaces are drawn by the local-light fixture to avoid self-shadowing.
 		models.append(VoxelBlockyModelEmpty.new() if i == 1 else model)
+		_visual_hashes.append_array(_content.bundle.state_visuals(PackedInt32Array([id])))
+	_content.bundle.visuals.call("request", "shading_fixture", _visual_hashes)
 	var library: VoxelBlockyLibrary = VoxelBlockyLibrary.new()
 	library.models = models
 	library.bake()
@@ -68,11 +58,34 @@ func invalidate(changed: Array[Vector3i]) -> void:
 					if _volume.contains(neighbor):
 						_dirty[section_of(neighbor)] = true
 
+## Policy changes only rebuild native section meshes; never restart light propagation.
+func apply_foliage(mode: int) -> void:
+	if mode == _foliage_mode:
+		return
+	if mode > 0 and _foliage_mode > 0:
+		for model: VoxelBlockyModel in _mesher.library.models:
+			if Foliage.is_foliage(model):
+				Foliage.apply_material(model.get_material_override(0), mode)
+	else:
+		var replacement: VoxelMesherBlocky = _mesher.duplicate() as VoxelMesherBlocky
+		replacement.library = Foliage.with_mode(_mesher.library, mode)
+		_mesher = replacement
+		var start: Vector3i = section_of(_volume.origin)
+		var end: Vector3i = section_of(_volume.origin + _volume.size - Vector3i.ONE)
+		for z: int in range(start.z, end.z + 1):
+			for y: int in range(start.y, end.y + 1):
+				for x: int in range(start.x, end.x + 1):
+					_dirty[Vector3i(x, y, z)] = true
+	_foliage_mode = mode
+
 func pending_count() -> int:
 	return _dirty.size()
 
 ## One section per call; native meshing is atomic and is not a hard time budget.
 func step() -> void:
+	_content.bundle.visuals.call("commit")
+	if not _content.bundle.visuals.call("is_ready", _visual_hashes):
+		return
 	if _dirty.is_empty():
 		return
 	var begin: int = Time.get_ticks_usec()
@@ -98,3 +111,7 @@ func step() -> void:
 	_nodes[section].mesh = mesh
 	rebuilt_sections += 1
 	last_build_usec = Time.get_ticks_usec() - begin
+
+func shutdown() -> void:
+	if _content != null:
+		_content.bundle.shutdown()

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AstraeonItemAsset" format=3 uid="uid://buyno4h8tis6y"]
+
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="1_ckwe7"]
+[ext_resource type="Script" uid="uid://cpd5g5lj8ygew" path="res://game/data/content/gdscript/item_asset.gd" id="2_osw5j"]
+
+[sub_resource type="Resource" id="Resource_kapsv"]
+script = ExtResource("1_ckwe7")
+key = &"astraeon:sword"
+display_name = "剑"
+max_stack = 1
+creative_group = &"astraeon_tools"
+search_tags = PackedStringArray("武器", "近战", "剑", "sword")
+tool_tags = PackedStringArray("astraeon:foliage")
+mining_speed = 1.5
+
+[resource]
+script = ExtResource("2_osw5j")
+item = SubResource("Resource_kapsv")
+icon_image = &"sword_icon"

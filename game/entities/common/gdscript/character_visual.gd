@@ -18,22 +18,51 @@ var animation_player: AnimationPlayer
 @export var fall_clip: StringName = &"Fall"
 @export var takeoff_time: float = 31.0 / 60.0
 
-const BodyView: Script = preload("res://game/entities/common/gdscript/first_person_body.gd")
-var body_view: RefCounted
+var third_person_model: Node3D
+var first_person_model: Node3D
+var first_person_skeleton: Skeleton3D
+var first_person_animation: AnimationPlayer
+var first_person: bool = false
+var load_error: String = ""
 var view_pivot: Node3D
+const HoldPose: Script = preload("res://game/entities/common/gdscript/hold_pose.gd")
+var hold_pose: RefCounted
+var holding_block: bool = false
 var _clip: StringName = &""
+var hand_skeleton: Skeleton3D
+var hand_bone: int = -1
 
 func _ready() -> void:
 	if model_id.is_empty():
 		model_id = Models.load_id(settings_path)
 	var model: Node3D = Models.instantiate(model_id)
-	if model == null:
-		push_error("CharacterVisual cannot load selected model: " + String(model_id))
+	first_person_model = Models.instantiate(model_id, true)
+	if model == null or first_person_model == null:
+		load_error = "CharacterVisual cannot load character pair: " + String(model_id) + " / " + "; ".join(Models.Library.errors)
+		push_error(load_error)
+		if model != null:
+			model.free()
+		if first_person_model != null:
+			first_person_model.free()
+			first_person_model = null
 		set_process(false)
 		return
+	third_person_model = model
 	model.name = "Model"
 	add_child(model)
-	body_view = BodyView.new(model)
+	var skeletons: Array[Node] = model.find_children("*", "Skeleton3D", true, false)
+	if skeletons.size() == 1:
+		hand_skeleton = skeletons[0] as Skeleton3D
+		hand_bone = hand_skeleton.find_bone("RightLowerArm")
+	first_person_model.name = "FirstPersonModel"
+	first_person_model.rotation.y = PI
+	add_child(first_person_model)
+	first_person_model.hide()
+	first_person_skeleton = first_person_model.find_child("Skeleton3D", true, false) as Skeleton3D
+	first_person_animation = first_person_model.get_node("AnimationPlayer") as AnimationPlayer
+	first_person_animation.play("FP_Idle")
+	for mesh: Node in first_person_model.find_children("*", "MeshInstance3D", true, false):
+		(mesh as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	animation_player = model.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if motor == null or animation_player == null:
 		push_error("CharacterVisual requires motor and animation_player.")
@@ -43,16 +72,31 @@ func _ready() -> void:
 		push_error("CharacterVisual requires increasing positive gait reference speeds.")
 		set_process(false)
 		return
-	for clip: StringName in [idle_clip, walk_clip, run_clip, sprint_clip, jump_start_clip, fall_clip]:
+	for clip: StringName in [idle_clip, walk_clip, run_clip, sprint_clip, jump_start_clip, fall_clip, &"HoldBlock_R"]:
 		if not animation_player.has_animation(clip):
 			push_error("CharacterVisual missing required animation: " + String(clip))
 			set_process(false)
 			return
+	animation_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	hold_pose = HoldPose.new(model, animation_player.get_animation("HoldBlock_R"))
 	if takeoff_time < 0.0 or takeoff_time >= animation_player.get_animation(jump_start_clip).length:
 		push_error("CharacterVisual takeoff time is outside JumpStart.")
 		set_process(false)
 
+## Use the active view's authored grip; never mix FP offsets into the TP skeleton.
+func throw_origin() -> Vector3:
+	var rig: Skeleton3D = first_person_skeleton if first_person else hand_skeleton
+	return (rig.global_transform * rig.get_bone_global_pose(rig.find_bone("Grip_R"))).origin
+
 func _process(delta: float) -> void:
+	_update_locomotion(delta)
+	animation_player.advance(delta)
+	hold_pose.call("apply", delta, holding_block)
+	var fp_clip: StringName = &"FP_HoldBlock_R" if holding_block else &"FP_Idle"
+	if first_person_animation.current_animation != fp_clip:
+		first_person_animation.play(fp_clip, 0.12)
+
+func _update_locomotion(delta: float) -> void:
 	var actual: Vector3 = motor.get_real_velocity()
 	var speed: float = Vector2(actual.x, actual.z).length()
 	if view_pivot != null:
@@ -103,10 +147,16 @@ func _play(clip: StringName, blend: float = 0.12) -> void:
 	if match_phase:
 		animation_player.seek(phase * animation_player.get_animation(clip).length, true)
 
-## Keep the normal rig and animations; only the head triangles are omitted locally.
-func set_body_view(pivot: Node3D) -> void:
-	view_pivot = pivot
-	body_view.call("apply", pivot != null)
-	if pivot != null:
+## The camera owns the independent FP model; both views belong to one character choice.
+func set_view(camera: Camera3D, pivot: Node3D, enabled: bool) -> void:
+	first_person = enabled
+	view_pivot = pivot if enabled else null
+	if first_person_model.get_parent() != camera:
+		first_person_model.reparent(camera, false)
+		first_person_model.transform = Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)
+	third_person_model.visible = not enabled
+	first_person_model.visible = enabled
+	if enabled:
 		global_basis = pivot.global_basis * Basis(Vector3.UP, PI)
 	reset_physics_interpolation()
+	first_person_model.reset_physics_interpolation()

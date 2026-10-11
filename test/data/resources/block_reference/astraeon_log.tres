@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3 uid="uid://ttaa0d18qurh"]
+
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="1"]
+[ext_resource type="Resource" uid="uid://bssliotowdyq0" path="res://test/data/resources/appearance_reference/log.tres" id="appearance"]
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="state"]
+
+[sub_resource type="Resource" id="Axisx"]
+script = ExtResource("state")
+key = &"axis_x"
+properties = Dictionary[StringName, StringName]({
+&"axis": &"x"
+})
+orientation = Basis(0, 1, 0, -1, 0, 0, 0, 0, 1)
+
+[sub_resource type="Resource" id="Axisy"]
+script = ExtResource("state")
+key = &"axis_y"
+properties = Dictionary[StringName, StringName]({
+&"axis": &"y"
+})
+
+[sub_resource type="Resource" id="Axisz"]
+script = ExtResource("state")
+key = &"axis_z"
+properties = Dictionary[StringName, StringName]({
+&"axis": &"z"
+})
+orientation = Basis(1, 0, 0, 0, 0, -1, 0, 1, 0)
+
+[resource]
+script = ExtResource("1")
+key = &"astraeon:log"
+appearance = ExtResource("appearance")
+display_name = "木头"
+hardness = 2.0
+states = Array[ExtResource("state")]([SubResource("Axisx"), SubResource("Axisy"), SubResource("Axisz")])
+default_state = &"axis_y"

@@ -25,16 +25,13 @@ func same_buffer(a: VoxelBuffer, b: VoxelBuffer) -> bool:
 
 func _initialize() -> void:
 	var content: AstraeonWorldContent = AstraeonWorldContent.new()
-	check(content.build(load("res://game/data/block/resources/block_catalog.tres"), load("res://game/data/fluid/resources/astraeon_water.tres")), "Content builds")
-	var wood: AstraeonBlockDefinition = load("res://game/data/block/resources/astraeon_log.tres")
-	var end_color: Color = wood.appearance.surface_for_face(AstraeonBlockAppearance.Face.TOP).base_color
+	check(content.build(PackedStringArray(["res://game/data/content/packages/astraeon.aebpack"])), "Content builds")
+	var previous_material: Material
 	for axis: String in ["x", "y", "z"]:
-		var model: VoxelBlockyModelCube = content.library.models[content.state_keys.find("astraeon_log/axis_" + axis)] as VoxelBlockyModelCube
-		var side: int = {"x": VoxelBlockyModel.SIDE_POSITIVE_X, "y": VoxelBlockyModel.SIDE_POSITIVE_Y, "z": VoxelBlockyModel.SIDE_POSITIVE_Z}[axis]
-		var tile: Vector2i = model.get_tile(side)
-		var material: ORMMaterial3D = model.get_material_override(0) as ORMMaterial3D
-		var color: Color = material.albedo_texture.get_image().get_pixel(tile.x * 16 + 8, 8)
-		check(absf(color.r - end_color.r) < 0.005 and absf(color.g - end_color.g) < 0.005, "Compiled log end color on " + axis)
+		var model: VoxelBlockyModelCube = content.library.models[content.state_keys.find("astraeon:log/axis_" + axis)] as VoxelBlockyModelCube
+		var material: Material = model.get_material_override(0)
+		check(previous_material == null or previous_material == material, "Log orientations share compiled material " + axis)
+		previous_material = material
 	var water_model: VoxelBlockyModelCube = content.library.models[content.water_id] as VoxelBlockyModelCube
 	check(water_model.collision_aabbs.is_empty() and not water_model.is_mesh_collision_enabled(0), "Water has no solid collision")
 	var generator: AstraeonNativeGenerator = AstraeonNativeGenerator.new()
@@ -48,8 +45,8 @@ func _initialize() -> void:
 	generator.generate_block(large, Vector3(origin), 0)
 	var trunks: int = 0
 	var leaves: int = 0
-	var log_id: int = content.state_keys.find("astraeon_log/axis_y")
-	var leaf_id: int = content.state_keys.find("astraeon_leaves/default")
+	var log_id: int = content.state_keys.find("astraeon:log/axis_y")
+	var leaf_id: int = content.state_keys.find("astraeon:leaves/default")
 	for z: int in range(32):
 		for x: int in range(32):
 			for y: int in range(32):
@@ -80,11 +77,13 @@ func _initialize() -> void:
 			biomes[int(generator.sample_column(x, z)["biome"])] = true
 	check(biomes.size() == 4, "Natural layout contains all four biomes")
 	var directory: String = "res://tmp/landscape-tests/" + str(Time.get_ticks_usec())
+	var registry: RefCounted = ClassDB.instantiate("AstraeonContentRegistry")
+	var registered: Dictionary = registry.call("resolve", directory, content.bundle.contracts, PackedStringArray(["astraeon"]))
 	var stream: AstraeonNativeStream = AstraeonNativeStream.new()
-	check(stream.open_world(directory, generator.seed, 0, content.state_keys), "Open v2")
+	check(stream.open_world(directory, generator.seed, 0, content.state_keys, String(registered.world_id)), "Open format 3")
 	var section: VoxelBuffer = make_buffer(16)
 	section.fill(content.water_id)
-	section.set_voxel(content.state_keys.find("astraeon_log/axis_z"), 15, 15, 15)
+	section.set_voxel(content.state_keys.find("astraeon:log/axis_z"), 15, 15, 15)
 	stream.save_voxel_block(section, Vector3i(-1, 2, -1), 0)
 	var loaded: VoxelBuffer = make_buffer(16)
 	check(stream.load_voxel_block(loaded, Vector3i(-1, 2, -1), 0) == VoxelStream.RESULT_BLOCK_FOUND and same_buffer(loaded, section), "Water and oriented log round trip")
@@ -93,14 +92,13 @@ func _initialize() -> void:
 	reordered[1] = reordered[2]
 	reordered[2] = temp
 	var wrong: AstraeonNativeStream = AstraeonNativeStream.new()
-	check(wrong.open_world(directory, generator.seed, 0, reordered), "Open mismatched table")
-	check(wrong.load_voxel_block(loaded, Vector3i(-1, 2, -1), 0) == VoxelStream.RESULT_ERROR, "Reject reordered IDs")
+	check(not wrong.open_world(directory, generator.seed, 0, reordered, String(registered.world_id)), "Reject reordered state table")
 	var file: FileAccess = FileAccess.open(directory + "/-1_0_-1.avr", FileAccess.READ_WRITE)
 	file.seek(12)
 	file.store_32(1)
 	file.close()
 	var old: AstraeonNativeStream = AstraeonNativeStream.new()
-	check(old.open_world(directory, generator.seed, 0, content.state_keys), "Open obsolete generation")
+	check(old.open_world(directory, generator.seed, 0, content.state_keys, String(registered.world_id)), "Open obsolete generation")
 	check(old.load_voxel_block(loaded, Vector3i(-1, 2, -1), 0) == VoxelStream.RESULT_ERROR, "Reject obsolete generator")
 	print(JSON.stringify({"checks": checks, "failures": failures, "trunks": trunks, "leaves": leaves}))
 	quit(0 if failures.is_empty() else 1)

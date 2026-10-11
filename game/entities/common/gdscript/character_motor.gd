@@ -2,6 +2,11 @@ class_name CharacterMotor
 extends CharacterBody3D
 ## Shared physical movement. Input or AI supplies world-space intent.
 
+@export var flight_speed: float = 8.0
+@export var flight_sprint_speed: float = 16.0
+var flying: bool = false
+var flight_vertical: float = 0.0
+
 @export var slow_walk_speed: float = 0.5141
 @export var walk_speed: float = 4.3
 @export var run_speed: float = 5.6
@@ -24,6 +29,14 @@ var _jump_remaining: float = 0.0
 ## Called once per physics tick by the owning controller.
 func step(delta: float) -> void:
 	jumped_this_frame = false
+	if flying:
+		var direction: Vector3 = Vector3(move_intent.x, flight_vertical, move_intent.z).limit_length(1.0)
+		velocity = direction * (flight_sprint_speed if sprint_requested else flight_speed)
+		jump_requested = false
+		_coyote_remaining = 0.0
+		_jump_remaining = 0.0
+		move_and_slide()
+		return
 	_coyote_remaining = coyote_time if is_on_floor() else maxf(0.0, _coyote_remaining - delta)
 	_jump_remaining = jump_buffer_time if jump_requested else maxf(0.0, _jump_remaining - delta)
 	jump_requested = false
@@ -50,6 +63,7 @@ func step(delta: float) -> void:
 		velocity.y = 0.0
 
 func reset_motion() -> void:
+	flight_vertical = 0.0
 	velocity = Vector3.ZERO
 	move_intent = Vector3.ZERO
 	slow_walk_requested = false

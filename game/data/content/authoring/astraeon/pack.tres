@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="AstraeonContentManifest" format=3 uid="uid://ckmmd7k4y5h5y"]
+
+[ext_resource type="Script" uid="uid://dywa800mwjb7y" path="res://game/data/content/gdscript/block_asset.gd" id="1_swplt"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/blocks/grass.tres" id="2_8og1l"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/blocks/dirt.tres" id="3_s22eg"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/blocks/leaves.tres" id="4_vydcq"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/blocks/log.tres" id="5_4o0kg"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/blocks/glowstone.tres" id="6_v7fv5"]
+[ext_resource type="Script" uid="uid://cruhi482xufjl" path="res://game/data/fluid/gdscript/fluid_definition.gd" id="7_ndsbr"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/fluids/water.tres" id="8_36hq7"]
+[ext_resource type="Script" uid="uid://cpd5g5lj8ygew" path="res://game/data/content/gdscript/item_asset.gd" id="9_horj7"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/items/sword.tres" id="10_stckf"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/items/shovel.tres" id="11_kkwwi"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/items/pickaxe.tres" id="12_vu447"]
+[ext_resource type="Resource" path="res://game/data/content/authoring/astraeon/items/axe.tres" id="13_6ec2q"]
+[ext_resource type="Script" uid="uid://bewvpuyypeq5a" path="res://game/data/content/gdscript/content_manifest.gd" id="14_owjob"]
+
+[resource]
+script = ExtResource("14_owjob")
+package_id = "astraeon"
+display_name = "Astraeon"
+dependencies = PackedStringArray()
+blocks = Array[ExtResource("1_swplt")]([ExtResource("2_8og1l"), ExtResource("3_s22eg"), ExtResource("4_vydcq"), ExtResource("5_4o0kg"), ExtResource("6_v7fv5")])
+fluids = Array[ExtResource("7_ndsbr")]([ExtResource("8_36hq7")])
+items = Array[ExtResource("9_horj7")]([ExtResource("10_stckf"), ExtResource("11_kkwwi"), ExtResource("12_vu447"), ExtResource("13_6ec2q")])
+creative_groups = Dictionary[StringName, String]({
+&"astraeon_building": "建筑方块",
+&"astraeon_functional": "功能方块",
+&"astraeon_natural": "自然方块",
+&"astraeon_tools": "工具"
+})
+image_sources = Dictionary[StringName, String]({
+&"axe_icon": "../../../../../content_sources/astraeon/axe_icon.png",
+&"breaking_common": "../../../../../content_sources/astraeon/breaking_common.png",
+&"breaking_wood": "../../../../../content_sources/astraeon/breaking_wood.png",
+&"leaves_surface_default": "../../../../../content_sources/astraeon/leaves_surface_default.png",
+&"pickaxe_icon": "../../../../../content_sources/astraeon/pickaxe_icon.png",
+&"shovel_icon": "../../../../../content_sources/astraeon/shovel_icon.png",
+&"sword_icon": "../../../../../content_sources/astraeon/sword_icon.png"
+})

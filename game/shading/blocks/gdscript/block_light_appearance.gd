@@ -1,3 +1,4 @@
+@tool
 class_name AstraeonBlockLightAppearance
 extends Resource
 ## Illumination request, independent of surface emission and renderer budgets.

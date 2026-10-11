@@ -88,7 +88,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(600, 72)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-tooltip_text = "进入当前单人世界；已有地形改动会自动读取。"
+tooltip_text = "选择、读取或创建单人存档。"
 text = "单人游戏"
 
 [node name="Multiplayer" type="Button" parent="Home/Menu"]

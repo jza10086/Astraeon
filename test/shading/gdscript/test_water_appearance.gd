@@ -24,7 +24,7 @@ func _initialize() -> void:
 	check(not parameters.has(&"clock") and not parameters.has(&"depth_absorption"), "Runtime state and quality excluded")
 	check(water.scene_reflection_parameters(true).has(&"planar_strength"), "Planar variant mapping")
 	check(water.scene_reflection_parameters(false).has(&"water_ssr_strength"), "SSR variant mapping")
-	for field: StringName in [&"absorption", &"opacity", &"uniform_opacity", &"roughness", &"specular", &"wave_strength", &"wave_speed", &"wave_scale", &"sky_strength", &"scene_reflection_strength", &"underwater_distance"]:
+	for field: StringName in [&"absorption", &"opacity", &"uniform_opacity", &"roughness", &"specular", &"wave_strength", &"wave_speed", &"wave_scale", &"sky_strength", &"scene_reflection_strength", &"underwater_attenuation_rate", &"underwater_attenuation_start"]:
 		for invalid: float in [-1.0, NAN, INF]:
 			copy = water.duplicate(true)
 			copy.set(field, invalid)
@@ -40,10 +40,11 @@ func _initialize() -> void:
 	copy = water.duplicate(true)
 	copy.absorption = 0.7
 	copy.wave_speed = 2.0
-	copy.underwater_distance = 4.0
+	copy.underwater_attenuation_rate = 0.25
+	copy.underwater_attenuation_start = 2.0
 	check(ResourceSaver.save(copy, path) == OK, "Save custom water")
 	var restored: AstraeonWaterAppearance = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
 	check(restored != null and restored.validate().is_empty(), "Reload custom water")
-	check(restored.absorption == 0.7 and restored.wave_speed == 2.0 and restored.underwater_distance == 4.0, "Roundtrip preserves material and underwater fields")
+	check(restored.absorption == 0.7 and restored.wave_speed == 2.0 and restored.underwater_attenuation_rate == 0.25 and restored.underwater_attenuation_start == 2.0, "Roundtrip preserves material and underwater fields")
 	print("WATER_APPEARANCE: %d checks, %d failures" % [checks, failures])
 	quit(0 if failures == 0 else 1)

@@ -1,3 +1,4 @@
+@tool
 class_name AstraeonFluidDefinition
 extends Resource
 ## Shared static fluid definition. World owns level, volume and flow; this resource does not simulate fluids.

@@ -81,6 +81,7 @@ func _run() -> void:
     world.horizontal_distance = distance
     world.biome_layout = 1
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     RenderingServer.viewport_set_measure_render_time(root.get_viewport_rid(),true)
     RenderingServer.viewport_set_measure_render_time(world.shading.planar.viewport.get_viewport_rid(),true)

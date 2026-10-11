@@ -20,6 +20,7 @@ func _run() -> void:
     world.set("world_directory", options.get("world", "res://tmp/native-probe/world"))
     world.set("biome_layout", 1)
     world.set("prediction_enabled", options.get("prediction", "1") == "1")
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     var deadline: int = Time.get_ticks_msec() + 30000
     while not bool(world.get("ready_to_play")) and Time.get_ticks_msec() < deadline:
@@ -44,7 +45,7 @@ func _run() -> void:
     while not tracker.is_complete() and Time.get_ticks_msec() < deadline:
         await process_frame
     var reader: AstraeonNativeStream = AstraeonNativeStream.new()
-    reader.open_world(world.get("world_directory"), int(world.get("seed")), 1, (world.get("content") as AstraeonWorldContent).state_keys)
+    reader.open_world(world.get("world_directory"), int(world.get("seed")), 1, (world.get("content") as AstraeonWorldContent).state_keys, world.content.bundle.world_id)
     var stored: VoxelBuffer = VoxelBuffer.new()
     stored.create(16, 16, 16)
     var section: Vector3i = Vector3i(floori(anchor.x / 16.0), floori(anchor.y / 16.0), floori(anchor.z / 16.0))

@@ -1,0 +1,6 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+[MCPRuntimeServer] port: scanning 6570-6585 (default)
+[MCPRuntimeServer] listening on 127.0.0.1:6570
+[MCPRegistry] runtime port 6570 registered for f:/godotprojects/astraeon
+BUILTIN_CONTENT_DONE { "bytes": 11794, "raw_bytes": 90192, "unique_blobs": 5, "index_sha256": "f9c35b2d8aa364df27ba10c3a788e88530ff158a4d075c7e0ef47ccb52969ac0", "compiled_visuals": 0, "cache_hits": 5, "decoded_images": 5 } deploy=0

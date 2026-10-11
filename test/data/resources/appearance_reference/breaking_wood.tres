@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="AstraeonBreakingTextureGroup" format=3]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1"]
+[ext_resource type="Texture2D" path="res://test/data/assets/appearance_reference/breaking/wood.png" id="2"]
+[resource]
+script = ExtResource("1")
+stages_texture = ExtResource("2")

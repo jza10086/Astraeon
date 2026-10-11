@@ -1,3 +1,4 @@
+@tool
 class_name AstraeonBlockAppearance
 extends Resource
 ## Shared appearance, without world position or instance state.
@@ -6,6 +7,8 @@ const NORMALS: Array[Vector3] = [Vector3.UP, Vector3.DOWN, Vector3.FORWARD, Vect
 ## UV u/v tangents in authored coordinates. u cross v = outward normal.
 const U_AXES: Array[Vector3] = [Vector3.RIGHT, Vector3.RIGHT, Vector3.LEFT, Vector3.RIGHT, Vector3.BACK, Vector3.FORWARD]
 const V_AXES: Array[Vector3] = [Vector3.FORWARD, Vector3.BACK, Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP]
+## Square pixels per face. Shared by all six atlas tiles, independent of voxel size.
+@export_range(1, 1024, 1) var texture_resolution: int = 32
 @export var default_surface: AstraeonBlockSurface
 ## Sparse face dictionaries. Missing entries use the defaults, never legacy formats.
 @export var face_surfaces: Dictionary[int, AstraeonBlockSurface] = {}
@@ -13,7 +16,11 @@ const V_AXES: Array[Vector3] = [Vector3.FORWARD, Vector3.BACK, Vector3.UP, Vecto
 ## Vector2i components must be 0 or 1.
 @export var face_uv_mirrors: Dictionary[int, Vector2i] = {}
 @export var authoring_orientation: Basis = Basis.IDENTITY
+## Shared mining overlay group; null explicitly disables the visual only.
+@export var breaking: AstraeonBreakingTextureGroup
 @export var light: AstraeonBlockLightAppearance
+## Closed cutout cubes eligible for layered foliage rendering; never changes logical opacity.
+@export var foliage_layers: bool = false
 
 func surface_for_face(face: Face) -> AstraeonBlockSurface:
 	return face_surfaces.get(face, default_surface)
@@ -70,6 +77,10 @@ func light_offset(instance_orientation: Basis = Basis.IDENTITY) -> Vector3:
 
 func validate() -> PackedStringArray:
 	var errors: PackedStringArray = []
+	if texture_resolution < 1 or texture_resolution > 1024:
+		errors.append("texture_resolution must be within [1, 1024] pixels per face")
+	if foliage_layers and (default_surface == null or default_surface.alpha_mode != AstraeonBlockSurface.AlphaMode.CUTOUT):
+		errors.append("foliage_layers requires a cutout surface")
 	if default_surface == null:
 		errors.append("default_surface is required")
 	else:
@@ -90,6 +101,9 @@ func validate() -> PackedStringArray:
 			errors.append("face_uv_mirrors requires valid faces and binary components")
 	if not is_cube_rotation(authoring_orientation):
 		errors.append("authoring_orientation must be a proper cube rotation")
+	if breaking != null:
+		for error: String in breaking.validate():
+			errors.append("breaking: " + error)
 	if light != null:
 		for error: String in light.validate():
 			errors.append("light: " + error)

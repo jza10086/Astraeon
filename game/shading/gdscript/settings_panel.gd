@@ -17,6 +17,8 @@ func build(parent: VBoxContainer, settings: Profile, callback: Callable) -> void
 	profile = settings
 	changed = callback
 	var labels: Dictionary[StringName, String] = {
+		&"light_filter_mode": "传播光平滑方案", &"block_smoothing": "方块光平滑强度", &"block_response_mode": "方块光亮度曲线方案",
+		&"foliage_mode": "树叶层次方案（剔面切换会重建网格）",
 		&"ambient_minimum": "最低环境光强度", &"ambient_minimum_color": "暗处补光颜色",
 		&"local_lighting_mode": "局部照明方案", &"voxel_light_strength": "体素主照明强度",
 		&"local_point_budget": "混合方案点光源上限", &"local_shadow_budget": "混合方案阴影灯上限",
@@ -42,7 +44,8 @@ func build(parent: VBoxContainer, settings: Profile, callback: Callable) -> void
 		&"water_ssr_strength": "SSR 强度", &"water_ssr_steps": "SSR 步进次数",
 		&"water_ssr_distance": "SSR 最大距离", &"water_ssr_tolerance": "SSR 命中容差",
 		&"water_ssr_edge_fade": "SSR 屏幕边缘淡出",
-		&"underwater_color": "水下颜色", &"underwater_distance": "水下可视距离",
+		&"underwater_color": "水下颜色", &"underwater_tint_opacity": "水下染色不透明度", &"underwater_visibility_enabled": "水下可视距离限制",
+		&"underwater_attenuation_rate": "视野衰减率（每米）", &"underwater_attenuation_start": "衰减起始距离（米）",
 		&"ambient_smoothing": "环境光平滑", &"ambient_strength": "环境光强度", &"ambient_curve": "环境光衰减曲线",
 		&"block_grid_strength": "方块格线强度", &"block_cloud_shadows": "方块云日月阴影",
 		&"cloud_shadow_strength": "云影强度", &"cloud_shadow_softness": "云影边缘柔度",
@@ -64,6 +67,13 @@ func build(parent: VBoxContainer, settings: Profile, callback: Callable) -> void
 	for key: String in Extra.LABELS:
 		labels[StringName(key)] = Extra.LABELS[key]
 	var tips: Dictionary[StringName, String] = {
+		&"light_filter_mode": "四点线性开销较小；九点柔和用正权重滤波减轻光级折线。只在表面外侧采样，遮挡角不串光；不改变传播距离或重建网格。",
+		&"block_smoothing": "0 保留逐格方块光，1 完整平滑。与天空光平滑独立。",
+		&"block_response_mode": "MakeUp 风格采用 x^1.5 与高次近光增强项，最高光级归一为 1。它是亮度曲线，不增加传播范围；幂函数模式可调指数。",
+		&"underwater_tint_opacity": "仅在关闭水下视距限制或衰减率为 0 时使用。0 完全透明，1 完全覆盖三维画面；HUD 与菜单不染色。",
+		&"underwater_visibility_enabled": "仅控制水下距离雾，不改变地图加载或相机裁剪。关闭后改为水下全局染色，可用不透明度控制；不影响 HUD。",
+		&"underwater_attenuation_rate": "衰减过渡长度的倒数，单位 1/米。0 不衰减；0.1 表示起始距离后经过 10 米达到最大雾遮蔽。采用引擎平滑过渡。",
+		&"underwater_attenuation_start": "此距离以内不施加水下距离雾，之后平滑衰减。单位米。",
 		&"ambient_minimum": "仅抬高材质暗处可见度，不修改体素传播。0 恢复真实零光；非零会让密闭房间也能看清轮廓。",
 		&"local_lighting_mode": "仅自发光不照亮周围；体素光没有逐灯阴影；点光源无阴影可能穿墙。混合方案使用体素照明，加少量近处点光源。",
 		&"local_point_budget": "仅混合方案生效。按与观察相机距离选择，不合并光源；0 只保留体素光。",
@@ -123,7 +133,7 @@ func build(parent: VBoxContainer, settings: Profile, callback: Callable) -> void
 			row.add_child(option)
 			widgets[key] = option
 		elif value is Color:
-			var picker: ColorPickerButton = ColorPickerButton.new()
+			var picker: ColorPickerButton = preload("res://game/ui/gdscript/bounded_color_picker.gd").new()
 			picker.edit_alpha = false
 			picker.custom_minimum_size.y = 32
 			picker.color_changed.connect(func(color: Color) -> void: _set_value(key, color))
@@ -154,8 +164,9 @@ func _group_for(key: StringName) -> String:
 	if name.begins_with("wave") or key == &"waves_enabled": return "波纹"
 	if name.begins_with("water_"): return "水体与天空反射"
 	if name.begins_with("cloud") or key == &"block_cloud_shadows": return "方块云"
-	if name.begins_with("wind") or name.begins_with("translucency"): return "植被"
+	if name.begins_with("wind") or name.begins_with("translucency") or key == &"foliage_mode": return "植被"
 	if name.begins_with("fog"): return "距离雾"
+	if key == &"light_filter_mode": return "环境光与 AO"
 	if name.begins_with("ambient") or name.begins_with("ao_") or key == &"block_grid_strength": return "环境光与 AO"
 	if name.begins_with("shadow") or key == &"hard_shadows": return "阴影"
 	if name.begins_with("lamp_"): return "方块自发光"
@@ -212,6 +223,7 @@ func _set_value(key: StringName, value: Variant) -> void:
 	sync(profile)
 
 func _effective(key: StringName) -> bool:
+	if key == &"shaft_history": return profile.rays_mode in [1,3] and profile.shaft_temporal
 	if key == &"glass_filter": return profile.glass_enabled and profile.glass_filter_mode in [1,3,4,5]
 	if Extra.GATES.has(str(key)):
 		var gate: PackedStringArray = Extra.GATES[str(key)].split(":")
@@ -219,6 +231,10 @@ func _effective(key: StringName) -> bool:
 	if key == &"exposure": return profile.exposure_mode == 0
 	var name: String = str(key)
 	if key == &"day_seconds": return profile.cycle_enabled
+	if key == &"ambient_smoothing": return profile.light_filter_mode != 0
+	if key == &"block_smoothing": return profile.light_filter_mode != 0 and profile.effective_block_strength() > 0.0
+	if key == &"block_response_mode": return profile.effective_block_strength() > 0.0
+	if key == &"block_curve": return profile.effective_block_strength() > 0.0 and profile.block_response_mode == 0
 	if key == &"ambient_minimum_color": return profile.ambient_minimum > 0.0
 	if key == &"ao_strength": return profile.ao_enabled
 	if name.begins_with("fog_") and key != &"fog_enabled": return profile.fog_enabled
@@ -246,8 +262,15 @@ func _effective(key: StringName) -> bool:
 			if key == &"planar_distortion": return profile.waves_enabled
 		if key in [&"water_deep_color", &"water_absorption", &"water_opacity"]: return profile.water_quality == 1
 		if key == &"water_low_opacity": return profile.water_quality == 0
+		if key in [&"water_refraction_strength",&"water_refraction_edge"]: return profile.water_refraction and profile.water_quality == 1
+		if key == &"water_refraction": return profile.water_quality == 1
+		if key in [&"water_cloud_reflection",&"water_sky_visibility"]: return profile.water_reflection
 		if name.begins_with("wave_"): return profile.waves_enabled
 		if key == &"water_sky_strength": return profile.water_reflection
+		if key == &"underwater_tint_opacity":
+			return profile.underwater_enabled and (not profile.underwater_visibility_enabled or profile.underwater_attenuation_rate <= 0.0)
+		if key in [&"underwater_attenuation_rate", &"underwater_attenuation_start"]:
+			return profile.underwater_enabled and profile.underwater_visibility_enabled
 		if name.begins_with("underwater_") and key != &"underwater_enabled": return profile.underwater_enabled
 	if key in [&"cloud_coverage", &"cloud_speed"]: return profile.clouds_enabled
 	if name.begins_with("cloud_shadow_"): return profile.clouds_enabled and profile.block_cloud_shadows and profile.direct_enabled

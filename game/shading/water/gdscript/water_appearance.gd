@@ -1,3 +1,4 @@
+@tool
 class_name AstraeonWaterAppearance
 extends Resource
 ## Shared water authoring data, read-only to consumers.
@@ -23,8 +24,9 @@ extends Resource
 @export_range(0.0, 1.0) var scene_reflection_strength: float = 1.0
 @export_group("Underwater")
 @export_color_no_alpha var underwater_color: Color = Color(0.015, 0.16, 0.23)
-## Visibility distance in meters, using the existing underwater fog convention.
-@export_range(0.01, 40.0, 0.01, "or_greater") var underwater_distance: float = 12.0
+## Inverse smooth attenuation transition length; the enable switch is runtime policy.
+@export_range(0.0, 2.0, 0.001, "or_greater") var underwater_attenuation_rate: float = 1.0 / 12.0
+@export_range(0.0, 128.0, 0.1, "or_greater") var underwater_attenuation_start: float = 0.0
 
 func validate() -> PackedStringArray:
 	var errors: PackedStringArray = []
@@ -32,11 +34,11 @@ func validate() -> PackedStringArray:
 		var value: float = float(get(field))
 		if not is_finite(value) or value < 0.0 or value > 1.0:
 			errors.append("%s must be finite and within [0, 1]" % field)
-	for field: StringName in [&"absorption", &"wave_strength", &"wave_speed", &"sky_strength"]:
+	for field: StringName in [&"absorption", &"wave_strength", &"wave_speed", &"sky_strength", &"underwater_attenuation_rate", &"underwater_attenuation_start"]:
 		var value: float = float(get(field))
 		if not is_finite(value) or value < 0.0:
 			errors.append("%s must be finite and nonnegative" % field)
-	for field: StringName in [&"wave_scale", &"underwater_distance"]:
+	for field: StringName in [&"wave_scale"]:
 		var value: float = float(get(field))
 		if not is_finite(value) or value <= 0.0:
 			errors.append("%s must be finite and positive" % field)

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3]
+
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="1_6cjxo"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="2_ahyfr"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="3_grcu2"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_state_definition.gd" id="4_ugp3n"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="5_10cgn"]
+
+[sub_resource type="Resource" id="Resource_ebiy4"]
+script = ExtResource("1_6cjxo")
+base_color = Color(0.25, 0.48, 0.2, 1)
+alpha_mode = 1
+double_sided = true
+
+[sub_resource type="Resource" id="Resource_264km"]
+script = ExtResource("2_ahyfr")
+default_surface = SubResource("Resource_ebiy4")
+foliage_layers = true
+
+[sub_resource type="Resource" id="Resource_gx5mw"]
+script = ExtResource("3_grcu2")
+key = &"shading_test:leaves"
+appearance = SubResource("Resource_264km")
+display_name = "Shading test leaves"
+light_opacity = 1
+
+[resource]
+script = ExtResource("5_10cgn")
+block = SubResource("Resource_gx5mw")
+image_slots = Dictionary[String, StringName]({
+"surface/default": &"shading_test_leaves_surface_default"
+})

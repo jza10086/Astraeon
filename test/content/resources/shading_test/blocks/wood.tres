@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3]
+
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1_kdksp"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2_o2lbi"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_b5m1j"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="4_xlg7h"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_rkbrn"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="6_2pnpa"]
+
+[sub_resource type="Resource" id="Resource_e7c6u"]
+script = ExtResource("1_kdksp")
+
+[sub_resource type="Resource" id="Resource_ijyuc"]
+script = ExtResource("2_o2lbi")
+base_color = Color(0.55, 0.33, 0.15, 1)
+
+[sub_resource type="Resource" id="Resource_w5yko"]
+script = ExtResource("3_b5m1j")
+default_surface = SubResource("Resource_ijyuc")
+breaking = SubResource("Resource_e7c6u")
+
+[sub_resource type="Resource" id="Resource_6t28n"]
+script = ExtResource("4_xlg7h")
+key = &"shading_test:wood"
+appearance = SubResource("Resource_w5yko")
+display_name = "Shading test wood"
+
+[resource]
+script = ExtResource("6_2pnpa")
+block = SubResource("Resource_6t28n")
+image_slots = Dictionary[String, StringName]({
+"breaking": &"shading_test_wood_breaking"
+})

@@ -9,11 +9,18 @@ signal view_changed()
 @export var visual: Node3D
 @export var first_person: bool = true
 @export var eye_height: float = 1.62
-@export var eye_forward: float = 0.22
 @export var mouse_sensitivity: float = 0.0025
 @export var respawn_position: Vector3 = Vector3(0.0, 0.1, 3.0)
 @export var respawn_below: float = -20.0
-@export var input_enabled: bool = true
+@export var input_enabled: bool = true:
+	set(value):
+		input_enabled = value
+		_last_jump_press = -1.0
+		if motor != null:
+			motor.reset_motion()
+var player_state: AstraeonPlayerState
+var _last_jump_press: float = -1.0
+@export var flight_double_tap_seconds: float = 0.3
 
 var _view_change_pending: bool = false
 var _requested_first_person: bool = true
@@ -21,6 +28,8 @@ var _third_person_height: float
 var _third_person_distance: float
 var _third_person_margin: float
 var _third_person_mask: int
+var _third_person_fov: float
+var _third_person_near: float
 
 func _ready() -> void:
 	if motor == null or camera_pivot == null or spring_arm == null or camera == null or visual == null or spring_arm.shape == null:
@@ -29,6 +38,12 @@ func _ready() -> void:
 		set_process_unhandled_input(false)
 		return
 	spring_arm.add_excluded_object(motor.get_rid())
+	_third_person_fov = camera.fov
+	_third_person_near = camera.near
+	if not String(visual.get("load_error")).is_empty():
+		set_physics_process(false)
+		set_process_unhandled_input(false)
+		return
 	_third_person_height = camera_pivot.position.y
 	_third_person_distance = spring_arm.spring_length
 	_third_person_margin = spring_arm.margin
@@ -47,12 +62,19 @@ func _physics_process(delta: float) -> void:
 	if input_enabled:
 		var axes: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		motor.move_intent = camera_pivot.global_basis * Vector3(axes.x, 0.0, axes.y) if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Vector3.ZERO
-		motor.slow_walk_requested = Input.is_action_pressed("slow_walk") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		motor.slow_walk_requested = not motor.flying and Input.is_action_pressed("slow_walk") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		motor.sprint_requested = Input.is_action_pressed("sprint") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-		motor.jump_requested = Input.is_action_just_pressed("jump") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		var captured: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		var jump_pressed: bool = Input.is_action_just_pressed("jump") and captured
+		var toggled: bool = _handle_jump_press(float(Time.get_ticks_msec()) / 1000.0) if jump_pressed else false
+		if not captured:
+			_last_jump_press = -1.0
+		motor.jump_requested = jump_pressed and not motor.flying and not toggled
+		motor.flight_vertical = Input.get_axis("fly_down", "fly_up") if captured and motor.flying else 0.0
+	else:
+		motor.reset_motion()
+		_last_jump_press = -1.0
 	motor.step(delta)
-	if first_person:
-		camera_pivot.position = Vector3.UP * eye_height - camera_pivot.basis.z * eye_forward
 	if _view_change_pending:
 		_view_change_pending = false
 		_apply_view(_requested_first_person)
@@ -81,7 +103,9 @@ func set_first_person(enabled: bool) -> void:
 
 func _apply_view(enabled: bool) -> void:
 	first_person = enabled
-	camera_pivot.position = Vector3.UP * eye_height - camera_pivot.basis.z * eye_forward if enabled else Vector3.UP * _third_person_height
+	camera_pivot.position = Vector3.UP * (eye_height if enabled else _third_person_height)
+	camera.fov = 58.7155 if enabled else _third_person_fov
+	camera.near = 0.01 if enabled else _third_person_near
 	# A zero-length, collision-free arm keeps the eye anchored inside the capsule.
 	spring_arm.spring_length = 0.0 if enabled else _third_person_distance
 	spring_arm.margin = 0.0 if enabled else _third_person_margin
@@ -103,7 +127,7 @@ func _apply_view(enabled: bool) -> void:
 		distance = _third_person_distance * fractions[0]
 	camera.position = Vector3(0.0, 0.0, distance)
 	visual.visible = true
-	visual.call("set_body_view", camera_pivot if enabled else null)
+	visual.call("set_view", camera, camera_pivot, enabled)
 	camera_pivot.reset_physics_interpolation()
 	view_changed.emit()
 
@@ -114,3 +138,23 @@ func respawn() -> void:
 func _exit_tree() -> void:
 	if input_enabled:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+## State changes do not enable flight automatically. Survival always revokes it.
+func apply_game_mode() -> void:
+	_last_jump_press = -1.0
+	if motor != null and (player_state == null or not player_state.is_creative()) and motor.flying:
+		motor.flying = false
+		motor.reset_motion()
+
+func _handle_jump_press(now: float) -> bool:
+	if player_state == null or not player_state.is_creative():
+		_last_jump_press = -1.0
+		return false
+	if _last_jump_press >= 0.0 and now - _last_jump_press <= flight_double_tap_seconds:
+		motor.flying = not motor.flying
+		motor.reset_motion()
+		_last_jump_press = -1.0
+		return true
+	else:
+		_last_jump_press = now
+	return false

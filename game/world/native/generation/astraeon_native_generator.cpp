@@ -50,15 +50,15 @@ int floor8(int v) { return v >= 0 ? v / 8 : (v + 1) / 8 - 1; }
 }
 bool AstraeonNativeGenerator::configure_content(PackedStringArray keys) {
     RWLockWrite lock(_lock);
-    if (_configured || keys.size() < 2 || keys.size() > 65536 || keys[0] != "astraeon_air/default") return false;
+    if (_configured || keys.size() < 2 || keys.size() > 65536 || keys[0] != "astraeon:air/default") return false;
     int grass = -1, dirt = -1, leaves = -1, log = -1, water = -1;
     for (int i = 0; i < keys.size(); ++i) {
         for (int j = 0; j < i; ++j) if (keys[i] == keys[j]) return false;
-        if (keys[i] == "astraeon_grass/default") grass = i;
-        if (keys[i] == "astraeon_dirt/default") dirt = i;
-        if (keys[i] == "astraeon_leaves/default") leaves = i;
-        if (keys[i] == "astraeon_log/axis_y") log = i;
-        if (keys[i] == "astraeon_water/default") water = i;
+        if (keys[i] == "astraeon:grass/default") grass = i;
+        if (keys[i] == "astraeon:dirt/default") dirt = i;
+        if (keys[i] == "astraeon:leaves/default") leaves = i;
+        if (keys[i] == "astraeon:log/axis_y") log = i;
+        if (keys[i] == "astraeon:water/default") water = i;
     }
     if (grass < 0 || dirt < 0 || leaves < 0 || log < 0 || water < 0) return false;
     _grass = grass; _dirt = dirt; _leaves = leaves; _log = log; _water = water; _configured = true;

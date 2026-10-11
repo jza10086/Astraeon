@@ -13,6 +13,10 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 @export_range(0.0, 4.0) var block_energy: float = 1.3
 @export_range(0.5, 3.0) var block_curve: float = 1.6
 @export_range(0.1, 4.0, 0.05) var exposure: float = 1.0
+@export_group("传播光采样")
+@export_enum("关闭（逐格）", "四点线性", "九点柔和") var light_filter_mode: int = 2
+@export_range(0.0, 1.0, 0.05) var block_smoothing: float = 1.0
+@export_enum("幂函数", "MakeUp 风格（峰值归一）") var block_response_mode: int = 0
 @export_group("环境光渐变")
 @export_range(0.0, 1.0, 0.05) var ambient_smoothing: float = 1.0
 @export_range(0.0, 2.0, 0.05) var ambient_strength: float = 1.0
@@ -61,7 +65,7 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 @export var water_enabled: bool = true
 @export_enum("统一水色", "逐像素深度吸收") var water_quality: int = 1
 @export var waves_enabled: bool = true
-@export_range(0.0, 0.3, 0.01) var wave_strength: float = 0.12
+@export_range(0.0, 0.3, 0.01) var wave_strength: float = 0.025
 @export var water_reflection: bool = true
 @export_color_no_alpha var water_shallow_color: Color = Color(0.06, 0.4, 0.36)
 @export_color_no_alpha var water_deep_color: Color = Color(0.012, 0.075, 0.15)
@@ -74,7 +78,7 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 @export_range(0.0, 4.0, 0.1) var wave_speed: float = 1.0
 @export_range(0.0, 2.0, 0.05) var water_sky_strength: float = 1.0
 @export_group("水面 · 场景反射")
-@export_enum("关闭", "SSR", "平面反射") var water_reflection_mode: int = 2
+@export_enum("关闭", "SSR", "平面反射") var water_reflection_mode: int = 1
 @export_group("水面 · SSR 参数")
 @export_range(0.0, 1.0, 0.05) var water_ssr_strength: float = 1.0
 @export_range(4, 128, 1) var water_ssr_steps: int = 32
@@ -100,8 +104,12 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 @export_group("水下")
 @export var underwater_enabled: bool = true
 @export_color_no_alpha var underwater_color: Color = Color(0.015, 0.16, 0.23)
-@export_range(1.0, 40.0, 1.0) var underwater_distance: float = 12.0
+@export_range(0.0, 1.0, 0.01) var underwater_tint_opacity: float = 0.25
+@export var underwater_visibility_enabled: bool = true
+@export_range(0.0, 2.0, 0.001) var underwater_attenuation_rate: float = 1.0 / 12.0
+@export_range(0.0, 128.0, 0.1) var underwater_attenuation_start: float = 0.0
 @export_group("P2 · 植被")
+@export_enum("外壳剔面", "内部层叠", "内部层叠＋纹理错位") var foliage_mode: int = 1
 @export var wind_enabled: bool = true
 @export_range(0.0, 0.5, 0.01) var wind_strength: float = 0.12
 @export var translucency_enabled: bool = true
@@ -178,13 +186,13 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 @export var ssao_half_size: bool = true
 @export_enum("Very Low（引擎）","Low（引擎）","Medium（引擎）","High（引擎）","Ultra 自适应（引擎）") var ssao_quality: int = 2
 @export_range(0,6,1) var ssao_blur_passes: int = 2
-@export_enum("关闭","屏幕空间光束","真实体积光") var rays_mode: int = 0
-@export_range(0,4,0.01) var rays_strength: float = 0.3
+@export_enum("关闭","MakeUp 深度光束","Godot 体积雾","MakeUp 体积光") var rays_mode: int = 1
+@export_range(0,4,0.01) var rays_strength: float = 0.6
 @export_range(0.05,2,0.05) var rays_radius: float = 0.8
 @export_range(0.8,1,0.001) var rays_decay: float = 0.97
 @export_range(0.25,1,0.25) var rays_resolution: float = 0.5
 @export_range(0.001,1,0.001) var rays_edge: float = 0.1
-@export_range(4,96,1) var rays_steps: int = 32
+@export_range(4,96,1) var rays_steps: int = 4
 @export_range(0,0.1,0.001) var volume_density: float = 0.008
 @export_range(0,0.3,0.001) var volume_local_density: float = 0.04
 @export_range(-0.9,0.9,0.01) var volume_anisotropy: float = 0.6
@@ -264,6 +272,33 @@ const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 @export_range(0.001,0.5,0.001) var celestial_edge: float = 0.02
 @export_range(0,4,0.05) var celestial_halo: float = 0.25
 
+
+@export_group("水面 · 波纹与透射")
+@export_range(0,1,0.01) var wave_normal_strength: float = 0.22
+@export_range(0,1,0.01) var wave_detail_strength: float = 0.1
+@export_range(0.01,2,0.01) var wave_detail_scale: float = 0.3
+@export_range(0,360,1) var wave_direction: float = 35.0
+@export_range(4,512,1) var wave_fade_distance: float = 100.0
+@export var water_cloud_reflection: bool = true
+@export_range(0,1,0.01) var water_sky_visibility: float = 1.0
+@export_range(0,0.08,0.001) var water_fresnel: float = 0.02
+@export var water_refraction: bool = true
+@export_range(0,0.1,0.001) var water_refraction_strength: float = 0.018
+@export_range(0.01,2,0.01) var water_refraction_edge: float = 0.25
+@export_group("MakeUp · 光束")
+@export var shaft_temporal: bool = true
+@export_range(0,0.98,0.01) var shaft_history: float = 0.9
+@export_range(4,64,1) var shaft_steps: int = 12
+@export_range(8,256,1) var shaft_distance: float = 96.0
+@export_range(0.25,2,0.05) var shaft_distribution: float = 1.0
+@export_range(0.25,4,0.05) var shaft_contrast: float = 2.0
+@export_range(0.1,8,0.1) var shaft_direction_power: float = 2.0
+@export_range(0,1,0.01) var shaft_cloud_strength: float = 1.0
+@export_range(0,1,0.01) var shaft_weather_fade: float = 0.8
+@export_range(32,512,1) var shaft_shadow_range: float = 192.0
+@export_enum("512","1024","2048") var shaft_shadow_resolution: int = 1
+@export_range(0,1,0.001) var shaft_shadow_bias: float = 0.08
+
 ## Primary voxel lighting and the optional weak fill have separate controls.
 func effective_block_strength() -> float:
 	if local_lighting_mode == 0:
@@ -289,7 +324,7 @@ func load_settings(path: String = "") -> Error:
 		return error
 	if not config.has_section("shading"):
 		return OK
-	if config.get_value("shading", "format", "") != "astraeon-shading-20260922b":
+	if config.get_value("shading", "format", "") != "astraeon-shading-20260926-underwater":
 		return ERR_FILE_UNRECOGNIZED
 	var known: Array[String] = ["format"]
 	for property: Dictionary in settings_properties():
@@ -324,7 +359,7 @@ func save_settings(path: String = "") -> Error:
 		return error # Do not overwrite an unreadable file.
 	if config.has_section("shading"):
 		config.erase_section("shading")
-	config.set_value("shading", "format", "astraeon-shading-20260922b")
+	config.set_value("shading", "format", "astraeon-shading-20260926-underwater")
 	for property: Dictionary in settings_properties():
 		config.set_value("shading", property.name, get(property.name))
 	var temporary: String = path + ".tmp"

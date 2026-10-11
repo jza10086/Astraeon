@@ -1,0 +1,6 @@
+{
+  "game/core/main.tscn": "283514f62a53414b6301cdf79866496213a4675c6307e5910de4148c356f8cb5",
+  "game/ui/main_menu/gdscript/main_menu.gd": "596c687d739a569c11eced62730ffb11ba9d8e0297051c3fa4e2b34f43a12ef7",
+  "test/content/gdscript/test_main_entry.gd": "0d002897fb63c40a169dd4e69f6c3e46a4f363a8277364b3303d003ba4f7ce5f",
+  "game/data/content/packages/astraeon.aebpack": "92d58a148cf44ce5f9bcbf938f04554c187698f227d909686eadaa1a5e4c7e2e"
+}

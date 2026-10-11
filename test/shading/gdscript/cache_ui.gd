@@ -8,6 +8,7 @@ func _run() -> void:
     world.world_directory = "res://tmp/cache-ui/world"
     world.shading_settings_path = "res://tmp/cache-ui/settings.cfg"
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     var deadline: int = Time.get_ticks_msec()+60000
     while not world.shading.is_ready() and Time.get_ticks_msec()<deadline: await process_frame

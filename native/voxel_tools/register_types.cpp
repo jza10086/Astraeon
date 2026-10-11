@@ -3,6 +3,10 @@
 #endif
 #include "astraeon/shading/cache/astraeon_section_cache.h"
 #include "astraeon/shading/cache/astraeon_page_pool.h"
+#include "astraeon/data/content/astraeon_content_pack.h"
+#include "astraeon/entities/dropped_items/astraeon_dropped_items.h"
+#include "astraeon/world/persistence/astraeon_content_registry.h"
+#include "astraeon/shading/content/astraeon_visual_cache.h"
 #include "astraeon/world/streaming/astraeon_prefetch_viewer.h"
 #include "astraeon/world/persistence/astraeon_native_stream.h"
 #include "astraeon/world/generation/astraeon_native_generator.h"
@@ -375,6 +379,10 @@ void initialize_voxel_module(ModuleInitializationLevel p_level) {
         ClassDB::register_class<AstraeonLightReference>();
 #endif
         ClassDB::register_class<AstraeonPagePool>();
+    ClassDB::register_class<AstraeonContentPack>();
+    ClassDB::register_class<AstraeonDroppedItems>();
+    ClassDB::register_class<AstraeonContentRegistry>();
+    ClassDB::register_class<AstraeonVisualCache>();
         ClassDB::register_class<AstraeonSectionCache>();
 		ClassDB::register_abstract_class<VoxelGeneratorHeightmap>();
 		ClassDB::register_class<VoxelGeneratorWaves>();

@@ -74,6 +74,7 @@ func _run() -> void:
     world.horizontal_distance = 64
     world.biome_layout = 1
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     check(await settle(),"Initial cache converges")
     world.controller.set_physics_process(false)
@@ -82,7 +83,7 @@ func _run() -> void:
     world.camera.rotation.y += PI
     for i: int in range(60): await process_frame
     check(metrics().section_reads==previous.section_reads and metrics().passes==previous.passes,"Camera yaw does not rebuild lighting")
-    var lamp: int = world.content.state_keys.find("astraeon_glowstone/default")
+    var lamp: int = world.content.state_keys.find("astraeon:glowstone/default")
     check(lamp>0,"Authored light block exists")
     var p: Vector3i = Vector3i(-1,64,-1)
     world.terrain.connect("sections_changed",collect_changes)
@@ -171,6 +172,7 @@ func _run() -> void:
     world.get_node("Player/Controller").input_enabled = false
     old_world.set_block(Vector3i(0,65,0),lamp)
     old_world.queue_free()
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     check(await settle(),"Switching world while old lighting runs converges")
     check(sample(Vector3i(0,65,0)).g==0.0,"Old-world result cannot light the new world")

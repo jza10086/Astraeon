@@ -1,0 +1,139 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="Script" path="res://addons/astraeon_content/gdscript/content_editor.gd" id="main"]
+[ext_resource type="Script" path="res://addons/astraeon_content/gdscript/content_form.gd" id="form"]
+[ext_resource type="Script" path="res://addons/astraeon_content/gdscript/content_preview.gd" id="preview"]
+[node name="ContentEditor" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("main")
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_bottom = 8
+[node name="Layout" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+[node name="Toolbar" type="HFlowContainer" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+[node name="Document" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "内容编辑器 · 未打开包工程"
+text_overrun_behavior = 3
+[node name="Body" type="VSplitContainer" parent="Margin/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+[node name="LeftSplit" type="HSplitContainer" parent="Margin/Layout/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+[node name="Browser" type="VBoxContainer" parent="Margin/Layout/Body/LeftSplit"]
+custom_minimum_size = Vector2(225, 240)
+layout_mode = 2
+size_flags_horizontal = 0
+[node name="Type" type="OptionButton" parent="Margin/Layout/Body/LeftSplit/Browser"]
+unique_name_in_owner = true
+layout_mode = 2
+item_count = 3
+selected = 0
+popup/item_0/text = "方块"
+popup/item_1/text = "物品"
+popup/item_2/text = "流体"
+[node name="Search" type="LineEdit" parent="Margin/Layout/Body/LeftSplit/Browser"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "搜索名称 / ID"
+[node name="Resources" type="ItemList" parent="Margin/Layout/Body/LeftSplit/Browser"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+text_overrun_behavior = 3
+[node name="Actions" type="HFlowContainer" parent="Margin/Layout/Body/LeftSplit/Browser"]
+layout_mode = 2
+[node name="New" type="Button" parent="Margin/Layout/Body/LeftSplit/Browser/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "新建"
+[node name="Copy" type="Button" parent="Margin/Layout/Body/LeftSplit/Browser/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "复制"
+[node name="Remove" type="Button" parent="Margin/Layout/Body/LeftSplit/Browser/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "移出包"
+[node name="RightSplit" type="HSplitContainer" parent="Margin/Layout/Body/LeftSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="Preview" type="VBoxContainer" parent="Margin/Layout/Body/LeftSplit/RightSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.5
+script = ExtResource("preview")
+[node name="Properties" type="VBoxContainer" parent="Margin/Layout/Body/LeftSplit/RightSplit"]
+custom_minimum_size = Vector2(330, 200)
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="PropertySearch" type="LineEdit" parent="Margin/Layout/Body/LeftSplit/RightSplit/Properties"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "搜索属性名称 / 字段名"
+[node name="Scroll" type="ScrollContainer" parent="Margin/Layout/Body/LeftSplit/RightSplit/Properties"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+[node name="Form" type="VBoxContainer" parent="Margin/Layout/Body/LeftSplit/RightSplit/Properties/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("form")
+[node name="Report" type="RichTextLabel" parent="Margin/Layout/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 85)
+layout_mode = 2
+size_flags_vertical = 0
+text = "制作资源保存在 .tres；图片使用工程索引；游戏读取导出的 .aebpack。"
+[node name="FileDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+size = Vector2i(900, 620)
+[node name="Unsaved" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "未保存更改"
+ok_button_text = "保存后继续"
+[node name="Conflict" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "外部文件冲突"
+ok_button_text = "明确覆盖"
+[node name="NameDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "资源 ID"
+[node name="Inputs" type="VBoxContainer" parent="NameDialog"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 428.0
+offset_bottom = 115.0
+[node name="NameInput" type="LineEdit" parent="NameDialog/Inputs"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "namespace:name"
+[node name="Paired" type="CheckBox" parent="NameDialog/Inputs"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "同时建立方块关联物品"
+button_pressed = true

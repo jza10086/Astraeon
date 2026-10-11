@@ -1,0 +1,42 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+D3D12 12_0 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+[MCPRuntimeServer] port: scanning 6570-6585 (default)
+[MCPRuntimeServer] listening on 127.0.0.1:6570
+WARNING: [MCPRegistry] cannot write entry C:\Users\81010\AppData\Roaming/godot-mcp-toolkit/entries/2b9330cb558d.runtime.json.tmp (err 12)
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] write (res://addons/godot_mcp_toolkit/registry/store/registry_entry_file.gd:29)
+       [1] set_runtime (res://addons/godot_mcp_toolkit/registry/registry_client.gd:181)
+       [2] _on_bound (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:200)
+       [3] _scan_and_listen (res://addons/godot_mcp_toolkit/transport/ws_transport.gd:283)
+       [4] ensure_listening (res://addons/godot_mcp_toolkit/transport/ws_transport.gd:254)
+       [5] _start_server (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:162)
+       [6] _ready (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:111)
+WARNING: [MCPRegistry] failed to acquire lock after 10 retries; proceeding anyway
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] acquire (res://addons/godot_mcp_toolkit/registry/store/file_lock.gd:58)
+       [1] acquire_lock (res://addons/godot_mcp_toolkit/registry/registry_client.gd:75)
+       [2] set_runtime (res://addons/godot_mcp_toolkit/registry/registry_client.gd:182)
+       [3] _on_bound (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:200)
+       [4] _scan_and_listen (res://addons/godot_mcp_toolkit/transport/ws_transport.gd:283)
+       [5] ensure_listening (res://addons/godot_mcp_toolkit/transport/ws_transport.gd:254)
+       [6] _start_server (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:162)
+       [7] _ready (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:111)
+WARNING: [MCPRegistry] cannot write C:\Users\81010\AppData\Roaming/godot-mcp-toolkit/projects.json.tmp (err 12)
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] write_atomic (res://addons/godot_mcp_toolkit/registry/store/registry_projection.gd:35)
+       [1] rebuild (res://addons/godot_mcp_toolkit/registry/store/registry_projection.gd:158)
+       [2] _rebuild_projects_json (res://addons/godot_mcp_toolkit/registry/registry_client.gd:114)
+       [3] set_runtime (res://addons/godot_mcp_toolkit/registry/registry_client.gd:183)
+       [4] _on_bound (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:200)
+       [5] _scan_and_listen (res://addons/godot_mcp_toolkit/transport/ws_transport.gd:283)
+       [6] ensure_listening (res://addons/godot_mcp_toolkit/transport/ws_transport.gd:254)
+       [7] _start_server (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:162)
+       [8] _ready (res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd:111)
+[MCPRegistry] runtime port 6570 registered for f:/godotprojects/astraeon
+CONTENT_MOD_DONE checks=17 failures=0

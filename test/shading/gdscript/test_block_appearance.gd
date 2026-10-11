@@ -12,7 +12,7 @@ func check(value: bool, message: String) -> void:
 		push_error(message)
 
 func _initialize() -> void:
-	var appearance: AstraeonBlockAppearance = load("res://game/shading/blocks/resources/log.tres")
+	var appearance: AstraeonBlockAppearance = load("res://test/data/resources/appearance_reference/log.tres")
 	check(appearance != null and appearance.validate().is_empty(), "Load and validate log")
 	var original: Color = appearance.default_surface.base_color
 	var rotations: int = 0
@@ -48,7 +48,7 @@ func _initialize() -> void:
 				check((frame.x * dv.x + frame.y * dv.y).is_equal_approx(Appearance.V_AXES[2]), "UV inverse bitangent")
 	check(appearance.face_uv_rotations.is_empty(), "Original mappings remain unchanged")
 	check(appearance.default_surface.base_color == original, "Shared surface remains unchanged")
-	var lamp: AstraeonBlockAppearance = load("res://game/shading/blocks/resources/lamp.tres")
+	var lamp: AstraeonBlockAppearance = load("res://test/data/resources/appearance_reference/lamp.tres")
 	check(lamp.validate().is_empty(), "Lamp validates")
 	var energy: float = lamp.light.energy
 	check(lamp.default_surface.emission_rgb(Vector3.ONE, 0.0) == Vector3.ZERO, "Instance emission off")
@@ -69,7 +69,7 @@ func _initialize() -> void:
 	light.energy = 1.0
 	light.range = 0.0
 	check(not light.validate().is_empty(), "Reject enabled zero range")
-	var catalog: AstraeonBlockCatalog = load("res://game/data/block/resources/example_catalog.tres")
+	var catalog: AstraeonBlockCatalog = load("res://test/data/resources/block_reference/example_catalog.tres")
 	check(catalog.definitions[2].appearance == lamp, "Catalog shares cached appearance")
 	DirAccess.make_dir_recursive_absolute("res://tmp/block-appearance")
 	var path: String = "res://tmp/block-appearance/roundtrip.tres"

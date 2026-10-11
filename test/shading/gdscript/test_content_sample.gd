@@ -12,7 +12,7 @@ func _run() -> void:
 	var packed: PackedScene = load("res://test/shading/scenes/content_sample.tscn")
 	var scene: Node3D = packed.instantiate()
 	root.add_child(scene)
-	var image: Image = (load("res://game/shading/blocks/assets/leaves_checker.svg") as Texture2D).get_image()
+	var image: Image = (load("res://test/data/assets/appearance_reference/leaves_checker.svg") as Texture2D).get_image()
 	var transparent: int = 0
 	for y: int in range(image.get_height()):
 		for x: int in range(image.get_width()):
@@ -20,12 +20,12 @@ func _run() -> void:
 				transparent += 1
 	check(transparent * 2 == image.get_width() * image.get_height(), "Exactly half the leaf pixels are transparent")
 	var content: AstraeonWorldContent = scene.get("content")
-	var leaf_id: int = content.state_keys.find("astraeon_leaves/default")
-	var glow_id: int = content.state_keys.find("astraeon_glowstone/default")
+	var leaf_id: int = content.state_keys.find("astraeon:leaves/default")
+	var glow_id: int = content.state_keys.find("astraeon:glowstone/default")
 	var leaf_material: ORMMaterial3D = content.library.models[leaf_id].get_material_override(0)
 	var glow_material: ORMMaterial3D = content.library.models[glow_id].get_material_override(0)
 	check(leaf_material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR, "Cutout material")
-	check(leaf_material.cull_mode == BaseMaterial3D.CULL_DISABLED, "Leaf backs visible")
+	check(leaf_material.cull_mode == BaseMaterial3D.CULL_BACK, "Layered leaves use front faces without coplanar double drawing")
 	check(glow_material.emission_enabled and glow_material.emission_energy_multiplier == 3.0, "Emission compiled")
 	var light: OmniLight3D = scene.get("glow_light")
 	check(light.light_color == Color.WHITE and light.shadow_enabled, "White static light with shadows")

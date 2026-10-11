@@ -1,0 +1,14 @@
+{
+  "addons/astraeon_content/export_guard.gd": "89eac875051979d730d861ea20f7fbcdbc13bfbdbe16fa6787a9ec2c47fc90f9",
+  "addons/astraeon_content/plugin.gd": "d4499f2810de0fd8012ef6f0921ede636afb5336fee1b777575afd20d9a4d08d",
+  "addons/astraeon_content/gdscript/content_editor.gd": "7f2d6ecb60127fcbd0d5b85d08026cd0351e5a2fe798bbfb21a9db65c32efbcd",
+  "addons/astraeon_content/gdscript/content_form.gd": "ecbba12f85c5e828d495dd7194d6ecca4d4df997a0f46f4a4ed08a75cb7b55d5",
+  "addons/astraeon_content/gdscript/content_preview.gd": "c055320094377fdbcf4809d7428fe580b47f090c39193e1aa0bafb21503057df",
+  "addons/astraeon_content/gdscript/content_session.gd": "57ad620ceb7e93570a4bc1512e8541ab3f7535274b415abf9b871c56a9517aee",
+  "addons/astraeon_content/scenes/content_editor.tscn": "999ec2089d1873265ea7b93cb8d7709633190beea6572d7d1149462fa4bc3f02",
+  "tools/content/compiler.gd": "e4858fd6ea024a7c27872780fd6cef9650129c20d21b73d78e9694472d4b081e",
+  "tools/content/build_sdk.py": "48f385b401de09a92aa499c2c46fdd6d97983e2658969111d8dbb9187ded6c4f",
+  "test/content_editor/gdscript/editor_refresh.gd": "a6cd1b8afceb2465f32674618645718093e6ca085c87d0f0aa96b519d081ccf7",
+  "test/content_editor/gdscript/test_render.gd": "772e597dd85e98d48b0700deca948dda81ecfca245f098acf0469e24ff9283e4",
+  "test/content_editor/gdscript/test_session.gd": "563e479b70d38b43b4d6080bc8e3fe97a264b80f6ceec1414000cb14a0a38186"
+}

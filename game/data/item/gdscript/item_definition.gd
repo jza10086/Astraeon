@@ -1,3 +1,4 @@
+@tool
 class_name AstraeonItemDefinition
 extends Resource
 ## Shared immutable authoring definition. Quantity and selected slot belong to InventoryState.
@@ -9,6 +10,10 @@ extends Resource
 ## Creative browsing only; never infer collision, recipes or other gameplay from these tags.
 @export var creative_group: StringName = &"astraeon_building"
 @export var search_tags: PackedStringArray = []
+## Gameplay tags are exact, namespaced IDs, independent of creative search keywords.
+@export var tool_tags: PackedStringArray = []
+## Durability removed per second when the block's required tag matches.
+@export_range(1.0, 1000.0, 0.5) var mining_speed: float = 1.0
 @export var block: AstraeonBlockDefinition
 ## Resolve axis from the placement face; inventory stacks never carry world orientation.
 @export var orient_to_face: bool = false

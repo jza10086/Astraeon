@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AstraeonContentManifest" format=3]
+
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="1_4bgum"]
+[ext_resource type="Resource" path="res://test/content/resources/shading_test/blocks/stone.tres" id="2_2imou"]
+[ext_resource type="Resource" path="res://test/content/resources/shading_test/blocks/lamp.tres" id="3_5udv0"]
+[ext_resource type="Resource" path="res://test/content/resources/shading_test/blocks/wood.tres" id="4_ub3l7"]
+[ext_resource type="Resource" path="res://test/content/resources/shading_test/blocks/leaves.tres" id="5_y5n6g"]
+[ext_resource type="Script" path="res://game/data/fluid/gdscript/fluid_definition.gd" id="6_ek4gi"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/item_asset.gd" id="7_yjos8"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/content_manifest.gd" id="8_3ni6u"]
+
+[resource]
+script = ExtResource("8_3ni6u")
+package_id = "shading_test"
+display_name = "Shading fixtures"
+dependencies = PackedStringArray()
+blocks = Array[ExtResource("1_4bgum")]([ExtResource("2_2imou"), ExtResource("3_5udv0"), ExtResource("4_ub3l7"), ExtResource("5_y5n6g")])
+image_sources = Dictionary[StringName, String]({
+&"shading_test_leaves_surface_default": "shading_test/images/shading_test_leaves_surface_default.png",
+&"shading_test_wood_breaking": "shading_test/images/shading_test_wood_breaking.png"
+})

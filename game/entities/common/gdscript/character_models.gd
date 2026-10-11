@@ -1,15 +1,8 @@
 extends RefCounted
 const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
-## Current character catalog. Selection is read once when a player enters the tree.
 const Library: Script = preload("res://game/entities/common/gdscript/character_library.gd")
-const MODELS: Array[Dictionary] = [
-	{"id": &"basic_voxel", "name": "标准素体", "path": "res://game/entities/player/assets/basic_voxel.glb"},
-]
-
+## All characters, including the default, are external paired folders.
 static func definition(id: StringName) -> Dictionary:
-	for entry: Dictionary in MODELS:
-		if entry.id == id:
-			return entry
 	return Library.definition(id)
 
 static func load_id(path: String = "") -> StringName:
@@ -17,17 +10,12 @@ static func load_id(path: String = "") -> StringName:
 		path = Paths.settings_file()
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
-	if error == ERR_FILE_NOT_FOUND:
-		return &"basic_voxel"
-	if error != OK:
+	if error != OK and error != ERR_FILE_NOT_FOUND:
+		return &""
+	if config.has_section_key("character", "removed"):
 		return &""
 	var id: StringName = StringName(str(config.get_value("character", "model", "basic_voxel")))
-	var choices: Array[Dictionary] = available(path)
-	if _contains(choices, id):
-		return id
-	if String(id).begins_with("user/") and not choices.is_empty():
-		return choices[0].id
-	return &""
+	return id if not definition(id).is_empty() else &""
 
 static func save_id(id: StringName, path: String = "") -> Error:
 	if path.is_empty():
@@ -48,40 +36,18 @@ static func _save(config: ConfigFile, path: String) -> Error:
 		return error
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary), ProjectSettings.globalize_path(path))
 
-static func instantiate(id: StringName) -> Node3D:
-	if String(id).begins_with("user/"):
-		return Library.instantiate(id)
-	var entry: Dictionary = definition(id)
-	if entry.is_empty():
-		return null
-	var scene: PackedScene = load(entry.path) as PackedScene
-	return scene.instantiate() as Node3D if scene != null else null
+static func instantiate(id: StringName, first_person: bool = false) -> Node3D:
+	return Library.instantiate(id, first_person)
 
-## Local catalog removal preserves packaged assets and authoring sources.
 static func available(path: String = "") -> Array[Dictionary]:
 	if path.is_empty():
 		path = Paths.settings_file()
 	var config: ConfigFile = ConfigFile.new()
 	var error: Error = config.load(path)
-	if error != OK and error != ERR_FILE_NOT_FOUND:
+	if error != OK and error != ERR_FILE_NOT_FOUND or config.has_section_key("character", "removed"):
 		return []
-	var removed: Variant = config.get_value("character", "removed", PackedStringArray())
-	if not removed is PackedStringArray:
-		return []
-	for id: String in removed:
-		if definition(StringName(id)).is_empty():
-			return []
-	var result: Array[Dictionary] = []
-	for entry: Dictionary in MODELS:
-		if not String(entry.id) in removed:
-			result.append(entry)
-	# Populate external entries lazily when entering a world directly.
 	Library.ensure_scanned()
-	result.append_array(Library.entries)
-	# External files can disappear outside the game; retain a usable built-in fallback.
-	if result.is_empty():
-		result.append(MODELS[0])
-	return result
+	return Library.entries.duplicate()
 
 static func _contains(entries: Array[Dictionary], id: StringName) -> bool:
 	for entry: Dictionary in entries:
@@ -93,30 +59,16 @@ static func remove_id(id: StringName, path: String = "") -> Error:
 	if path.is_empty():
 		path = Paths.settings_file()
 	var entries: Array[Dictionary] = available(path)
-	if load_id(path).is_empty():
+	var current: StringName = load_id(path)
+	if current.is_empty():
 		return ERR_INVALID_DATA
 	if entries.size() <= 1 or not _contains(entries, id):
 		return ERR_INVALID_PARAMETER
-	if String(id).begins_with("user/"):
-		var current: StringName = load_id(path)
-		if current == id:
-			for entry: Dictionary in entries:
-				if entry.id != id:
-					var saved: Error = save_id(entry.id, path)
-					if saved != OK:
-						return saved
-					break
-		return Library.delete_file(id)
-	var config: ConfigFile = ConfigFile.new()
-	var error: Error = config.load(path)
-	if error != OK and error != ERR_FILE_NOT_FOUND:
-		return error
-	var removed: PackedStringArray = config.get_value("character", "removed", PackedStringArray())
-	removed.append(String(id))
-	config.set_value("character", "removed", removed)
-	if load_id(path) == id:
+	if current == id:
 		for entry: Dictionary in entries:
 			if entry.id != id:
-				config.set_value("character", "model", String(entry.id))
+				var saved: Error = save_id(entry.id, path)
+				if saved != OK:
+					return saved
 				break
-	return _save(config, path)
+	return Library.delete_folder(id)

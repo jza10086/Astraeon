@@ -16,6 +16,7 @@ func _run() -> void:
     world.horizontal_distance = 48
     world.biome_layout = 1
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     var deadline: int = Time.get_ticks_msec()+90000
     while not world.shading.is_ready() and Time.get_ticks_msec()<deadline:

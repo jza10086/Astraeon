@@ -1,8 +1,6 @@
 extends Node3D
 ## Finite test fixture using the production content table and native block mesher.
 const PLAYER: PackedScene = preload("res://game/entities/player/scenes/player.tscn")
-@export var catalog: AstraeonBlockCatalog
-@export var water: AstraeonFluidDefinition
 var content: AstraeonWorldContent
 var player: CharacterMotor
 var sun: DirectionalLight3D
@@ -15,30 +13,49 @@ const LAMP_CELL: Vector3i = Vector3i(20, 2, 12)
 
 func _ready() -> void:
 	content = AstraeonWorldContent.new()
-	if not content.build(catalog, water):
+	if not content.build(PackedStringArray(["res://game/data/content/packages/astraeon.aebpack"])):
 		push_error("Content sample: catalog compilation failed")
 		return
+	var hashes: PackedStringArray = []
+	for record: Dictionary in content.bundle.blocks.values():
+		if not String(record.visual).is_empty():
+			hashes.append(record.visual)
+	content.bundle.visuals.call("request", "content_preview", hashes)
+	while not content.bundle.visuals.call("is_ready", hashes):
+		content.bundle.visuals.call("commit")
+		await get_tree().process_frame
+	# This geometry/appearance preview uses a uniform test light field; full propagation is in shading_sample.
+	var layers: Array[Image] = []
+	for z: int in range(34):
+		var layer: Image = Image.create_empty(34, 18, false, Image.FORMAT_RGBA8)
+		layer.fill(Color(1, 0, 1, 1))
+		layers.append(layer)
+	var light_texture: ImageTexture3D = ImageTexture3D.new()
+	light_texture.create(Image.FORMAT_RGBA8, 34, 18, 34, false, layers)
+	for model: VoxelBlockyModel in content.library.models:
+		if model is VoxelBlockyModelCube:
+			preload("res://test/shading/gdscript/light_page_fixture.gd").bind_fixture(model.get_material_override(0), light_texture, Vector3i.ZERO, Vector3i(34, 18, 34))
 	fixture = VoxelBuffer.new()
 	fixture.create(34, 18, 34)
 	fixture.set_channel_depth(VoxelBuffer.CHANNEL_TYPE, VoxelBuffer.DEPTH_16_BIT)
 	_tool = fixture.get_voxel_tool()
 	_tool.channel = VoxelBuffer.CHANNEL_TYPE
 	_tool.mode = VoxelTool.MODE_SET
-	_box(Vector3i(1, 1, 1), Vector3i(32, 1, 32), "astraeon_grass/default")
+	_box(Vector3i(1, 1, 1), Vector3i(32, 1, 32), "astraeon:grass/default")
 	# Dark booth: roof, back and sides, open front.
-	_box(Vector3i(17, 2, 7), Vector3i(25, 7, 7), "astraeon_dirt/default")
-	_box(Vector3i(17, 2, 7), Vector3i(17, 7, 15), "astraeon_dirt/default")
-	_box(Vector3i(25, 2, 7), Vector3i(25, 7, 15), "astraeon_dirt/default")
-	_box(Vector3i(17, 7, 7), Vector3i(25, 7, 15), "astraeon_dirt/default")
-	_box(LAMP_CELL, LAMP_CELL, "astraeon_glowstone/default")
+	_box(Vector3i(17, 2, 7), Vector3i(25, 7, 7), "astraeon:dirt/default")
+	_box(Vector3i(17, 2, 7), Vector3i(17, 7, 15), "astraeon:dirt/default")
+	_box(Vector3i(25, 2, 7), Vector3i(25, 7, 15), "astraeon:dirt/default")
+	_box(Vector3i(17, 7, 7), Vector3i(25, 7, 15), "astraeon:dirt/default")
+	_box(LAMP_CELL, LAMP_CELL, "astraeon:glowstone/default")
 	# Leaves: isolated panel and tree canopy, sun casts cutout shadows.
-	_box(Vector3i(5, 2, 8), Vector3i(5, 6, 8), "astraeon_log/axis_y")
-	_box(Vector3i(3, 6, 6), Vector3i(7, 7, 10), "astraeon_leaves/default")
-	_box(Vector3i(8, 3, 14), Vector3i(12, 5, 14), "astraeon_leaves/default")
-	_box(Vector3i(4, 2, 19), Vector3i(7, 2, 19), "astraeon_log/axis_x")
-	_box(Vector3i(10, 2, 19), Vector3i(10, 2, 22), "astraeon_log/axis_z")
+	_box(Vector3i(5, 2, 8), Vector3i(5, 6, 8), "astraeon:log/axis_y")
+	_box(Vector3i(3, 6, 6), Vector3i(7, 7, 10), "astraeon:leaves/default")
+	_box(Vector3i(8, 3, 14), Vector3i(12, 5, 14), "astraeon:leaves/default")
+	_box(Vector3i(4, 2, 19), Vector3i(7, 2, 19), "astraeon:log/axis_x")
+	_box(Vector3i(10, 2, 19), Vector3i(10, 2, 22), "astraeon:log/axis_z")
 	# Water uses the currently integrated uniform-color fallback, no collision.
-	_box(Vector3i(3, 2, 25), Vector3i(12, 2, 30), "astraeon_water/default")
+	_box(Vector3i(3, 2, 25), Vector3i(12, 2, 30), "astraeon:water/default")
 	var mesher: VoxelMesherBlocky = VoxelMesherBlocky.new()
 	mesher.library = content.library
 	mesh_instance = MeshInstance3D.new()
@@ -94,20 +111,17 @@ func _environment() -> void:
 	add_child(sun)
 
 func _light() -> void:
-	for definition: AstraeonBlockDefinition in catalog.definitions:
-		if definition.key != &"astraeon_glowstone":
-			continue
-		var descriptor: AstraeonBlockLightAppearance = definition.appearance.light
-		glow_light = OmniLight3D.new()
-		glow_light.name = "StaticGlowstoneLight"
-		# Block mesher removes the one-voxel padding from output coordinates.
-		glow_light.position = Vector3(LAMP_CELL) - Vector3.ONE + Vector3.ONE * 0.5 + definition.appearance.light_offset()
-		glow_light.light_color = descriptor.color
-		glow_light.light_energy = descriptor.energy
-		glow_light.omni_range = descriptor.range
-		glow_light.omni_attenuation = descriptor.attenuation
-		glow_light.shadow_enabled = descriptor.shadow_policy == AstraeonBlockLightAppearance.ShadowPolicy.FOLLOW_GLOBAL
-		add_child(glow_light)
+	var id: int = content.state_keys.find("astraeon:glowstone/default")
+	var descriptor: AstraeonBlockLightAppearance = content.light_definitions[id]
+	glow_light = OmniLight3D.new()
+	glow_light.name = "StaticGlowstoneLight"
+	glow_light.position = Vector3(LAMP_CELL) - Vector3.ONE * 0.5 + content.light_offsets[id]
+	glow_light.light_color = descriptor.color
+	glow_light.light_energy = descriptor.energy
+	glow_light.omni_range = descriptor.range
+	glow_light.omni_attenuation = descriptor.attenuation
+	glow_light.shadow_enabled = descriptor.shadow_policy == AstraeonBlockLightAppearance.ShadowPolicy.FOLLOW_GLOBAL
+	add_child(glow_light)
 
 func _ui() -> void:
 	var layer: CanvasLayer = CanvasLayer.new()
@@ -132,3 +146,7 @@ func _ui() -> void:
 func _process(_delta: float) -> void:
 	if status != null:
 		status.text = "FPS: %d | 方块状态: %d" % [Engine.get_frames_per_second(), content.state_keys.size()]
+
+func _exit_tree() -> void:
+	if content != null and content.bundle != null:
+		content.bundle.shutdown()

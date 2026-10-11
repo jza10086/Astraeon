@@ -8,6 +8,7 @@ func run() -> void:
 	var scene: PackedScene = load("res://game/core/main.tscn")
 	world = scene.instantiate()
 	world.set("world_directory", "res://tmp/natural-startup/" + str(Time.get_ticks_usec()))
+	preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
 	root.add_child(world)
 	var deadline: int = Time.get_ticks_msec() + 30000
 	while not bool(world.get("ready_to_play")) and Time.get_ticks_msec() < deadline:

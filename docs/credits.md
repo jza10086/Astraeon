@@ -28,3 +28,7 @@ The data used in this project was obtained from mocap.cs.cmu.edu.
 The database was created with funding from NSF EIA-0196217.
 
 - Water and light shafts: MakeUp Ultra Fast algorithm reference (Javier Garduño, upstream LGPL-3.0); independently adapted GPU implementation. See [implementation notes](shading/water_light_shafts.md).
+
+- 2026-09-27 传播光显示：参考 MakeUp Ultra Fast light_vertex.glsl 的方块光数学响应形状并独立实现峰值归一；九点二次滤波为本项目实现。参考 CaffeineMC/Sodium SmoothLightPipeline 的面角平滑设计说明，未复制 Java 代码。来源链接与区别见 test/shading/reports/2026-09-27_light_smoothing.md。
+
+- Basic Voxel FP 双臂：来自用户本地 F:/AstraBlender/Projects/basic_voxel_fp/exports/godot/basic_voxel_fp.glb，原样复制到 external_data/characters/basic_voxel/basic_voxel_fp.glb。SHA-256 c87ba6f9e6b678e408dddeb25478fbad9faf187ea3d5475a1688115ae1d92f75；第三人称原件安装为同目录 basic_voxel_tp.glb。未附独立再分发许可，不另行声明授权。

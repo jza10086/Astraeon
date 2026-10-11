@@ -103,6 +103,7 @@ func _run() -> void:
     world.horizontal_distance = view_distance
     world.biome_layout = 1
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     add_child(world)
     world.shading.diagnostics_enabled = true
     world.shading.diagnostic_timing.connect(_event)

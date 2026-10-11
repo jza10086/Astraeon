@@ -10,6 +10,7 @@ var settings_path: String
 var _viewer: VoxelViewer
 var metrics: Dictionary = {}
 var _metric_clock: float = 0.0
+var _selected_content: StringName = &""
 var diagnostic_usec: int = 0
 func configure(owner_world: Node3D) -> bool:
     world = owner_world
@@ -26,6 +27,8 @@ func configure(owner_world: Node3D) -> bool:
         push_error("Native section cache DLL is not loaded; restart editor after native build")
         return false
     if not native.call("configure",world.terrain,world.content.opacity,world.content.emission,world.content.sources,policy.values):
+        return false
+    if not world.content.bundle.visuals.call("configure", policy.values):
         return false
     world.terrain.call("apply_derived_cache_policy",int(policy.values.cpu_mib)*1048576/4,float(policy.values.mesh_seconds))
     world.stream.call("set_region_handle_limit",int(policy.values.region_handles))
@@ -50,11 +53,25 @@ func _process(delta: float) -> void:
     var center: Vector3 = world.player.global_position
     _viewer.global_position = Vector3(center.x,64.0,center.z)
     native.call("set_interest",center,world.horizontal_distance,world.vertical_distance,world.player.velocity)
+    var predicted: Vector3 = world.player.velocity * float(policy.values.prediction_seconds)
+    predicted = predicted.limit_length(float(policy.values.prediction_max_m))
+    var visual_pressure: bool = not String(metrics.get("visuals", {}).get("pressure", "")).is_empty()
+    world.terrain.call("set_content_prefetch", center + predicted, 0.0 if visual_pressure or not world.prediction_enabled else 24.0, 24.0)
+    if world.inventory != null:
+        var stack: AstraeonItemStack = world.inventory.stack_at(world.inventory.selected)
+        var selected: StringName = stack.item.key if stack != null else &""
+        if selected != _selected_content:
+            _selected_content = selected
+            world.content.bundle.visuals.call("release", "placement")
+            var id: int = world.content.state_keys.find(stack.item.state_key(Vector3i.UP)) if stack != null else -1
+            world.content.bundle.visuals.call("request", "selected", world.content.bundle.state_visuals(PackedInt32Array([id])))
     native.call("commit")
+    world.content.bundle.visuals.call("commit")
     _metric_clock += delta
     if _metric_clock >= 0.2:
         _metric_clock = 0.0
         metrics = native.call("get_cache_metrics")
+        metrics["visuals"] = world.content.bundle.visuals.call("get_metrics")
         var prefetch: Node = world.player.get_node_or_null("PrefetchViewer")
         if prefetch != null: prefetch.call("set_cache_pressure",bool(metrics.get("unreclaimable_over_budget",false)) or bool(metrics.get("capacity_blocked",false)))
     diagnostic_usec = Time.get_ticks_usec()-start_usec
@@ -65,6 +82,7 @@ func add_settings(parent: Control) -> void:
 func apply_policy() -> Error:
     if not Policy.valid(policy.values): return ERR_INVALID_DATA
     if int(policy.values.upload_bytes)<Policy.minimum_upload_bytes(world.horizontal_distance): return ERR_INVALID_PARAMETER
+    if not world.content.bundle.visuals.call("configure", policy.values): return ERR_OUT_OF_MEMORY
     # Explicit loading/pause transition for allocation; never resize during a movement frame.
     var was_paused: bool = get_tree().paused
     get_tree().paused = true

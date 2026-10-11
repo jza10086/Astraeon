@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3]
+
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="1_gt6i5"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="2_mw04m"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_xytma"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="4_abfsq"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_kgbqx"]
+[ext_resource type="Script" path="res://game/data/item/gdscript/item_definition.gd" id="6_kerf1"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="7_6t0vt"]
+
+[sub_resource type="Resource" id="Resource_gyhgt"]
+script = ExtResource("1_gt6i5")
+emission_energy = 3.0
+
+[sub_resource type="Resource" id="Resource_j50sy"]
+script = ExtResource("2_mw04m")
+energy = 2.0
+
+[sub_resource type="Resource" id="Resource_w4utq"]
+script = ExtResource("3_xytma")
+default_surface = SubResource("Resource_gyhgt")
+light = SubResource("Resource_j50sy")
+
+[sub_resource type="Resource" id="Resource_cnun5"]
+script = ExtResource("4_abfsq")
+key = &"example:glow"
+appearance = SubResource("Resource_w4utq")
+display_name = "Glow"
+light_emission = 15
+load_policy = "on_demand"
+
+[sub_resource type="Resource" id="Resource_t8lap"]
+script = ExtResource("6_kerf1")
+key = &"example:glow_item"
+display_name = "Glow"
+creative_group = &"example:blocks"
+search_tags = PackedStringArray()
+
+[resource]
+script = ExtResource("7_6t0vt")
+block = SubResource("Resource_cnun5")
+item = SubResource("Resource_t8lap")

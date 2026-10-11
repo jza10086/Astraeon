@@ -1,0 +1,48 @@
+{
+  "project_module_sha256": {
+    "data": "eb7122d838e9f41cf0dabdfc0ad00329e4b0aebbda71f359f255cac0656b890c",
+    "entities": "241dae0d73df2f95c69c8aa3d4eb493c50f6444801cf7e776941318bb7dbdf3f",
+    "shading": "228155e42da44fc79ce19336ddd6f09a1f3ba02034e202a5cb97e90b380e8465",
+    "world": "1d5f3692fd2d8eda10c9d961b277ed4eaa648ab8f35b88116ede52d993bbfbf8",
+    "test_shading_reference": "d32f90bb0c71967728e49c2877d524467ea0b9fadd8cbdd9d45b8f52a0d430fa"
+  },
+  "source_sha256": "d27eebbad99a22b3a1a2e65847a5a32834d3ce95ce9b85ccd1efaf02c861903d",
+  "godot_cpp_sha256": "545057bcaf2af8870ff611b04b8296f3e20ee0d79b6db5812057db363f023e14",
+  "command": [
+    "C:\\Python314\\python.exe",
+    "-m",
+    "SCons",
+    "platform=windows",
+    "target=editor",
+    "arch=x86_64",
+    "dev_build=no",
+    "use_static_cpp=yes",
+    "voxel_tests=no",
+    "-j8"
+  ],
+  "sha256": "4360c6a985dec9d3da6ffc08ff3b92e7c732d5a7dcbd6e6a3b4ecd4a649b13c3",
+  "dependencies": {
+    "voxel_tools": {
+      "upstream": "https://github.com/Zylann/godot_voxel",
+      "commit": "75d3c6d996ed2331c80edcd8c3ebc947afc0f041",
+      "source": "voxel_tools",
+      "local_patch": "tools/voxel_patches/horizontal_circle.patch"
+    },
+    "godot_cpp": {
+      "upstream": "https://github.com/godotengine/godot-cpp",
+      "commit": "b4ce22a76b56bb5f734a5161d6105eb4b8d1021d",
+      "source": "deps/godot-cpp"
+    },
+    "scons_version": "4.10.1",
+    "engine": "4.7.stable",
+    "bootstrap": "Copied existing pinned source trees, including the Astraeon circular streaming patch; future builds must not restore or overwrite this workspace.",
+    "project_changes": [
+      "astraeon native generation and versioned current-region persistence",
+      "bounded per-region handles and parallel independent-region I/O",
+      "player-centered predictive viewing and warm section residency",
+      "versioned CPU mesh reuse and shared 2 ms commit budget",
+      "section incremental light/weather caches and packed GPU page pools"
+    ],
+    "project_source_root": "game/*/native"
+  }
+}

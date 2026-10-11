@@ -54,6 +54,7 @@ func _run() -> void:
     world.horizontal_distance = 48
     world.biome_layout = 1
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     await wait_field(0)
     var deadline: int = Time.get_ticks_msec()+60000
@@ -69,7 +70,7 @@ func _run() -> void:
     check(int(world.cache_coordinator.native.call("get_cache_metrics").pages) > 0,"World light texture published")
     var origin: Vector3i = Vector3i(world.player.position.floor())+Vector3i(2,2,0)
     var previous: int = world.shading.field_publications
-    world.set_block(origin,world.content.state_keys.find("astraeon_glowstone/default"))
+    world.set_block(origin,world.content.state_keys.find("astraeon:glowstone/default"))
     await wait_field(previous)
     world.shading._settings.hour = 22.0
     world.shading._settings.moving_mode = 1

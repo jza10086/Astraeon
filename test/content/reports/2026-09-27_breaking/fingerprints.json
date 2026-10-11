@@ -1,0 +1,13 @@
+{
+  "game/shading/shaders/content_surface.gdshaderinc": "3944fc78f82ebc6d289921b5ff2a627311b30e23c5c3ee9e57eb616294f8854a",
+  "game/shading/shaders/voxel_light.gdshader": "905f699823af5728164b20f0e47b01a192f375014db4053cb1f36fcd13bdf599",
+  "game/shading/shaders/plant_surface.gdshaderinc": "71169f12cf5b1c4ecd0bf70cdc01582cc307a9a13d25e25166050fb9163a0b59",
+  "game/shading/blocks/gdscript/breaking_texture_group.gd": "d62909f9bed1c4f1e3cf0b085e2dbe625f5208a1745c875aea184dacd915d6a3",
+  "game/shading/blocks/gdscript/breaking_visual.gd": "6c578d24f32dd260a3db14a31b4b459a04a3b39ca59379ce826e412d13551304",
+  "game/gameplay/interaction/gdscript/mining_progress.gd": "30b6b92b58755691c0ab7dc37291cb77dced9f0549af7fc55084a9623876b01e",
+  "game/world/gdscript/native_world.gd": "8769fe89679ea3fe2ea1320e9ead94b2624a6381cf35330eeda32c17b253f2b2",
+  "tools/content/compiler.gd": "3c1b1d89b3cbca8b0d316e25fefeb906044237ac1b77e51d734a92a9dbde718b",
+  "game/data/content/gdscript/content_bundle.gd": "a266e6c4d7ef1bf391c69f83b82a58ee3ad9e58165cb72a54097f36091805629",
+  "game/data/content/packages/astraeon.aebpack": "63c08b4c784a16e6abbf0183b4e84963e615941caa0651e210604261044cd29e",
+  "addons/zylann.voxel/voxel.gdextension": "dc3f6093c7550ab0e8a4b3f7f20e9606dad48b79f05b7863e24a68721b61e318"
+}

@@ -17,6 +17,7 @@ func _run() -> void:
     world.horizontal_distance = 960 if large else 480
     world.biome_layout = 1
     world.get_node("Player/Controller").input_enabled = false
+    preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
     root.add_child(world)
     world.set_process(false)
     var deadline: int = Time.get_ticks_msec()+(180000 if large else 60000)

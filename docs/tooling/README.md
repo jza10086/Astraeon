@@ -21,3 +21,9 @@ MCP 连接失败不证明编辑器关闭；进程信息不可读时阻止冲突�
 ## 验证证据
 
 [测试入口](../../test/tooling/README.md)；历史通过记录不代表本次重跑。整体状态见 [整体概览](../../total_development.md)。研究资料见 [tmp](tmp/README.md)。
+
+[内容编译器、SDK与导出入口](../data/content_packages.md#制作与发布)：tools/content、addons/astraeon_content；缺失或过期原版包在正式导出前报错。
+
+## 内容包制作入口
+
+格式 2 包工程、单文件方块与外部图片索引见 [内容包](../data/content_packages.md#包工程与单文件资源制作格式-2)。[专用内容编辑器](content_editor.md)主工作区和 headless CLI 共用 tools/content/compiler.gd；build_sdk.py 从当前类型和单文件示例生成 SDK。原版图片位于 content_sources，不参与 Godot 导入或游戏发布；本地 receipt 记录外部图片指纹，verify_deployment.py 检查新鲜度。

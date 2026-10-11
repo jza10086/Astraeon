@@ -12,8 +12,20 @@ func _draw() -> void:
 static func draw_stack(target: Control, value: AstraeonItemStack) -> void:
 	if value == null:
 		return
-	if value.item.icon != null:
-		target.draw_texture_rect(value.item.icon, Rect2(Vector2(10, 8), Vector2(40, 40)), false)
+	var previous_lease: Node = target.get_node_or_null("ContentIconLease")
+	if previous_lease != null and not value.item.has_meta("content_icon"):
+		previous_lease.configure(null)
+	var texture: Texture2D = value.item.icon
+	if value.item.has_meta("content_icon"):
+		var lease: Node = target.get_node_or_null("ContentIconLease")
+		if lease == null:
+			lease = preload("res://game/ui/inventory/gdscript/content_icon_lease.gd").new()
+			lease.name = "ContentIconLease"
+			target.add_child(lease)
+		lease.configure(value.item)
+		texture = lease.texture
+	if texture != null:
+		target.draw_texture_rect(texture, Rect2(Vector2(10, 8), Vector2(40, 40)), false)
 	else:
 		var tint: Color = value.item.icon_color
 		target.draw_colored_polygon(PackedVector2Array([Vector2(12, 20),Vector2(30, 10),Vector2(48, 20),Vector2(30, 30)]), tint.lightened(0.15))

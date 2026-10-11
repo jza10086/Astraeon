@@ -1,0 +1,79 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3 uid="uid://bkx0k08b87l23"]
+
+[ext_resource type="Script" uid="uid://cek7vjlmvfu7l" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1_gv4d1"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2_ffx3v"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_33517"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="4_he1na"]
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_4kuus"]
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="6_torvv"]
+[ext_resource type="Script" uid="uid://dywa800mwjb7y" path="res://game/data/content/gdscript/block_asset.gd" id="7_jtijw"]
+
+[sub_resource type="Resource" id="Resource_4ofk7"]
+script = ExtResource("1_gv4d1")
+
+[sub_resource type="Resource" id="Resource_sk472"]
+script = ExtResource("2_ffx3v")
+base_color = Color(0.36, 0.22, 0.12, 1)
+
+[sub_resource type="Resource" id="Resource_drs62"]
+script = ExtResource("2_ffx3v")
+base_color = Color(0.65, 0.48, 0.28, 1)
+
+[sub_resource type="Resource" id="Resource_fg7dt"]
+script = ExtResource("3_33517")
+default_surface = SubResource("Resource_sk472")
+face_surfaces = Dictionary[int, ExtResource("2_ffx3v")]({
+0: SubResource("Resource_drs62"),
+1: SubResource("Resource_drs62")
+})
+breaking = SubResource("Resource_4ofk7")
+
+[sub_resource type="Resource" id="Resource_6xxut"]
+script = ExtResource("5_4kuus")
+key = &"axis_x"
+properties = Dictionary[StringName, StringName]({
+&"axis": &"x"
+})
+orientation = Basis(0, 1, 0, -1, 0, 0, 0, 0, 1)
+
+[sub_resource type="Resource" id="Resource_acf6v"]
+script = ExtResource("5_4kuus")
+key = &"axis_y"
+properties = Dictionary[StringName, StringName]({
+&"axis": &"y"
+})
+
+[sub_resource type="Resource" id="Resource_m85mu"]
+script = ExtResource("5_4kuus")
+key = &"axis_z"
+properties = Dictionary[StringName, StringName]({
+&"axis": &"z"
+})
+orientation = Basis(1, 0, 0, 0, 0, -1, 0, 1, 0)
+
+[sub_resource type="Resource" id="Resource_kp8xf"]
+script = ExtResource("4_he1na")
+key = &"astraeon:log"
+appearance = SubResource("Resource_fg7dt")
+display_name = "木头"
+hardness = 2.0
+required_tool_tag = &"astraeon:axe"
+states = Array[ExtResource("5_4kuus")]([SubResource("Resource_6xxut"), SubResource("Resource_acf6v"), SubResource("Resource_m85mu")])
+default_state = &"axis_y"
+
+[sub_resource type="Resource" id="Resource_34wkh"]
+script = ExtResource("6_torvv")
+key = &"astraeon:log_item"
+display_name = "木头"
+icon_color = Color(0.64, 0.43, 0.23, 1)
+search_tags = PackedStringArray("木头", "原木", "木材", "朝向", "wood", "log")
+tool_tags = PackedStringArray()
+orient_to_face = true
+
+[resource]
+script = ExtResource("7_jtijw")
+block = SubResource("Resource_kp8xf")
+item = SubResource("Resource_34wkh")
+image_slots = Dictionary[String, StringName]({
+"breaking": &"breaking_wood"
+})

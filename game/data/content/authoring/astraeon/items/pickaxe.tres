@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AstraeonItemAsset" format=3 uid="uid://bf234y4medetq"]
+
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="1_7clp0"]
+[ext_resource type="Script" uid="uid://cpd5g5lj8ygew" path="res://game/data/content/gdscript/item_asset.gd" id="2_u0ekn"]
+
+[sub_resource type="Resource" id="Resource_7uvss"]
+script = ExtResource("1_7clp0")
+key = &"astraeon:pickaxe"
+display_name = "镐"
+max_stack = 1
+creative_group = &"astraeon_tools"
+search_tags = PackedStringArray("工具", "采矿", "镐", "pickaxe")
+tool_tags = PackedStringArray("astraeon:pickaxe")
+mining_speed = 2.0
+
+[resource]
+script = ExtResource("2_u0ekn")
+item = SubResource("Resource_7uvss")
+icon_image = &"pickaxe_icon"

@@ -1,0 +1,26 @@
+[
+  {
+    "new_color_pixel_bytes": 2457600,
+    "new_metadata_models_ms": 60.271,
+    "new_runtime_source_pixels": 0,
+    "old_color_orm_pixel_bytes": 4300800,
+    "old_runtime_atlas_ms": 1319.541,
+    "states": 100
+  },
+  {
+    "new_color_pixel_bytes": 12288000,
+    "new_metadata_models_ms": 248.744,
+    "new_runtime_source_pixels": 0,
+    "old_color_orm_pixel_bytes": 21504000,
+    "old_runtime_atlas_ms": 6601.89,
+    "states": 500
+  },
+  {
+    "new_color_pixel_bytes": 24576000,
+    "new_metadata_models_ms": 439.251,
+    "new_runtime_source_pixels": 0,
+    "old_color_orm_pixel_bytes": 43008000,
+    "old_runtime_atlas_ms": 12129.269,
+    "states": 1000
+  }
+]

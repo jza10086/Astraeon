@@ -1,0 +1,8 @@
+{
+  "game/gameplay/interaction/gdscript/block_target.gd": "a750281dd81f6e89424f8a45d9137132a8b78763a99251e12a36544789add840",
+  "game/gameplay/interaction/gdscript/mining_progress.gd": "4dc831ed00166e6af3e206714e550292b5ed9b5df6f70047435b18599ac9233f",
+  "game/shading/blocks/gdscript/block_target_visual.gd": "61b0df87c39dc8c0fdb944947b48c39e358d21eae608fbae735e194e7248d4f0",
+  "game/shading/blocks/shaders/block_target.gdshader": "1f6f784ac016a1cbbdc17209973125959341624e1e30d66eb8538bb668fcca4f",
+  "game/world/gdscript/native_world.gd": "5a61a908da0ff5c30b91b76f5d0d5f5875d79f91e0507585c5fc5ea0318a8af2",
+  "test/content/gdscript/test_block_target.gd": "617950ab363044eabb28a2981f12d76a033cb90ec4b0b9ba9db8c9b8c7d534c4"
+}

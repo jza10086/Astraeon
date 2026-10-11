@@ -10,6 +10,8 @@ const Glass: Script = preload("res://game/shading/gdscript/colored_shadows.gd")
 const Moving: Script = preload("res://game/shading/gdscript/moving_light.gd")
 const Budget: Script = preload("res://game/shading/gdscript/light_budget.gd")
 const Effects: Script = preload("res://game/shading/gdscript/camera_effects.gd")
+const Shafts: Script = preload("res://game/shading/gdscript/light_shafts.gd")
+const WaterBinding: Script = preload("res://game/shading/gdscript/water_appearance_binding.gd")
 const Post: Script = preload("res://game/shading/gdscript/camera_post.gd")
 const Planar: Script = preload("res://game/shading/gdscript/planar_reflection.gd")
 const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_panel.gd")
@@ -24,9 +26,13 @@ var _sun: DirectionalLight3D
 var _environment: Environment
 var _sky_material: ShaderMaterial
 var _fog_color: Color
+const UnderwaterTint: Script = preload("res://game/shading/gdscript/underwater_tint.gd")
+var _underwater_tint: UnderwaterTint = UnderwaterTint.new()
 var _underwater: bool = false
 var materials: Array[ShaderMaterial] = []
 var plants: Array[ShaderMaterial] = []
+const Foliage: Script = preload("res://game/shading/blocks/gdscript/foliage_rendering.gd")
+var _foliage_mode: int = -1
 var water_materials: Array[ShaderMaterial] = []
 var clouds: Clouds = Clouds.new()
 var weather: Weather = Weather.new()
@@ -36,6 +42,7 @@ var budget: Budget = Budget.new()
 var effects: Effects = Effects.new()
 var motion: Post = Post.new()
 var post: Post = Post.new()
+var shafts: Shafts = Shafts.new()
 var planar: Planar = Planar.new()
 var panel: SettingsPanel = SettingsPanel.new()
 var _menu: PanelContainer
@@ -94,12 +101,15 @@ func configure(owner_world: Node3D) -> void:
     motion.configure_stage(true)
     post.configure_stage(false)
     var compositor: Compositor = Compositor.new()
-    compositor.compositor_effects = [motion,post]
+    add_child(shafts)
+    shafts.configure(_camera)
+    compositor.compositor_effects = [motion,shafts.effect,post]
     _camera.compositor = compositor
     _camera.far = maxf(_camera.far,1600.0)
     _previous_camera = _camera.global_transform
     for material: ShaderMaterial in materials:
         world.cache_coordinator.native.call("bind_material",material)
+    add_child(_underwater_tint)
     _make_ui()
     _apply_lighting()
 
@@ -107,28 +117,14 @@ func _compile_materials() -> void:
     var content: AstraeonWorldContent = world.content
     for index: int in range(1,content.library.models.size()):
         var model: VoxelBlockyModel = content.library.models[index]
-        var material: ShaderMaterial = ShaderMaterial.new()
+        var material: ShaderMaterial = model.get_material_override(0) as ShaderMaterial
         if index == content.water_id:
-            material.shader = preload("res://game/shading/shaders/water.gdshader")
             water_materials.append(material)
         else:
-            var source: ORMMaterial3D = model.get_material_override(0) as ORMMaterial3D
-            var plant: bool = source.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-            material.shader = preload("res://game/shading/shaders/plant.gdshader") if plant else preload("res://game/shading/shaders/voxel_light.gdshader")
-            material.set_shader_parameter("use_block_atlas",true)
-            material.set_shader_parameter("base_color",Color.WHITE)
-            material.set_shader_parameter("block_atlas",source.albedo_texture)
-            material.set_shader_parameter("block_cutout",plant)
-            material.set_shader_parameter("block_alpha_cutoff",source.alpha_scissor_threshold)
-            material.set_shader_parameter("authored_surface",true)
-            material.set_shader_parameter("authored_orm",source.orm_texture)
-            material.set_shader_parameter("authored_specular",source.metallic_specular)
-            material.set_shader_parameter("authored_emission",source.emission_texture)
-            material.set_shader_parameter("authored_emission_energy",source.emission_energy_multiplier if source.emission_enabled else 0.0)
-            if plant: plants.append(material)
-            materials.append(material)
-        model.set_material_override(0,material)
-    content.library.bake()
+            if bool(material.get_shader_parameter("block_cutout")) and not plants.has(material):
+                plants.append(material)
+            if not materials.has(material):
+                materials.append(material)
 
 ## World readiness follows converged native results and completed page publication.
 func is_ready() -> bool:
@@ -182,6 +178,7 @@ func _process(delta: float) -> void:
     _previous_camera = _camera.global_transform
     motion.update(_settings,_camera,_sun)
     post.update(_settings,_camera,_sun)
+    shafts.tick(_settings,_sun,clouds,weather.cloud_weight)
     if _settings.dof_mode == 2:
         var hit: VoxelRaycastResult = world.voxel_tool.raycast(_camera.global_position,-_camera.global_basis.z,100.0)
         effects.update_focus(_settings,hit.distance if hit != null else 100.0,delta)
@@ -230,20 +227,46 @@ func unregister_transparent_caster(mesh: MeshInstance3D) -> void:
 
 func _make_ui() -> void:
     var layer: CanvasLayer = CanvasLayer.new()
+    layer.layer = 31
+    layer.process_mode = Node.PROCESS_MODE_ALWAYS
     add_child(layer)
     _fps = FrameTimeLabel.new()
     _fps.add_theme_font_size_override("font_size",16)
     _fps.position = Vector2(24,130)
     layer.add_child(_fps)
     _menu = PanelContainer.new()
-    _menu.position = Vector2(24,205)
-    _menu.custom_minimum_size = Vector2(410,580)
     layer.add_child(_menu)
+    _menu.theme = preload("res://game/ui/resources/menu_theme.tres")
+    var background: StyleBoxFlat = StyleBoxFlat.new()
+    background.bg_color = Color(0.09, 0.105, 0.115, 1.0)
+    background.content_margin_left = 32
+    background.content_margin_right = 32
+    background.content_margin_top = 24
+    background.content_margin_bottom = 24
+    _menu.add_theme_stylebox_override("panel", background)
+    _menu.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+    _menu.anchor_top = 0.08
+    _menu.anchor_bottom = 0.92
+    _menu.offset_left = -480
+    _menu.offset_right = 480
+    _menu.offset_top = 0
+    _menu.offset_bottom = 0
+    var frame: VBoxContainer = VBoxContainer.new()
+    _menu.add_child(frame)
+    var heading: Label = Label.new()
+    heading.text = "设置"
+    heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    heading.add_theme_font_size_override("font_size", 36)
+    frame.add_child(heading)
     var scroll: ScrollContainer = ScrollContainer.new()
-    _menu.add_child(scroll)
+    scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    scroll.follow_focus = true
+    frame.add_child(scroll)
     var box: VBoxContainer = VBoxContainer.new()
-    box.custom_minimum_size.x = 380
+    box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     scroll.add_child(box)
+    world.dropped_items.add_settings(box)
     panel.build(box,_settings,_changed)
     # Fixture-only actions and per-step budgets are not production settings.
     for key: StringName in panel.rows.keys():
@@ -259,6 +282,11 @@ func _make_ui() -> void:
         _changed())
     box.add_child(reset)
     world.cache_coordinator.add_settings(box)
+    var back: Button = Button.new()
+    back.text = "返回暂停菜单"
+    back.custom_minimum_size.y = 64
+    back.pressed.connect(func() -> void: world.pause_menu.close_settings())
+    frame.add_child(back)
     _menu.hide()
     if not InputMap.has_action("shading_settings"):
         InputMap.add_action("shading_settings")
@@ -267,11 +295,19 @@ func _make_ui() -> void:
         InputMap.action_add_event("shading_settings",key)
 
 func _input(event: InputEvent) -> void:
-    if world != null and event.is_action_pressed("shading_settings"):
-        _menu.visible = not _menu.visible
-        Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _menu.visible else Input.MOUSE_MODE_CAPTURED
-        world.controller.input_enabled = not _menu.visible
+    if world != null and event.is_action_pressed("shading_settings") and not event.is_echo():
+        world.pause_menu.open_settings()
         get_viewport().set_input_as_handled()
+
+## Pause menu owns input and pause state; this view only exposes its controls.
+func set_settings_visible(value: bool) -> void:
+    _menu.visible = value
+    if value:
+        await get_tree().process_frame
+        if _menu.visible:
+            panel.category.grab_focus()
+            var scroll: ScrollContainer = panel.category.get_parent().get_parent() as ScrollContainer
+            scroll.scroll_vertical = 0
 
 func _changed() -> void:
     _apply_lighting()
@@ -336,6 +372,7 @@ func _update_daylight() -> void:
         material.set_shader_parameter("sky_color",palette.ambient)
         material.set_shader_parameter("horizon",horizon)
     clouds.update_lighting(horizon,_sun.global_basis.z.normalized())
+    WaterBinding.apply(water_materials,_settings,_sky_material,horizon.lerp(Color.WHITE,0.5))
     _apply_fog()
     planar.update_atmosphere(_environment)
 
@@ -346,7 +383,24 @@ func _update_weather() -> void:
         material.set_shader_parameter("wind_strength",_settings.wind_strength*lerpf(1.0,_settings.weather_wind,weather.cloud_weight))
 
 
+## Swap the mesher dependency to invalidate warm meshes and reject old task results.
+## Logical voxels, lighting and persistence are unaffected by this appearance change.
+func _apply_foliage() -> void:
+    var mode: int = _settings.foliage_mode
+    if mode == _foliage_mode: return
+    if mode > 0 and _foliage_mode > 0:
+        for model: VoxelBlockyModel in world.content.library.models:
+            if Foliage.is_foliage(model): Foliage.apply_material(model.get_material_override(0), mode)
+    else:
+        var library: VoxelBlockyLibrary = Foliage.with_mode(world.content.library, mode)
+        world.content.library = library
+        var mesher: VoxelMesherBlocky = world.terrain.mesher.duplicate() as VoxelMesherBlocky
+        mesher.library = library
+        world.terrain.mesher = mesher
+    _foliage_mode = mode
+
 func _apply_modules() -> void:
+    _apply_foliage()
     DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if _settings.vsync_enabled else DisplayServer.VSYNC_DISABLED)
     get_viewport().use_taa = _settings.aa_mode == 2
     get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if _settings.aa_mode == 1 else Viewport.SCREEN_SPACE_AA_DISABLED
@@ -373,7 +427,7 @@ func _apply_modules() -> void:
     weather.apply(_settings)
     moving.apply(_settings)
     for material: ShaderMaterial in materials:
-        for key: StringName in [&"ambient_smoothing",&"ambient_strength",&"ambient_minimum",&"ambient_minimum_color",&"ambient_curve",&"block_grid_strength",&"block_color",&"block_energy",&"block_curve"]:
+        for key: StringName in [&"light_filter_mode",&"block_smoothing",&"block_response_mode",&"ambient_smoothing",&"ambient_strength",&"ambient_minimum",&"ambient_minimum_color",&"ambient_curve",&"block_grid_strength",&"block_color",&"block_energy",&"block_curve"]:
             material.set_shader_parameter(key,_settings.get(key))
         material.set_shader_parameter("indirect_strength",_settings.effective_block_strength())
         material.set_shader_parameter("ao_strength",_settings.ao_strength if _settings.ao_enabled else 0.0)
@@ -403,11 +457,5 @@ func _apply_water() -> void:
         material.set_shader_parameter("water_bounds_max",Vector3(world.terrain.bounds.end.x,world.WATER_SURFACE_HEIGHT,world.terrain.bounds.end.z))
 
 func _apply_fog() -> void:
-    _environment.fog_enabled = _settings.fog_enabled or _underwater
-    _environment.fog_mode = Environment.FOG_MODE_DEPTH
-    _environment.fog_light_color = _settings.underwater_color if _underwater else _fog_color
-    _environment.fog_light_energy = 0.6 if _underwater else 1.0
-    _environment.fog_sky_affect = 1.0 if _underwater else 0.0
-    _environment.fog_depth_begin = 0.0 if _underwater else _settings.fog_start
-    _environment.fog_depth_end = _settings.underwater_distance if _underwater else _settings.fog_start + 1.0 / _settings.fog_density
-    _environment.fog_depth_curve = 1.0
+    preload("res://game/shading/gdscript/distance_fog.gd").apply(_environment, _settings, _underwater, _fog_color)
+    _underwater_tint.apply(_settings, _underwater)

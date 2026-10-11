@@ -290,7 +290,7 @@ bool AstraeonSectionCache::apply_cache_policy(Dictionary policy) {
     // Resizing a live pool requires the caller to pause/loading; never silently rebuild while moving.
     ERR_FAIL_COND_V(!_pages.empty() && !_suspended && _layers!=mib*16,false);
     {std::lock_guard<std::mutex> guard(_state->mutex);
-        _state->cpu_budget=uint64_t(int(policy.get("cpu_mib",512)))<<20;
+        _state->cpu_budget=uint64_t(std::max(1,int(policy.get("cpu_mib",512))-int(policy.get("visual_cpu_mib",64))))<<20;
         _state->retain=int(policy.get("retain_m",32));
         _state->slice_usec=uint64_t(int(policy.get("slice_usec",2000)));
         _state->queue_visits=uint64_t(int(policy.get("slice_visits",4096)));

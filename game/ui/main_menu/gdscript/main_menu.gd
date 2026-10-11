@@ -1,6 +1,10 @@
 extends Control
 const Paths: Script = preload("res://game/core/gdscript/project_paths.gd")
 ## Title navigation owns no world state; the existing world loads only after play.
+const WorldSelect: Script = preload("res://game/ui/main_menu/gdscript/world_select.gd")
+var world_page: WorldSelect
+var selected_world_directory: String
+@export var worlds_root: String = Paths.worlds_directory()
 const CharacterSelect: Script = preload("res://game/ui/main_menu/gdscript/character_select.gd")
 var character_page: CharacterSelect
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
@@ -17,26 +21,45 @@ const SettingsPanel: Script = preload("res://game/shading/gdscript/settings_pane
 @onready var status: Label = %Status
 @onready var quit_dialog: ConfirmationDialog = %QuitDialog
 var panel: SettingsPanel
+const ThrowSettings: Script = preload("res://game/gameplay/inventory/gdscript/throw_settings.gd")
+var throw_draft: ThrowSettings
+var throw_panel: VBoxContainer
 var draft: Profile
 var loading: bool = false
+var content_button: Button
 var _settings_writable: bool = true
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	%Characters.pressed.connect(_open_characters)
-	%Play.pressed.connect(_start_game)
+	%Play.pressed.connect(_open_worlds)
 	%Settings.pressed.connect(_open_settings)
 	%Quit.pressed.connect(_confirm_quit)
 	%Apply.pressed.connect(_apply_settings)
 	%Back.pressed.connect(_close_settings)
 	quit_dialog.confirmed.connect(func() -> void: get_tree().quit())
 	quit_dialog.canceled.connect(func() -> void: %Quit.grab_focus())
+	var mods: Button = Button.new()
+	mods.name = "ContentPackages"
+	content_button = mods
+	mods.text = "内容包 / Mods"
+	play_button.get_parent().add_child(mods)
+	mods.pressed.connect(func() -> void:
+		var dialog: ConfirmationDialog = preload("res://game/ui/main_menu/gdscript/content_packages_dialog.gd").new()
+		dialog.settings_path = settings_path
+		add_child(dialog)
+		dialog.popup_centered()
+		dialog.visibility_changed.connect(func() -> void:
+			if not dialog.visible:
+				dialog.queue_free()))
 	play_button.grab_focus()
 	set_process(false)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not loading:
-		if character_page != null and character_page.visible:
+		if world_page != null and world_page.visible:
+			world_page.cancel()
+		elif character_page != null and character_page.visible:
 			character_page.cancel()
 		elif settings_page.visible:
 			_close_settings()
@@ -52,6 +75,15 @@ func _open_settings() -> void:
 	draft = default_profile.duplicate(true) as Profile
 	var error: Error = draft.load_settings(settings_path)
 	_settings_writable = error == OK or error == ERR_FILE_NOT_FOUND
+	throw_draft = ThrowSettings.new()
+	var throw_error: Error = throw_draft.load_settings(settings_path)
+	if throw_error != OK:
+		_settings_writable = false
+		error = throw_error
+	if throw_panel == null:
+		throw_panel = preload("res://game/ui/inventory/gdscript/throw_settings_panel.gd").new()
+		settings_body.add_child(throw_panel)
+	throw_panel.configure(throw_draft)
 	settings_status.text = "修改后点击「保存并返回」；返回或 Esc 放弃本次修改。"
 	if not _settings_writable:
 		draft = default_profile.duplicate(true) as Profile
@@ -86,20 +118,27 @@ func _apply_settings() -> void:
 	if not _settings_writable:
 		return
 	var error: Error = draft.save_settings(settings_path)
+	if error == OK:
+		error = throw_draft.save_settings(settings_path)
 	if error != OK:
-		settings_status.text = "保存失败：%s。请重试，或返回放弃修改。" % error_string(error)
+		settings_status.text = "保存失败：%s。已停止本次保存。" % error_string(error)
+		_settings_writable = false
+		%Apply.disabled = true
 		return
 	status.text = "设置已保存"
 	_close_settings()
 
-func _start_game() -> void:
+func _start_game(directory: String) -> void:
 	if loading:
 		return
+	selected_world_directory = directory
 	var error: Error = ResourceLoader.load_threaded_request(world_scene_path, "PackedScene")
 	if error != OK:
-		status.text = "无法打开世界：%s。请重试。" % error_string(error)
+		world_page.set_busy(false)
+		world_page.status.text = "无法打开世界：%s。请重试。" % error_string(error)
 		return
 	loading = true
+	content_button.disabled = true
 	%Characters.disabled = true
 	%Play.disabled = true
 	%Settings.disabled = true
@@ -111,26 +150,33 @@ func _process(_delta: float) -> void:
 	var progress: Array = []
 	var state: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(world_scene_path, progress)
 	if state == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-		status.text = "正在载入世界… %d%%" % int(float(progress[0]) * 100.0) if not progress.is_empty() else "正在载入世界…"
+		world_page.status.text = "正在载入世界… %d%%" % int(float(progress[0]) * 100.0) if not progress.is_empty() else "正在载入世界…"
 		return
 	if state == ResourceLoader.THREAD_LOAD_LOADED:
 		var scene: PackedScene = ResourceLoader.load_threaded_get(world_scene_path) as PackedScene
 		if scene != null:
-			var error: Error = get_tree().change_scene_to_packed(scene)
+			var world: Node = scene.instantiate()
+			# Keep content, cache and shading on the same settings selected in this menu.
+			world.set("shading_settings_path", settings_path)
+			world.set("world_directory", selected_world_directory)
+			var error: Error = get_tree().change_scene_to_node(world)
 			if error == OK:
 				set_process(false)
 				return
+			world.free()
 	_finish_loading_error()
 
 func _finish_loading_error() -> void:
 	loading = false
+	content_button.disabled = false
 	set_process(false)
 	%Characters.disabled = false
 	%Play.disabled = false
 	%Settings.disabled = false
 	%Quit.disabled = false
-	status.text = "世界载入失败，请重试。"
-	play_button.grab_focus()
+	world_page.set_busy(false)
+	world_page.status.text = "世界载入失败，请重试。"
+	world_page.read_button.grab_focus()
 
 func _open_characters() -> void:
 	if loading:
@@ -148,3 +194,17 @@ func _close_characters(selected: bool) -> void:
 	if selected:
 		status.text = "人物已保存，进入世界后生效"
 	%Characters.grab_focus()
+
+func _open_worlds() -> void:
+	if loading:
+		return
+	if world_page == null:
+		world_page = WorldSelect.new()
+		world_page.name = "WorldSelect"
+		add_child(world_page)
+		world_page.start_requested.connect(_start_game)
+		world_page.back_requested.connect(func() -> void:
+			home.show()
+			play_button.grab_focus())
+	home.hide()
+	world_page.open(settings_path, worlds_root)

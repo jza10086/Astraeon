@@ -45,13 +45,14 @@ func _run() -> void:
         world.shading_settings_path = folder+"/settings-"+str(distance)+".cfg"
         world.biome_layout = 1
         world.get_node("Player/Controller").input_enabled = false
+        preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
         root.add_child(world)
         if not await settle(): failures.append("Initial load timeout")
         world.controller.set_physics_process(false)
         world.set_process(false)
         world.shading._settings.local_lighting_mode = 2
         var cell: Vector3i = Vector3i(world.player.global_position.floor())+Vector3i(4,3,0)
-        var lamp: int = world.content.state_keys.find("astraeon_glowstone/default")
+        var lamp: int = world.content.state_keys.find("astraeon:glowstone/default")
         for enabled: bool in [true,false]:
             var began: int = Time.get_ticks_usec()
             world.set_block(cell,lamp if enabled else 0)

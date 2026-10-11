@@ -16,3 +16,5 @@ $godotExe = 'F:/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe'
 [实现与边界](../../docs/gameplay/inventory.md)。版本化验证记录在 reports/；测试存档/日志/截图原始输出在 tmp/。
 
 创造选取同样位于上述样板的 E 面板内；分类/搜索/领取边界检查：`--script res://test/inventory/gdscript/test_creative.gd`，图形模式在 tmp/inventory-work/cursor_creative.png 与 cursor_storage.png 输出截图。
+
+工具物品检查：`--script res://test/inventory/gdscript/test_tool_items.gd`（图形运行）。覆盖编译包、工具图标驻留、每格 1 件、创造取放与存档往返。

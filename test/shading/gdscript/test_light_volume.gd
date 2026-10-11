@@ -34,17 +34,17 @@ func _oracle(volume: Volume) -> Array[PackedByteArray]:
 		if channel == 0:
 			for z: int in range(volume.origin.z, volume.origin.z + volume.size.z):
 				for x: int in range(volume.origin.x, volume.origin.x + volume.size.x):
+					var incoming: int = 15
 					for y: int in range(volume.origin.y + volume.size.y - 1, volume.origin.y - 1, -1):
 						var p: Vector3i = Vector3i(x, y, z)
-						if volume.voxel_at(p) != Volume.AIR:
-							break
+						incoming = maxi(0, incoming - volume.opacity_at(p))
 						var index: int = volume.index_of(p)
-						values[index] = 15
-						queue.append(index)
+						values[index] = incoming
+						if incoming > 0: queue.append(index)
 		else:
 			for index: int in range(volume.cell_count()):
-				if volume.voxel_by_index(index) == Volume.LAMP:
-					values[index] = 15
+				if volume.emission_at(volume.position_of(index)) > 0:
+					values[index] = volume.emission_at(volume.position_of(index))
 					queue.append(index)
 		var head: int = 0
 		while head < queue.size():
@@ -53,9 +53,9 @@ func _oracle(volume: Volume) -> Array[PackedByteArray]:
 			var p: Vector3i = volume.position_of(index)
 			for direction: Vector3i in Volume.DIRECTIONS:
 				var neighbor: Vector3i = p + direction
-				if volume.contains(neighbor) and volume.voxel_at(neighbor) == Volume.AIR:
+				if volume.contains(neighbor) and volume.opacity_at(neighbor) < 15:
 					var ni: int = volume.index_of(neighbor)
-					var next: int = int(values[index]) - 1
+					var next: int = int(values[index]) - maxi(1, volume.opacity_at(neighbor))
 					if next > values[ni]:
 						values[ni] = next
 						queue.append(ni)
@@ -124,7 +124,7 @@ func _run() -> void:
 	for batch: int in range(4):
 		edits.clear()
 		for i: int in range(40):
-			edits[Vector3i(random.randi_range(-14, 13), random.randi_range(-6, 6), random.randi_range(-6, 6))] = random.randi_range(0, 2)
+			edits[Vector3i(random.randi_range(-14, 13), random.randi_range(-6, 6), random.randi_range(-6, 6))] = random.randi_range(0, 4)
 		volume.apply_edits(edits)
 		_compare(volume, "random topology batch %d" % batch)
 	var images: Array[Image] = volume.make_images()
@@ -140,5 +140,58 @@ func _run() -> void:
 	var full: Volume = Fixtures.create()
 	_compare(full, "complete 64-cube fixture")
 	_check(full.light_at(Vector3i(-10, -4, 0)).x == 0, "Deep underground gallery stays dark")
+	_leaf_rules()
 	print("LIGHT_VOLUME ", "PASS" if _failures == 0 else "FAIL", " checks=", _checks, " failures=", _failures)
 	quit(0 if _failures == 0 else 1)
+
+## Analytic cases: no lateral skylight can bypass a full-width roof.
+func _leaf_rules() -> void:
+	var volume: Volume = Volume.new()
+	volume.configure(Vector3i(-2, -2, -2), Vector3i(5, 8, 5))
+	var actual_leaf: AstraeonBlockDefinition = preload("res://test/data/resources/block_reference/astraeon_leaves.tres")
+	_check(volume.opacity_at(Vector3i(99, 99, 99)) == 15, "Unknown cells remain opaque")
+	var edits: Dictionary[Vector3i, int] = {}
+	for layers: int in [1, 2, 4]:
+		Fixtures.box(edits, AABB(Vector3(-2, 5 - layers + 1, -2), Vector3(5, layers, 5)), Volume.LEAVES)
+		volume.apply_edits(edits)
+		_compare(volume, "full leaf roof %d layers" % layers)
+		_check(volume.opacity_at(Vector3i(0, 5, 0)) == actual_leaf.light_opacity, "Sample and production leaf attenuation match")
+		_check(volume.light_at(Vector3i(0, -1, 0)).x == 15 - layers, "Leaf roof attenuates gradually")
+	var images: Array[Image] = volume.make_images()
+	_check(images[2].get_pixel(2, 7).b == 1.0, "Leaf cell participates in smooth surface sampling")
+	edits.clear()
+	Fixtures.box(edits, AABB(Vector3(-2, 5, -2), Vector3(5, 1, 5)), Volume.STONE)
+	volume.apply_edits(edits)
+	_compare(volume, "opaque roof replaces top leaf layer")
+	_check(volume.light_at(Vector3i(0, -1, 0)).x == 0, "Opaque roof fully blocks sunlight")
+	edits.clear()
+	Fixtures.box(edits, AABB(Vector3(-2, 2, -2), Vector3(5, 4, 5)), Volume.AIR)
+	volume.apply_edits(edits)
+	_compare(volume, "remove leaf roof")
+	_check(volume.light_at(Vector3i(0, -1, 0)).x == 15, "Removing foliage restores sky")
+
+	# A sealed straight tube forces the light to pass through the leaf, not around it.
+	edits.clear()
+	Fixtures.box(edits, AABB(Vector3(-2, -2, -2), Vector3(5, 8, 5)), Volume.STONE)
+	Fixtures.box(edits, AABB(Vector3(-1, 0, 0), Vector3(3, 1, 1)), Volume.AIR)
+	edits[Vector3i(-1, 0, 0)] = Volume.LAMP
+	edits[Vector3i.ZERO] = Volume.LEAVES
+	volume.apply_edits(edits)
+	_compare(volume, "lamp through leaf in sealed tube")
+	_check(volume.light_at(Vector3i.ZERO).y == 14 and volume.light_at(Vector3i(1, 0, 0)).y == 13, "Block light passes through leaf")
+	volume.apply_edits({Vector3i(-1, 0, 0): Volume.STONE})
+	_compare(volume, "remove lamp behind leaf")
+	_check(volume.light_at(Vector3i(1, 0, 0)) == Vector2i.ZERO, "No stale light or skylight leakage")
+
+	# Custom resource values prove the solver does not special-case leaf/lamp IDs.
+	var catalog: AstraeonBlockCatalog = load("res://test/shading/resources/blocks/catalog.tres").duplicate(true) as AstraeonBlockCatalog
+	for definition: AstraeonBlockDefinition in catalog.definitions:
+		if definition.key == &"shading_test:leaves": definition.light_opacity = 3
+		if definition.key == &"shading_test:lamp": definition.light_emission = 7
+	var custom: Volume = Volume.new()
+	custom.configure(volume.origin, volume.size, catalog)
+	edits[Vector3i(-1, 0, 0)] = Volume.LAMP
+	custom.apply_edits(edits)
+	_compare(custom, "authored attenuation 3 and emission 7")
+	_check(custom.light_at(Vector3i.ZERO).y == 4 and custom.light_at(Vector3i(1, 0, 0)).y == 3, "Uses resource attenuation and emission")
+	_check(actual_leaf.light_opacity == 1, "Shared production authoring remains unchanged")

@@ -48,6 +48,8 @@ var _converge_usec: int = 0
 var _details: Details
 var _settings_panel: SettingsPanel
 var _cloud_clock: float = 0.0
+const UnderwaterTint: Script = preload("res://game/shading/gdscript/underwater_tint.gd")
+var _underwater_tint: UnderwaterTint = UnderwaterTint.new()
 var _underwater: bool = false
 var _horizon: Color
 var _frame_counter: int = 0
@@ -68,6 +70,7 @@ func _ready() -> void:
 	_load_settings()
 	_previous_max_fps = Engine.max_fps
 	_previous_vsync = DisplayServer.window_get_vsync_mode()
+	add_child(_underwater_tint)
 	_make_ui()
 	_apply_display()
 	_register_input()
@@ -157,6 +160,9 @@ func _make_ui() -> void:
 	_button("水池观察", func() -> void: _view(Vector3(30, 10, -5), Vector3(20, 0, -17)))
 	_button("水面倒影观察", func() -> void: _view(Vector3(20, 4, -5), Vector3(20, 1, -20)))
 	_button("水下观察", func() -> void: _view(Vector3(23, -2, -14), Vector3(25, -2, -22)))
+	_button("树叶 1 / 2 / 4 层", func() -> void:
+		_view(Vector3(-10, 4, -9), Vector3(-10, 3, -19))
+		_settings_panel.show_setting(&"foliage_mode"))
 	_button("逆光植被", func() -> void: _view(Vector3(-27, 2, -9), Vector3(-20, 3, -20)))
 	_button("夜间光源", func() -> void:
 		_set_hour(0.0)
@@ -197,6 +203,11 @@ func _make_ui() -> void:
 	crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	canvas.add_child(crosshair)
 
+## Opt-in graphical validation; temporary results stay under tmp/water_rays.
+func run_water_rays_checks() -> void:
+	await preload("res://test/shading/gdscript/water_rays_check.gd").new().run(self)
+
+
 func _button(title: String, callback: Callable) -> void:
 	var button: Button = Button.new()
 	button.text = title
@@ -222,6 +233,14 @@ func _start() -> void:
 		return
 	_sections = Sections.new()
 	_sections.configure(_volume, self, _texture)
+	for index: int in range(3):
+		var label: Label3D = Label3D.new()
+		label.text = "%d 层" % [1, 2, 4][index]
+		label.position = Vector3(-15 + index * 5, 5.5, -16.9)
+		label.font_size = 64
+		label.pixel_size = 0.008
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		add_child(label)
 	_camera = Camera3D.new()
 	_camera.current = true
 	_camera.far = 1600.0 # Cloud mesh horizon; directional shadow distance remains independent.
@@ -483,6 +502,7 @@ func _reset_settings() -> void:
 	_save_settings()
 
 func _apply_modules(sky_color: Color, horizon: Color) -> void:
+	_sections.apply_foliage(_settings.foliage_mode)
 	if not benchmark_mode:
 		_settings_panel.sync(_settings)
 	_horizon = horizon
@@ -518,6 +538,9 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 	materials.append_array(_avatar.materials)
 	materials.append_array(_extensions.metal_materials)
 	for material: ShaderMaterial in materials:
+		material.set_shader_parameter("light_filter_mode", _settings.light_filter_mode)
+		material.set_shader_parameter("block_smoothing", _settings.block_smoothing)
+		material.set_shader_parameter("block_response_mode", _settings.block_response_mode)
 		material.set_shader_parameter("ambient_smoothing", _settings.ambient_smoothing)
 		material.set_shader_parameter("ambient_strength", _settings.ambient_strength)
 		material.set_shader_parameter("ambient_minimum", _settings.ambient_minimum)
@@ -536,21 +559,20 @@ func _apply_modules(sky_color: Color, horizon: Color) -> void:
 		material.set_shader_parameter("translucency", _settings.translucency_strength if _settings.translucency_enabled else 0.0)
 	_avatar.apply(_settings)
 	_details.apply(_settings, sky_color, horizon)
+	preload("res://game/shading/gdscript/water_appearance_binding.gd").apply(_details.water_materials,_settings,_sky_material,horizon.lerp(Color.WHITE,0.5))
 	_underwater = _settings.water_enabled and _details.is_underwater(_camera.position) and _settings.underwater_enabled
 	_apply_fog()
 	_extensions.apply(_settings)
 	if _planar != null:
 		_planar.apply(_settings, _environment)
 
+## Opt-in graphical check; saves its configuration only under tmp.
+func run_underwater_checks() -> void:
+	await preload("res://test/shading/gdscript/underwater_check.gd").new().run(self)
+
 func _apply_fog() -> void:
-	_environment.fog_enabled = _settings.fog_enabled or _underwater
-	_environment.fog_mode = Environment.FOG_MODE_DEPTH
-	_environment.fog_light_color = _settings.underwater_color if _underwater else _fog_color
-	_environment.fog_light_energy = 0.6 if _underwater else 1.0
-	_environment.fog_sky_affect = 1.0 if _underwater else 0.0
-	_environment.fog_depth_begin = 0.0 if _underwater else _settings.fog_start
-	_environment.fog_depth_end = _settings.underwater_distance if _underwater else _settings.fog_start + 1.0 / _settings.fog_density
-	_environment.fog_depth_curve = 1.0
+	preload("res://game/shading/gdscript/distance_fog.gd").apply(_environment, _settings, _underwater, _fog_color)
+	_underwater_tint.apply(_settings, _underwater)
 
 func _apply_display() -> void:
 	Engine.max_fps = _settings.max_fps
@@ -561,6 +583,8 @@ func _apply_display() -> void:
 		_fps_label.visible = _settings.show_fps
 
 func _exit_tree() -> void:
+	if _sections != null:
+		_sections.shutdown()
 	if _settings != null:
 		Engine.max_fps = _previous_max_fps
 		DisplayServer.window_set_vsync_mode(_previous_vsync)

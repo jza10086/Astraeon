@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode diffuse_lambert;
+#include "res://game/shading/shaders/content_surface.gdshaderinc"
 uniform bool authored_surface = false;
 uniform sampler2D authored_orm : filter_nearest;
 uniform sampler2D authored_emission : source_color, filter_nearest;
@@ -40,7 +41,7 @@ void vertex() {
 
 #include "res://game/shading/shaders/reflection_clip.gdshaderinc"
 void fragment() {
-	vec4 block_texel = use_block_atlas ? texture(block_atlas, UV) : vec4(1.0);
+	vec4 block_texel = pack_surface ? (pack_textured ? texture(block_atlas, UV) : pack_colors[pack_face(UV)]) : (use_block_atlas ? texture(block_atlas, UV) : vec4(1.0));
 	if (block_cutout && block_texel.a < block_alpha_cutoff) discard;
 	if (reflection_clipped(world_position, CAMERA_VISIBLE_LAYERS)) discard;
 	// Sample the adjacent air cell, never interpolate through an opaque wall.
@@ -49,16 +50,18 @@ void fragment() {
 	int slot = light_page_slot(section);
 	vec4 sample_light = light_page_texel(slot,cell-section*16.0);
 	vec2 illumination = sample_light.rg;
-	sky_visibility = illumination.r;
 	vec2 filtered = (ambient_smoothing > 0.0 || indirect_strength > 0.0)
 		? smooth_surface_light(world_position, normalize(world_normal),sample_light.rgb,section,slot) : illumination;
-	float indirect = filtered.g;
+	float indirect = mix(illumination.g, filtered.g, block_smoothing);
+	sky_visibility = mix(illumination.r, filtered.r, ambient_smoothing);
 	float ambient = pow(max(mix(illumination.r, filtered.r, ambient_smoothing), 0.0), ambient_curve) * ambient_strength;
 	vec2 face_uv = use_block_atlas ? vec2(fract(UV.x * 6.0), UV.y) : UV;
 	float edge = min(min(face_uv.x, 1.0 - face_uv.x), min(face_uv.y, 1.0 - face_uv.y));
 	float pattern = mix(1.0, mix(0.85, 1.0, smoothstep(0.0, 0.035, edge)), block_grid_strength);
 	ALBEDO = base_color.rgb * block_texel.rgb * mix(vec3(1.0), COLOR.rgb, ao_strength) * pattern;
-	vec3 orm = authored_surface ? texture(authored_orm, UV).rgb : vec3(1.0);
+	float damage = breaking_mask(world_position, world_normal, UV);
+	ALBEDO = mix(ALBEDO, breaking_tint.rgb, damage);
+	vec3 orm = pack_surface ? vec3(1.0, pack_orm[pack_face(UV)]) : (authored_surface ? texture(authored_orm, UV).rgb : vec3(1.0));
 	float wet = surface_wetness(world_position, normalize(world_normal));
 	ALBEDO *= 1.0 - wet * wet_darken;
 	ROUGHNESS = mix(material_roughness * orm.g, wet_roughness, wet);
@@ -67,10 +70,11 @@ void fragment() {
 	METALLIC = surface_metallic;
 	SPECULAR = surface_specular;
 	IRRADIANCE = vec4(sky_color * ambient * (1.0-ambient_minimum) + ambient_minimum_color * ambient_minimum
-		+ block_color * block_energy * indirect_strength * pow(indirect, block_curve), 1.0);
+		+ block_color * block_energy * indirect_strength * block_light_response(indirect), 1.0);
 	// Attenuate sky specular indoors; keep a configurable environment floor.
 	RADIANCE = vec4(vec3(0.0), 1.0-clamp(max(ambient,ambient_minimum),0.0,1.0));
-	EMISSION = authored_surface ? texture(authored_emission, UV).rgb * authored_emission_energy * emission_multiplier : base_color.rgb * self_emission;
+	EMISSION = pack_surface ? pack_glow[pack_face(UV)] * emission_multiplier : (authored_surface ? texture(authored_emission, UV).rgb * authored_emission_energy * emission_multiplier : base_color.rgb * self_emission);
+	EMISSION *= 1.0 - damage;
 }
 
 void light() {

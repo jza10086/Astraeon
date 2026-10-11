@@ -8,10 +8,11 @@ var items: Dictionary[StringName, AstraeonItemDefinition] = {}
 var selected: int = 0
 var revision: int = 0
 var locked: bool = false
+var player_state: AstraeonPlayerState = AstraeonPlayerState.new()
 ## Optional durable commit guard(snapshot, edit_context) -> bool. Called before publication.
 var before_commit: Callable
 var _slots: Array[AstraeonItemStack] = []
-## Independent transient stack, deliberately excluded from snapshots.
+## Carried items are part of the same durable snapshot as slots.
 var _cursor: AstraeonItemStack
 
 func configure(item_catalog: AstraeonItemCatalog, layout: AstraeonInventoryDefinition) -> bool:
@@ -28,13 +29,13 @@ func stack_at(index: int) -> AstraeonItemStack:
 	return _slots[index].copy() if index >= 0 and index < _slots.size() and _slots[index] != null else null
 
 func snapshot() -> Dictionary:
-	return _encode(_slots, selected)
+	return _encode(_slots, selected, _cursor)
 
-func _encode(slots: Array[AstraeonItemStack], selection: int) -> Dictionary:
+func _encode(slots: Array[AstraeonItemStack], selection: int, cursor: AstraeonItemStack) -> Dictionary:
 	var entries: Array[Dictionary] = []
 	for stack: AstraeonItemStack in slots:
 		entries.append({} if stack == null else {"item": String(stack.item.key), "count": stack.count})
-	return {"selected": selection, "slots": entries}
+	return {"selected": selection, "slots": entries, "cursor": {} if cursor == null else {"item": String(cursor.item.key), "count": cursor.count}}
 
 func restore(data: Dictionary) -> bool:
 	var entries: Variant = data.get("slots")
@@ -53,8 +54,18 @@ func restore(data: Dictionary) -> bool:
 		if not items.has(key) or not _integer(quantity) or int(quantity) < 1 or int(quantity) > items[key].max_stack:
 			return false
 		candidate.append(AstraeonItemStack.new(items[key], int(quantity)))
+	var cursor_data: Variant = data.get("cursor")
+	if not cursor_data is Dictionary:
+		return false
+	var carried: AstraeonItemStack
+	if not cursor_data.is_empty():
+		var key: StringName = StringName(str(cursor_data.get("item", "")))
+		var quantity: Variant = cursor_data.get("count")
+		if not items.has(key) or not _integer(quantity) or int(quantity) < 1 or int(quantity) > items[key].max_stack:
+			return false
+		carried = AstraeonItemStack.new(items[key], int(quantity))
 	_slots = candidate
-	_cursor = null
+	_cursor = carried
 	selected = int(choice)
 	revision += 1
 	changed.emit()
@@ -76,7 +87,7 @@ func _commit(candidate: Array[AstraeonItemStack], choice: int, context: Dictiona
 func _commit_with_cursor(candidate: Array[AstraeonItemStack], choice: int, cursor: AstraeonItemStack, context: Dictionary = {}) -> bool:
 	if locked:
 		return false
-	if before_commit.is_valid() and not bool(before_commit.call(_encode(candidate, choice), context)):
+	if before_commit.is_valid() and not bool(before_commit.call(_encode(candidate, choice, cursor), context)):
 		return false
 	_slots = candidate
 	_cursor = cursor
@@ -181,32 +192,25 @@ func quick_move(source: int) -> bool:
 	candidate[source] = AstraeonItemStack.new(from.item, left) if left > 0 else null
 	return _commit(candidate, selected)
 
-## Returns a copy; the cursor never reserves an inventory slot or enters the save payload.
+## Returns a copy; cursor and slots share one save payload.
 func cursor_stack() -> AstraeonItemStack:
 	return _cursor.copy() if _cursor != null else null
 
-func _set_cursor(stack: AstraeonItemStack) -> void:
-	_cursor = stack
-	revision += 1
-	changed.emit()
-
 ## Creative catalog: left adds one (or replaces a different item); middle copies a full stack.
 func creative_pick(key: StringName, whole_stack: bool = false) -> bool:
-	if locked or not items.has(key) or items[key].block == null:
+	if locked or not player_state.is_creative() or not items.has(key):
 		return false
 	var count: int = items[key].max_stack if whole_stack else 1
 	if not whole_stack and _cursor != null and _cursor.item.key == key:
 		count = mini(_cursor.count + 1, items[key].max_stack)
-	_set_cursor(AstraeonItemStack.new(items[key], count))
-	return true
+	return _commit_with_cursor(_copy_slots(), selected, AstraeonItemStack.new(items[key], count))
 
 ## Creative middle-click on an owned slot copies its type without consuming the source.
 func clone_to_cursor(index: int) -> bool:
 	var stack: AstraeonItemStack = stack_at(index)
-	if locked or stack == null:
+	if locked or not player_state.is_creative() or stack == null:
 		return false
-	_set_cursor(AstraeonItemStack.new(stack.item, stack.item.max_stack))
-	return true
+	return _commit_with_cursor(_copy_slots(), selected, AstraeonItemStack.new(stack.item, stack.item.max_stack))
 
 ## Left picks up/deposits a stack; right picks up half or deposits one. Different items swap.
 func click_slot(index: int, right: bool = false) -> bool:
@@ -237,17 +241,28 @@ func click_slot(index: int, right: bool = false) -> bool:
 			carried = null
 	return _commit_with_cursor(candidate, selected, carried)
 
-## Deletion is allowed even while saving: pickup already removed these items durably.
-## Closing the bag discards the entire transient stack; no ground drop is spawned.
-func discard_cursor(one: bool = false) -> void:
+## Creative deletion. Survival removal must go through the dropped-item transaction.
+func discard_cursor(one: bool = false) -> bool:
+	if not player_state.is_creative():
+		return false
+	return consume_cursor(one)
+
+## Used after staging a ground drop; commits cursor removal and drop creation together.
+func consume_cursor(one: bool = false) -> bool:
 	if _cursor == null:
-		return
+		return false
 	var remaining: AstraeonItemStack = cursor_stack()
 	remaining.count -= 1 if one else remaining.count
-	_set_cursor(remaining if remaining.count > 0 else null)
+	return _commit_with_cursor(_copy_slots(), selected, remaining if remaining.count > 0 else null)
 
 ## Shift-clicking the creative trash removes stored and carried items in one guarded transaction.
 func clear_inventory() -> bool:
+	if not player_state.is_creative():
+		return false
 	var empty: Array[AstraeonItemStack] = []
 	empty.resize(_slots.size())
 	return _commit_with_cursor(empty, selected, null)
+
+## Commit external world changes (drop creation/removal, optionally a voxel edit) in the same journal.
+func commit_world(context: Dictionary = {}) -> bool:
+	return _commit(_copy_slots(), selected, context)

@@ -39,6 +39,10 @@ static func create() -> Volume:
 	_fill(volume, AABB(Vector3(-19, 1, 2), Vector3(1, 6, 5)), Volume.STONE)
 	for distance: int in range(4):
 		_fill(volume, AABB(Vector3(-25 + distance * 14, 1, -29), Vector3(2, 3 + distance, 2)), Volume.STONE)
+	# Equal front planes, increasing depth along -Z, inside the native section fixture.
+	for index: int in range(3):
+		var depth: int = [1, 2, 4][index]
+		_fill(volume, AABB(Vector3(-17 + index * 5, 1, -17 - depth), Vector3(4, 4, depth)), Volume.LEAVES)
 	volume.rebuild()
 	return volume
 

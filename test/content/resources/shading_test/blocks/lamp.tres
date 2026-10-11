@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3]
+
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="1_qkflf"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="2_8k0ye"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_d3k2n"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="4_407ub"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_1plxb"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="6_up2oc"]
+
+[sub_resource type="Resource" id="Resource_5qudn"]
+script = ExtResource("1_qkflf")
+base_color = Color(1, 0.72, 0.32, 1)
+emission_color = Color(1, 0.72, 0.32, 1)
+emission_energy = 1.5
+
+[sub_resource type="Resource" id="Resource_ylf56"]
+script = ExtResource("2_8k0ye")
+color = Color(1, 0.64, 0.32, 1)
+energy = 3.0
+range = 10.0
+
+[sub_resource type="Resource" id="Resource_vylx0"]
+script = ExtResource("3_d3k2n")
+default_surface = SubResource("Resource_5qudn")
+light = SubResource("Resource_ylf56")
+
+[sub_resource type="Resource" id="Resource_02hnt"]
+script = ExtResource("4_407ub")
+key = &"shading_test:lamp"
+appearance = SubResource("Resource_vylx0")
+display_name = "Shading test lamp"
+light_emission = 15
+
+[resource]
+script = ExtResource("6_up2oc")
+block = SubResource("Resource_02hnt")

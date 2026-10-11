@@ -44,11 +44,11 @@ func refresh() -> void:
 	for child: Node in _grid.get_children():
 		_grid.remove_child(child)
 		child.queue_free()
-	results = inventory.catalog.find_blocks(group, search.text if search_page else "")
+	results = inventory.catalog.find_items(group, search.text if search_page else "")
 	for item: AstraeonItemDefinition in results:
 		var cell: Control = preload("res://game/ui/inventory/gdscript/creative_cell.gd").new()
 		cell.item = item
 		cell.inventory = inventory
 		_grid.add_child(cell)
 	_scroll.scroll_vertical = 0
-	_status.text = "没有匹配的方块" if results.is_empty() else str(results.size()) + " 种方块 · 左键拿一个 / 中键拿一组"
+	_status.text = "没有匹配的物品" if results.is_empty() else str(results.size()) + " 种物品 · 左键拿一个 / 中键拿一组"

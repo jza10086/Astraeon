@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3 uid="uid://lpdc2xggpq8n"]
+
+[ext_resource type="Script" uid="uid://cek7vjlmvfu7l" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1_y3xj6"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2_u3g41"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_lmvxb"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="4_8epc7"]
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_gafwf"]
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="6_8ag5h"]
+[ext_resource type="Script" uid="uid://dywa800mwjb7y" path="res://game/data/content/gdscript/block_asset.gd" id="7_fkfv0"]
+
+[sub_resource type="Resource" id="Resource_kb1fe"]
+script = ExtResource("1_y3xj6")
+
+[sub_resource type="Resource" id="Resource_0tflk"]
+script = ExtResource("2_u3g41")
+base_color = Color(0.36, 0.22, 0.12, 1)
+
+[sub_resource type="Resource" id="Resource_5bxeg"]
+script = ExtResource("3_lmvxb")
+default_surface = SubResource("Resource_0tflk")
+breaking = SubResource("Resource_kb1fe")
+
+[sub_resource type="Resource" id="Resource_5luqh"]
+script = ExtResource("4_8epc7")
+key = &"astraeon:dirt"
+appearance = SubResource("Resource_5bxeg")
+display_name = "泥土方块"
+hardness = 0.5
+required_tool_tag = &"astraeon:shovel"
+
+[sub_resource type="Resource" id="Resource_m40by"]
+script = ExtResource("6_8ag5h")
+key = &"astraeon:dirt_item"
+display_name = "泥土"
+icon_color = Color(0.52, 0.32, 0.18, 1)
+creative_group = &"astraeon_natural"
+search_tags = PackedStringArray("泥土", "土壤", "dirt")
+tool_tags = PackedStringArray()
+
+[resource]
+script = ExtResource("7_fkfv0")
+block = SubResource("Resource_5luqh")
+item = SubResource("Resource_m40by")
+image_slots = Dictionary[String, StringName]({
+"breaking": &"breaking_common"
+})

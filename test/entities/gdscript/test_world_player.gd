@@ -35,6 +35,7 @@ func _run() -> void:
 	var player: CharacterMotor = world.get_node("Player") as CharacterMotor
 	player.get_node("Visual").set("model_id", &"basic_voxel")
 	player.get_node("Controller").set("input_enabled", false)
+	preload("res://test/survival/gdscript/world_fixture.gd").prepare(world)
 	root.add_child(world)
 	while not bool(world.get("ready_to_play")):
 		await process_frame
@@ -45,7 +46,7 @@ func _run() -> void:
 	var camera: Camera3D = world.get("camera") as Camera3D
 	var arm: SpringArm3D = player.get_node("CameraPivot/SpringArm") as SpringArm3D
 	_check(root.get_camera_3d() == camera and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "World camera is the first person eye")
-	_check((player.get_node("Visual") as Node3D).visible, "Self body is visible in world")
+	_check(player.get_node("Visual").first_person_model.is_visible_in_tree(), "Independent FP arms are visible in world")
 	arm.rotation.x = deg_to_rad(-45.0)
 	await _ticks(2)
 	var tool: VoxelTool = world.get("voxel_tool") as VoxelTool

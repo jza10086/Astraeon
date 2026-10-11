@@ -1,6 +1,7 @@
 # 外部数据导入
 
-- `characters/`：放入自包含人物 `.glb`，重新打开主菜单的人物选择页时扫描；也可点击「导入人物」。
+- `characters/`：每个人物一个文件夹，如 `basic_voxel/basic_voxel_tp.glb` 与 `basic_voxel/basic_voxel_fp.glb`。目录名与两文件前缀相同，固定后缀分别代表第三／第一人称，两份均为自包含 GLB。重新打开人物页时成对扫描；「导入人物」选择该文件夹。名字与选择 ID 使用前缀，一个人物一个按钮。
+- 默认 basic_voxel 也放在上述目录，没有 game/ 内置回退。发行时随程序提供该默认人物文件夹。GLB 内容按项目规则不提交 Git。详见 [人物交付契约](../docs/resource_specifications.md#外部人物运行时导入)。
 - `blocks/`：通过主菜单内容包安装功能放入 `.aebpack`，在内容包菜单勾选启用；直接复制后重新打开内容包菜单也可列出。
 
 这些目录独立于内置资源 `game/`，不由 Godot 编辑器导入，不提交文件内容。存档、设置和应用日志位于项目根目录的 `runtime_data/`。

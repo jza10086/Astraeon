@@ -2,6 +2,7 @@ extends Node3D
 const Profile: Script = preload("res://game/shading/gdscript/shading_profile.gd")
 ## Test-only assembly of reusable shading components and explicit sample adapters.
 const CameraEffects: Script = preload("res://game/shading/gdscript/camera_effects.gd")
+const Shafts: Script = preload("res://game/shading/gdscript/light_shafts.gd")
 const CameraPost: Script = preload("res://game/shading/gdscript/camera_post.gd")
 const Weather: Script = preload("res://test/shading/gdscript/weather_fixture.gd")
 const Glass: Script = preload("res://game/shading/gdscript/colored_shadows.gd")
@@ -12,6 +13,7 @@ var sample: Node3D
 var camera_effects: CameraEffects = CameraEffects.new()
 var motion: CameraPost = CameraPost.new()
 var post: CameraPost = CameraPost.new()
+var shafts: Shafts = Shafts.new()
 var weather: Weather = Weather.new()
 var glass: Glass = Glass.new()
 var moving: Moving = Moving.new()
@@ -61,7 +63,9 @@ func configure(receivers: Array[ShaderMaterial]) -> void:
 	motion.configure_stage(true)
 	post.configure_stage(false)
 	var compositor: Compositor = Compositor.new()
-	compositor.compositor_effects = [motion,post]
+	add_child(shafts)
+	shafts.configure(sample._camera)
+	compositor.compositor_effects = [motion,shafts.effect,post]
 	sample._camera.compositor = compositor
 	_last_camera = sample._camera.global_transform
 	fog.size = Vector3(12,7,12)
@@ -117,6 +121,7 @@ func tick(delta: float, p: Profile) -> void:
 	_last_camera = camera.global_transform
 	motion.update(p,camera,sample._sun)
 	post.update(p,camera,sample._sun)
+	shafts.tick(p,sample._sun,sample._block_clouds,weather.cloud_weight)
 	if p.dof_mode == 2:
 		_focus_clock += delta
 		if _focus_clock > 0.1:

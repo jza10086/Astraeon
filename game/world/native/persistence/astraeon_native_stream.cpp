@@ -1,4 +1,5 @@
 #include "astraeon_native_stream.h"
+#include "astraeon_content_registry.h"
 #include "storage/voxel_buffer.h"
 #include "util/godot/core/class_db.h"
 #include <godot_cpp/classes/project_settings.hpp>
@@ -47,17 +48,18 @@ int floor4(int v) { return v >= 0 ? v / 4 : (v + 1) / 4 - 1; }
 bool valid(const Record &r) { return get32(r.data()) != 0 && get32(r.data() + 4) == 4096 && get32(r.data() + RECORD - 4) == crc(r.data(), RECORD - 4); }
 bool empty(const Record &r) { for (auto v : r) if (v) return false; return true; }
 }
-bool AstraeonNativeStream::open_world(String directory, int seed, int biome_layout, PackedStringArray state_keys) {
+bool AstraeonNativeStream::open_world(String directory, int seed, int biome_layout, PackedStringArray state_keys, String world_id) {
     std::lock_guard<std::mutex> guard(_mutex);
     if (!_directory.empty()) { fail("A stream cannot be reopened; create a new stream."); return false; }
-    if (biome_layout < 0 || biome_layout > 1 || state_keys.size() < 2 || state_keys.size() > 65536 || state_keys[0] != "astraeon_air/default") { fail("Invalid content table or layout."); return false; }
+    if (biome_layout < 0 || biome_layout > 1 || state_keys.size() < 2 || state_keys.size() > 65536 || state_keys[0] != "astraeon:air/default") { fail("Invalid content table or layout."); return false; }
+    if(!AstraeonContentRegistry::validate_table(directory,state_keys,world_id)){fail("Content registry identity or state ordering mismatch");return false;}
     String encoded;
     for (int i = 0; i < state_keys.size(); ++i) {
         if (state_keys[i].is_empty() || state_keys[i].contains("\n")) { fail("Invalid state key."); return false; }
         for (int j = 0; j < i; ++j) if (state_keys[i] == state_keys[j]) { fail("Duplicate state key."); return false; }
         encoded += state_keys[i] + "\n";
     }
-    _state_hash = encoded.sha256_text(); _state_count = state_keys.size();
+    if(world_id.length()!=32){fail("Missing world registry identity");return false;} _world_id=world_id; _state_count = state_keys.size();
     const String absolute = ::godot::ProjectSettings::get_singleton()->globalize_path(directory);
     std::error_code ec;
     const auto path = std::filesystem::u8path(absolute.utf8().get_data());
@@ -148,12 +150,12 @@ void AstraeonNativeStream::access(VoxelQueryData &q, bool writing) {
         region->file = file;
     std::array<unsigned char, HEADER> expected{};
     memcpy(expected.data(), "ASTRAEON", 8);
-    put32(expected.data()+8, 2); // Exact format version.
+    put32(expected.data()+8, 3); // Exact format version.
     put32(expected.data()+12, 2); // Exact generator version.
     put32(expected.data()+16, uint32_t(_seed));
     put32(expected.data()+20, uint32_t(_biome_layout));
-    put32(expected.data()+24, uint32_t(_state_count));
-    memcpy(expected.data()+32, _state_hash.utf8().get_data(), 64);
+    put32(expected.data()+24, 0); // IDs may append; registry validates logical contracts.
+    memcpy(expected.data()+32, _world_id.utf8().get_data(), 32);
     if (!exists) {
         if (fwrite(expected.data(), 1, HEADER, file) != HEADER || !sync_file(file)) { fail("Region header write failed."); return; }
     } else {
@@ -228,7 +230,7 @@ Dictionary AstraeonNativeStream::get_metrics() const {
 void AstraeonNativeStream::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_region_handle_limit", "limit"), &AstraeonNativeStream::set_region_handle_limit);
     ClassDB::bind_method(D_METHOD("get_metrics"), &AstraeonNativeStream::get_metrics);
-    ClassDB::bind_method(D_METHOD("open_world", "directory", "seed", "biome_layout", "state_keys"), &AstraeonNativeStream::open_world);
+    ClassDB::bind_method(D_METHOD("open_world", "directory", "seed", "biome_layout", "state_keys", "world_id"), &AstraeonNativeStream::open_world);
     ClassDB::bind_method(D_METHOD("get_last_error"), &AstraeonNativeStream::get_last_error);
     ClassDB::bind_method(D_METHOD("get_saved_blocks"), &AstraeonNativeStream::get_saved_blocks);
     ClassDB::bind_method(D_METHOD("get_loaded_blocks"), &AstraeonNativeStream::get_loaded_blocks);

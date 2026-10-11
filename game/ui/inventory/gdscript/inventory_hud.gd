@@ -1,13 +1,21 @@
 class_name AstraeonInventoryHUD
 extends Control
 ## Creative categories above, search at upper right, storage at lower right.
-## Slots and the independent transient mouse stack are owned by InventoryState.
+## Both mode windows share the same durable inventory and carried stack.
 signal open_changed(opened: bool)
 var inventory: AstraeonInventoryState
+var drop_cursor: Callable
 var can_interact: Callable
 var opened: bool = false
 var page: StringName = &""
 var creative_browser: VBoxContainer
+var _mode_tabs: HBoxContainer
+var _storage_hint: Label
+var _vitals: HBoxContainer
+var _health_bar: ProgressBar
+var _hunger_bar: ProgressBar
+var _health_text: Label
+var _hunger_text: Label
 var _bag: CenterContainer
 var _shade: ColorRect
 var _bar: HBoxContainer
@@ -38,6 +46,7 @@ func _ready() -> void:
 	shell.add_theme_constant_override("separation", 0)
 	_bag.add_child(shell)
 	var top: HBoxContainer = HBoxContainer.new()
+	_mode_tabs = top
 	top.custom_minimum_size.y = 50
 	shell.add_child(top)
 	var category_scroll: ScrollContainer = ScrollContainer.new()
@@ -84,7 +93,8 @@ func _ready() -> void:
 	_storage.add_child(grid)
 	for index: int in range(10, 40):
 		_add_slot(grid, index, true)
-	_storage.add_child(_label("左键拿起 / 放下 · 右键拆半 / 放一个\n中键复制一组 · Shift+左键快速转移", 16, Color("343941")))
+	_storage_hint = _label("", 16, Color("343941"))
+	_storage.add_child(_storage_hint)
 	creative_browser = preload("res://game/ui/inventory/gdscript/creative_browser.gd").new()
 	creative_browser.inventory = inventory
 	column.add_child(creative_browser)
@@ -94,7 +104,7 @@ func _ready() -> void:
 	column.add_child(quick)
 	for index: int in range(10):
 		_add_slot(quick, index, true)
-	column.add_child(_label("手上物品不占栏位 · 点击面板外或关闭背包会移除手上物品", 15, Color("343941")))
+	column.add_child(_label("手上物品不占栏位 · 点击面板外或关闭背包会丢出手上物品", 15, Color("343941")))
 	var lower: HBoxContainer = HBoxContainer.new()
 	lower.custom_minimum_size.y = 50
 	shell.add_child(lower)
@@ -111,7 +121,7 @@ func _ready() -> void:
 	_storage_tab = _add_tab(lower, &"storage", "储物栏")
 	var bottom: MarginContainer = MarginContainer.new()
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -116
+	bottom.offset_top = -156
 	bottom.offset_bottom = -18
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bottom)
@@ -123,6 +133,15 @@ func _ready() -> void:
 	_selected_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_selected_name.add_theme_color_override("font_shadow_color", Color.BLACK)
 	centered.add_child(_selected_name)
+	_vitals = HBoxContainer.new()
+	_vitals.alignment = BoxContainer.ALIGNMENT_CENTER
+	_vitals.add_theme_constant_override("separation", 16)
+	_vitals.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	centered.add_child(_vitals)
+	_health_bar = _status_bar(Color("c74444"))
+	_hunger_bar = _status_bar(Color("d78c32"))
+	_health_text = _health_bar.get_child(0) as Label
+	_hunger_text = _hunger_bar.get_child(0) as Label
 	_bar = HBoxContainer.new()
 	_bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	_bar.add_theme_constant_override("separation", 4)
@@ -134,8 +153,13 @@ func _ready() -> void:
 	_cursor_preview.z_index = 100
 	add_child(_cursor_preview)
 	inventory.changed.connect(_refresh)
+	inventory.player_state.changed.connect(_mode_changed)
 	set_page(inventory.catalog.creative_groups.keys()[0] if not inventory.catalog.creative_groups.is_empty() else &"search")
-	set_open(false)
+	_mode_changed()
+	# Do not throw restored cursor items during HUD construction.
+	opened = false
+	_shade.hide()
+	_bag.hide()
 	_refresh()
 
 func _label(text: String, font_size: int, color: Color) -> Label:
@@ -185,16 +209,18 @@ func _add_tab(parent: Control, key: StringName, title: String) -> Button:
 
 ## Tab switching preserves the carried stack. Only the dedicated search page uses query text.
 func set_page(key: StringName) -> void:
+	if not inventory.player_state.is_creative():
+		key = &"storage"
 	if not _tabs.has(key):
 		return
 	page = key
 	for tab: StringName in _tabs:
 		_tabs[tab].set_pressed_no_signal(tab == key)
 	_storage.visible = key == &"storage"
-	_trash.visible = key == &"storage"
+	_trash.visible = inventory.player_state.is_creative() and key == &"storage"
 	creative_browser.visible = key != &"storage"
 	creative_browser.search.release_focus()
-	_title.text = "储物栏" if key == &"storage" else ("搜索方块" if key == &"search" else inventory.catalog.creative_groups[key])
+	_title.text = "储物栏" if key == &"storage" else ("搜索物品" if key == &"search" else inventory.catalog.creative_groups[key])
 	if key != &"storage":
 		creative_browser.show_page(&"" if key == &"search" else key, key == &"search")
 
@@ -248,17 +274,26 @@ func _input(event: InputEvent) -> void:
 
 func set_open(value: bool) -> void:
 	if not value:
+		if inventory.locked and inventory.cursor_stack() != null:
+			return
 		creative_browser.search.release_focus()
-		inventory.discard_cursor()
+		if inventory.cursor_stack() != null:
+			if not drop_cursor.is_valid() or not bool(drop_cursor.call(false)):
+				return
 	opened = value
 	_shade.visible = value
 	_bag.visible = value
+	_vitals.visible = not value
 	_bar.visible = not value
 	_selected_name.visible = not value
 	_refresh()
 	open_changed.emit(value)
 
 func _refresh() -> void:
+	_health_bar.value = inventory.player_state.health
+	_hunger_bar.value = inventory.player_state.hunger
+	_health_text.text = "生命 %d/%d" % [inventory.player_state.health, AstraeonPlayerState.MAX_HEALTH]
+	_hunger_text.text = "饱食度 %d/%d" % [inventory.player_state.hunger, AstraeonPlayerState.MAX_HUNGER]
 	var stack: AstraeonItemStack = inventory.stack_at(inventory.selected)
 	_selected_name.text = (stack.item.display_name if stack != null else "空槽") + "   ·   E 物品栏"
 	_cursor_preview.stack = inventory.cursor_stack()
@@ -285,7 +320,8 @@ func _process(_delta: float) -> void:
 
 func _background_input(event: InputEvent) -> void:
 	if opened and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
-		inventory.discard_cursor(event.button_index == MOUSE_BUTTON_RIGHT)
+		if not inventory.locked and inventory.cursor_stack() != null:
+			drop_cursor.call(event.button_index == MOUSE_BUTTON_RIGHT)
 		accept_event()
 
 func _trash_input(event: InputEvent) -> void:
@@ -295,3 +331,34 @@ func _trash_input(event: InputEvent) -> void:
 		else:
 			inventory.discard_cursor(event.button_index == MOUSE_BUTTON_RIGHT)
 		_trash.accept_event()
+
+func _mode_changed() -> void:
+	var creative: bool = inventory.player_state.is_creative()
+	_mode_tabs.visible = creative
+	_storage_tab.visible = creative
+	_storage_hint.text = "左键拿起 / 放下 · 右键拆半 / 放一个\n" + ("中键复制一组 · " if creative else "") + "Shift+左键快速转移"
+	set_page(page if creative and not page.is_empty() else &"storage")
+	_refresh()
+
+func _status_bar(color: Color) -> ProgressBar:
+	var bar: ProgressBar = ProgressBar.new()
+	bar.custom_minimum_size = Vector2(310, 26)
+	bar.max_value = 10
+	bar.step = 1
+	bar.show_percentage = false
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var background: StyleBoxFlat = StyleBoxFlat.new()
+	background.bg_color = Color("25272b")
+	var fill: StyleBoxFlat = StyleBoxFlat.new()
+	fill.bg_color = color
+	bar.add_theme_stylebox_override("background", background)
+	bar.add_theme_stylebox_override("fill", fill)
+	var label: Label = _label("", 18, Color.WHITE)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_shadow_color", Color.BLACK)
+	bar.add_child(label)
+	_vitals.add_child(bar)
+	return bar

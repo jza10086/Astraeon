@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3 uid="uid://bkny48kspwtw1"]
+
+[ext_resource type="Script" uid="uid://cek7vjlmvfu7l" path="res://game/shading/blocks/gdscript/breaking_texture_group.gd" id="1_4syhe"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="2_kogqk"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="3_r1n1u"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="4_1ncs1"]
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_tgg3c"]
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="6_k3hd7"]
+[ext_resource type="Script" uid="uid://dywa800mwjb7y" path="res://game/data/content/gdscript/block_asset.gd" id="7_or86d"]
+
+[sub_resource type="Resource" id="Resource_w7h67"]
+script = ExtResource("1_4syhe")
+
+[sub_resource type="Resource" id="Resource_u3o0m"]
+script = ExtResource("2_kogqk")
+base_color = Color(1, 1, 1, 0.62352943)
+alpha_mode = 1
+double_sided = true
+
+[sub_resource type="Resource" id="Resource_gbihs"]
+script = ExtResource("3_r1n1u")
+default_surface = SubResource("Resource_u3o0m")
+breaking = SubResource("Resource_w7h67")
+
+[sub_resource type="Resource" id="Resource_qmqb7"]
+script = ExtResource("4_1ncs1")
+key = &"astraeon:grass"
+appearance = SubResource("Resource_gbihs")
+display_name = "草方块"
+hardness = 0.6
+required_tool_tag = &"astraeon:shovel"
+
+[sub_resource type="Resource" id="Resource_i6x4c"]
+script = ExtResource("6_k3hd7")
+key = &"astraeon:grass_item"
+display_name = "草方块"
+icon_color = Color(0.36, 0.65, 0.23, 1)
+creative_group = &"astraeon_natural"
+search_tags = PackedStringArray("草", "地表", "土壤", "grass")
+tool_tags = PackedStringArray()
+
+[resource]
+script = ExtResource("7_or86d")
+block = SubResource("Resource_qmqb7")
+item = SubResource("Resource_i6x4c")
+image_slots = Dictionary[String, StringName]({
+"breaking": &"breaking_common"
+})

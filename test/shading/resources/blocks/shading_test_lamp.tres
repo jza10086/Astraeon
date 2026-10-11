@@ -1,25 +1,31 @@
-[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3]
-[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="light"]
-[sub_resource type="Resource" id="Light"]
-script = ExtResource("light")
-color = Color(1, 0.64, 0.32, 1)
-energy = 3.0
-range = 10.0
+[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3 uid="uid://bcevaevafw4vw"]
+
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_yxpf6"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
+[ext_resource type="Script" uid="uid://b7gmj8uec5dxo" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="light"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
+
 [sub_resource type="Resource" id="Surface"]
 script = ExtResource("surface")
 base_color = Color(1, 0.72, 0.32, 1)
 emission_color = Color(1, 0.72, 0.32, 1)
 emission_energy = 1.5
+
+[sub_resource type="Resource" id="Light"]
+script = ExtResource("light")
+color = Color(1, 0.64, 0.32, 1)
+energy = 3.0
+range = 10.0
+
 [sub_resource type="Resource" id="Appearance"]
 script = ExtResource("appearance")
 default_surface = SubResource("Surface")
 light = SubResource("Light")
+
 [resource]
 script = ExtResource("definition")
-key = &"shading_test_lamp"
-display_name = "Shading test lamp"
+key = &"shading_test:lamp"
 appearance = SubResource("Appearance")
+display_name = "Shading test lamp"
 light_emission = 15

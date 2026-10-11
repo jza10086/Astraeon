@@ -240,7 +240,7 @@ func _test_camera_modes() -> void:
 	var pivot: Node3D = controller.get("camera_pivot") as Node3D
 	var arm: SpringArm3D = controller.get("spring_arm") as SpringArm3D
 	var visual: Node3D = player.get_node("Visual") as Node3D
-	_check(bool(controller.get("first_person")) and visual.visible, "First person defaults to visible self body")
+	_check(bool(controller.get("first_person")) and visual.first_person_model.visible, "First person defaults to separate arms")
 	_check(camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "First person eye stays at 1.62 meters")
 	_check(root.get_camera_3d() == camera, "First person uses existing active camera")
 	controller.set("input_enabled", true)
@@ -257,7 +257,7 @@ func _test_camera_modes() -> void:
 	toggle.pressed = true
 	Input.parse_input_event(toggle.duplicate())
 	await _frames(3)
-	_check(not bool(controller.get("first_person")) and visual.visible and arm.spring_length == 4.0, "V restores third person model and camera arm")
+	_check(not bool(controller.get("first_person")) and visual.third_person_model.visible and arm.spring_length == 4.0, "V restores third person model and camera arm")
 	_check(root.get_camera_3d() == camera and camera.global_position.distance_to(pivot.global_position) > 0.1, "Third person retains camera reference and offset")
 	toggle.pressed = false
 	Input.parse_input_event(toggle.duplicate())
@@ -272,7 +272,7 @@ func _test_camera_modes() -> void:
 	toggle.pressed = true
 	Input.parse_input_event(toggle.duplicate())
 	await _frames(3)
-	_check(bool(controller.get("first_person")) and visual.visible and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "V returns to anchored first person")
+	_check(bool(controller.get("first_person")) and visual.first_person_model.visible and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "V returns to anchored first person")
 	toggle.pressed = false
 	Input.parse_input_event(toggle.duplicate())
 	arm.rotation.x = 0.0
@@ -290,12 +290,12 @@ func _test_camera_cut() -> void:
 	await _place(Vector3(0, 0.1, 3))
 	var before: Vector3 = camera.global_position
 	controller.call("set_first_person", false)
-	_check(visual.visible and camera.global_position.is_equal_approx(before), "Queued view change exposes no intermediate state")
+	_check(visual.first_person_model.visible and camera.global_position.is_equal_approx(before), "Queued view change exposes no intermediate state")
 	await controller.view_changed
-	_check(visual.visible and absf(camera.position.z - 4.0) < 0.001, "Camera is positioned on the exact cut, before another frame")
+	_check(visual.third_person_model.visible and absf(camera.position.z - 4.0) < 0.001, "Camera is positioned on the exact cut, before another frame")
 	controller.call("set_first_person", true)
 	await controller.view_changed
-	_check(visual.visible and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "First person cut shows body and anchors eye atomically")
+	_check(visual.first_person_model.visible and camera.global_position.distance_to(player.get_node("CameraPivot").global_position) < 0.001, "First person cut shows arms and anchors eye atomically")
 	await _place(Vector3(-1.5, 0.1, 0))
 	pivot.rotation.y = -PI / 2.0
 	arm.rotation.x = 0.0

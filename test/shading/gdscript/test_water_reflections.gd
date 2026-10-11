@@ -85,7 +85,8 @@ func _render_checks() -> void:
 	_sample._apply_lighting()
 	await _capture("water-tuned")
 	_sample._settings.underwater_color = Color(0.02,0.2,0.1)
-	_sample._settings.underwater_distance = 8.0
+	_sample._settings.underwater_attenuation_rate = 0.125
+	_sample._settings.underwater_attenuation_start = 0.0
 	_sample._view(Vector3(23,-2,-14),Vector3(25,-2,-22))
 	_sample._apply_lighting()
 	await _capture("water-underwater")

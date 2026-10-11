@@ -15,6 +15,9 @@ var busy: bool = false
 var folder_button: Button
 var delete_button: Button
 var preview_model: Node3D
+var fp_preview_model: Node3D
+var fp_viewport: SubViewport
+var fp_preview_root: Node3D
 var viewport: SubViewport
 var preview_root: Node3D
 var list: VBoxContainer
@@ -52,11 +55,10 @@ func _ready() -> void:
 	import_button.pressed.connect(func() -> void: import_dialog.popup_centered_ratio(0.75))
 	header.add_child(import_button)
 	import_dialog = FileDialog.new()
-	import_dialog.title = "导入人物 GLB"
+	import_dialog.title = "导入人物文件夹（同名 _tp.glb 与 _fp.glb）"
 	import_dialog.access = FileDialog.ACCESS_FILESYSTEM
-	import_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	import_dialog.filters = PackedStringArray(["*.glb ; 人物 GLB"])
-	import_dialog.file_selected.connect(import_character)
+	import_dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+	import_dialog.dir_selected.connect(import_character)
 	add_child(import_dialog)
 	folder_button = Button.new()
 	folder_button.text = "打开人物文件夹"
@@ -68,7 +70,7 @@ func _ready() -> void:
 	delete_button.text = "删除"
 	delete_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	delete_button.pressed.connect(delete_selected)
-	delete_button.tooltip_text = "内置人物从列表隐藏；外部人物删除目录内的 GLB。至少保留一个人物。"
+	delete_button.tooltip_text = "删除所选人物文件夹中的第一、第三人称配对文件。至少保留一个人物。"
 	header.add_child(delete_button)
 	var content: HBoxContainer = HBoxContainer.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -88,7 +90,18 @@ func _ready() -> void:
 	display.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	display.stretch = true
 	display.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(display)
+	var previews: HBoxContainer = HBoxContainer.new()
+	previews.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	previews.add_theme_constant_override("separation", 20)
+	content.add_child(previews)
+	var third_column: VBoxContainer = VBoxContainer.new()
+	third_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	previews.add_child(third_column)
+	var third_label: Label = Label.new()
+	third_label.text = "第三人称预览"
+	third_column.add_child(third_label)
+	third_column.add_child(display)
+	_create_fp_preview(previews)
 	viewport = SubViewport.new()
 	viewport.own_world_3d = true
 	viewport.transparent_bg = false
@@ -140,6 +153,7 @@ func open(path: String) -> void:
 	heading.text = "选择人物"
 	show()
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	fp_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	Models.Library.scan()
 	message.hide()
 	var id: StringName = Models.load_id(path)
@@ -166,13 +180,25 @@ func preview(id: StringName) -> void:
 	if busy:
 		return
 	var model: Node3D = Models.instantiate(id)
-	if model == null:
+	var fp_model: Node3D = Models.instantiate(id, true)
+	if model == null or fp_model == null:
+		if model != null:
+			model.free()
+		if fp_model != null:
+			fp_model.free()
 		_error("人物载入失败，请重新选择。")
 		use_button.disabled = true
 		return
 	if preview_model != null:
 		preview_root.remove_child(preview_model)
 		preview_model.queue_free()
+	if fp_preview_model != null:
+		fp_preview_root.remove_child(fp_preview_model)
+		fp_preview_model.queue_free()
+	fp_preview_model = fp_model
+	fp_model.rotation.y = PI
+	fp_preview_root.add_child(fp_model)
+	(fp_model.get_node("AnimationPlayer") as AnimationPlayer).play("FP_Idle")
 	preview_model = model
 	preview_root.add_child(model)
 	selected_id = id
@@ -217,17 +243,19 @@ func _sync_selection() -> void:
 	for id: StringName in model_buttons:
 		model_buttons[id].set_pressed_no_signal(id == selected_id)
 		current_labels[id].visible = id == current_id
-	var active: bool = selected_id == current_id
+	var selectable: bool = not selected_id.is_empty() and model_buttons.has(selected_id)
+	var active: bool = selectable and selected_id == current_id
 	use_button.text = "当前使用" if active else "使用此人物"
 	use_button.set_pressed_no_signal(active)
-	use_button.disabled = false
-	delete_button.disabled = model_buttons.size() <= 1 or current_id.is_empty()
+	use_button.disabled = not selectable
+	delete_button.disabled = not selectable or model_buttons.size() <= 1 or current_id.is_empty()
 	var location: String = model_folder()
 	folder_button.disabled = location.is_empty() or not DirAccess.dir_exists_absolute(location)
 	folder_button.tooltip_text = location
 
 func model_folder() -> String:
-	return ProjectSettings.globalize_path(Models.Library.directory)
+	var entry: Dictionary = Models.definition(selected_id)
+	return ProjectSettings.globalize_path(entry.folder if not entry.is_empty() else Models.Library.directory)
 
 func open_folder() -> void:
 	var location: String = model_folder()
@@ -280,6 +308,11 @@ func cancel() -> void:
 func _close(selected: bool) -> void:
 	hide()
 	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	fp_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if fp_preview_model != null:
+		fp_preview_root.remove_child(fp_preview_model)
+		fp_preview_model.queue_free()
+		fp_preview_model = null
 	if preview_model != null:
 		preview_root.remove_child(preview_model)
 		preview_model.queue_free()
@@ -297,7 +330,7 @@ func import_character(path: String) -> void:
 	_error("正在导入人物…")
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var result: Dictionary = Models.Library.import_file(path)
+	var result: Dictionary = Models.Library.import_folder(path)
 	busy = false
 	import_button.disabled = false
 	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -308,3 +341,42 @@ func import_character(path: String) -> void:
 	_build_list()
 	preview(result.id)
 	model_buttons[result.id].grab_focus()
+
+func _create_fp_preview(parent: HBoxContainer) -> void:
+	var column: VBoxContainer = VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(column)
+	var label: Label = Label.new()
+	label.text = "第一人称预览"
+	column.add_child(label)
+	var aspect: AspectRatioContainer = AspectRatioContainer.new()
+	aspect.ratio = 16.0 / 9.0
+	aspect.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(aspect)
+	var display: SubViewportContainer = SubViewportContainer.new()
+	display.stretch = true
+	display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aspect.add_child(display)
+	fp_viewport = SubViewport.new()
+	fp_viewport.own_world_3d = true
+	fp_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	display.add_child(fp_viewport)
+	fp_preview_root = Node3D.new()
+	fp_viewport.add_child(fp_preview_root)
+	var environment: WorldEnvironment = WorldEnvironment.new()
+	environment.environment = Environment.new()
+	environment.environment.background_mode = Environment.BG_COLOR
+	environment.environment.background_color = Color(0.12, 0.15, 0.18)
+	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.environment.ambient_light_color = Color(0.8, 0.85, 1.0)
+	environment.environment.ambient_light_energy = 0.7
+	fp_preview_root.add_child(environment)
+	var light: DirectionalLight3D = DirectionalLight3D.new()
+	light.rotation_degrees = Vector3(-35, -35, 0)
+	light.light_energy = 1.4
+	fp_preview_root.add_child(light)
+	var camera: Camera3D = Camera3D.new()
+	camera.fov = 58.7155
+	camera.near = 0.01
+	camera.current = true
+	fp_preview_root.add_child(camera)

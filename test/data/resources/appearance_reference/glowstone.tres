@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAppearance" format=3 uid="uid://p6iejfve8nf4"]
+
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="a"]
+[ext_resource type="Resource" path="res://test/data/resources/appearance_reference/breaking_common.tres" id="breaking_group"]
+[ext_resource type="Script" uid="uid://b7gmj8uec5dxo" path="res://game/shading/blocks/gdscript/block_light_appearance.gd" id="l"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="s"]
+
+[sub_resource type="Resource" id="surface"]
+script = ExtResource("s")
+emission_energy = 3.0
+
+[sub_resource type="Resource" id="light"]
+script = ExtResource("l")
+energy = 3.0
+range = 10.0
+local_offset = Vector3(0, 0.6, 0)
+
+[resource]
+script = ExtResource("a")
+default_surface = SubResource("surface")
+breaking = ExtResource("breaking_group")
+light = SubResource("light")

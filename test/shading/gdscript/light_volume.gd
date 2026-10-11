@@ -1,14 +1,17 @@
 extends RefCounted
-## Finite P0 volume. Voxel IDs are authoritative; sky/block arrays are derived.
+## Finite reference fixture with production opacity/emission and GPU sampling semantics.
+## Production remains C++ SectionLightCache; this solver is test-only.
 ## Coordinates are world voxel coordinates, bounds are half-open.
 const AIR: int = 0
 const STONE: int = 1
 const LAMP: int = 2
 const WOOD: int = 3
 const LEAVES: int = 4
-const STATE_KEYS: Array[StringName] = [&"shading_test_air", &"shading_test_stone", &"shading_test_lamp", &"shading_test_wood", &"shading_test_leaves"]
+const STATE_KEYS: Array[StringName] = [&"shading_test:air", &"shading_test:stone", &"shading_test:lamp", &"shading_test:wood", &"shading_test:leaves"]
 const MAX_LIGHT: int = 15
 const DIRECTIONS: Array[Vector3i] = [Vector3i.LEFT, Vector3i.RIGHT, Vector3i.UP, Vector3i.DOWN, Vector3i.FORWARD, Vector3i.BACK]
+var _opacity: PackedByteArray = PackedByteArray()
+var _emission: PackedByteArray = PackedByteArray()
 var origin: Vector3i
 var size: Vector3i
 var voxels: VoxelBuffer = VoxelBuffer.new()
@@ -31,8 +34,33 @@ var _queue: PackedInt32Array = PackedInt32Array()
 var _head: int = 0
 var _columns: Dictionary[Vector2i, bool] = {}
 
-func configure(volume_origin: Vector3i, volume_size: Vector3i) -> void:
+func configure(volume_origin: Vector3i, volume_size: Vector3i, catalog: AstraeonBlockCatalog = null) -> void:
 	assert(volume_size.x > 0 and volume_size.y > 0 and volume_size.z > 0)
+	_opacity.clear()
+	_emission.clear()
+	if catalog == null:
+		var reader: RefCounted = ClassDB.instantiate("AstraeonContentPack")
+		var data: Dictionary = reader.call("open_pack", "res://tmp/content/shading_test.aebpack")
+		assert(not data.has("error"), str(data))
+		_opacity.append(0)
+		_emission.append(0)
+		for i: int in range(1, STATE_KEYS.size()):
+			for record: Dictionary in data.blocks:
+				if String(record.id) == String(STATE_KEYS[i]):
+					_opacity.append(int(record.opacity))
+					_emission.append(int(record.emission))
+	else:
+		for key: StringName in STATE_KEYS:
+			var definition: AstraeonBlockDefinition = null
+			for candidate: AstraeonBlockDefinition in catalog.definitions:
+				if candidate.key == key:
+					assert(definition == null, "Duplicate fixture state")
+					definition = candidate
+			assert(definition != null, "Missing fixture state: " + String(key))
+			assert(definition.light_opacity >= 0 and definition.light_opacity <= 15)
+			assert(definition.light_emission >= 0 and definition.light_emission <= 15)
+			_opacity.append(definition.light_opacity)
+			_emission.append(definition.light_emission)
 	origin = volume_origin
 	size = volume_size
 	var count: int = size.x * size.y * size.z
@@ -60,6 +88,13 @@ func voxel_at(p: Vector3i) -> int:
 	if not contains(p):
 		return STONE # Unknown world never supplies light.
 	return voxels.get_voxel_v(p - origin, VoxelBuffer.CHANNEL_TYPE)
+
+## Unknown cells block light, matching the native section dependency boundary.
+func opacity_at(p: Vector3i) -> int:
+	return int(_opacity[voxel_at(p)]) if contains(p) else MAX_LIGHT
+
+func emission_at(p: Vector3i) -> int:
+	return int(_emission[voxel_at(p)]) if contains(p) else 0
 
 func light_at(p: Vector3i) -> Vector2i:
 	if not contains(p):
@@ -102,7 +137,7 @@ func rebuild() -> void:
 			_columns[Vector2i(x, z)] = true
 	# Include emissive sources even when fully enclosed.
 	for index: int in range(cell_count()):
-		if voxel_by_index(index) == LAMP:
+		if _emission[voxel_by_index(index)] > 0:
 			_enqueue(index)
 	revision += 1
 	settled_revision = -1
@@ -134,14 +169,16 @@ func step(max_cells: int = 4096, budget_usec: int = 2000) -> bool:
 		_queued[index] = 0
 		var p: Vector3i = position_of(index)
 		var next_sky: int = _direct[index]
-		var next_block: int = MAX_LIGHT if voxel_by_index(index) == LAMP else 0
-		if voxel_by_index(index) == AIR:
+		var id: int = voxel_by_index(index)
+		var next_block: int = _emission[id]
+		var attenuation: int = _opacity[id]
+		if attenuation < MAX_LIGHT:
 			for direction: Vector3i in DIRECTIONS:
 				var neighbor: Vector3i = p + direction
 				if contains(neighbor):
 					var ni: int = index_of(neighbor)
-					next_sky = maxi(next_sky, int(sky[ni]) - 1)
-					next_block = maxi(next_block, int(block[ni]) - 1)
+					next_sky = maxi(next_sky, int(sky[ni]) - maxi(1, attenuation))
+					next_block = maxi(next_block, int(block[ni]) - maxi(1, attenuation))
 		if next_sky != sky[index] or next_block != block[index]:
 			sky[index] = next_sky
 			block[index] = next_block
@@ -161,13 +198,12 @@ func step(max_cells: int = 4096, budget_usec: int = 2000) -> bool:
 	return is_settled()
 
 func _refresh_column(column: Vector2i) -> void:
-	var open_sky: bool = true
+	var incoming: int = MAX_LIGHT
 	for y: int in range(origin.y + size.y - 1, origin.y - 1, -1):
 		var p: Vector3i = Vector3i(column.x, y, column.y)
 		var index: int = index_of(p)
-		if voxel_by_index(index) != AIR:
-			open_sky = false
-		var value: int = MAX_LIGHT if open_sky else 0
+		var value: int = maxi(0, incoming - int(_opacity[voxel_by_index(index)]))
+		incoming = value
 		if _direct[index] != value:
 			_direct[index] = value
 			_enqueue(index)
@@ -183,7 +219,7 @@ func _enqueue_neighbors(p: Vector3i) -> void:
 		if contains(neighbor):
 			_enqueue(index_of(neighbor))
 
-## RGBA8 display adapter: sky, block, air occupancy, reserved. Solver remains unchanged.
+## RGBA8 matches native pack(): sky, block, transmissive sampling mask, reserved.
 ## This bounded prototype uploads the complete texture only after convergence.
 func make_images() -> Array[Image]:
 	assert(is_settled())
@@ -197,7 +233,7 @@ func make_images() -> Array[Image]:
 				var pixel: int = 4 * (x + size.x * y)
 				data[pixel] = sky[index] * 17
 				data[pixel + 1] = block[index] * 17
-				data[pixel + 2] = 255 if voxel_by_index(index) == AIR else 0
+				data[pixel + 2] = 255 if _opacity[voxel_by_index(index)] < MAX_LIGHT else 0
 				data[pixel + 3] = 255
 		images.append(Image.create_from_data(size.x, size.y, false, Image.FORMAT_RGBA8, data))
 	return images

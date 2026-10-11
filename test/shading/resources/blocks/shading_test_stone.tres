@@ -1,15 +1,20 @@
-[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3]
-[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
+[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3 uid="uid://btyd7uvf6afdv"]
+
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="4_brljh"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
+
 [sub_resource type="Resource" id="Surface"]
 script = ExtResource("surface")
 base_color = Color(0.58, 0.62, 0.65, 1)
+
 [sub_resource type="Resource" id="Appearance"]
 script = ExtResource("appearance")
 default_surface = SubResource("Surface")
+
 [resource]
 script = ExtResource("definition")
-key = &"shading_test_stone"
-display_name = "Shading test stone"
+key = &"shading_test:stone"
 appearance = SubResource("Appearance")
+display_name = "Shading test stone"

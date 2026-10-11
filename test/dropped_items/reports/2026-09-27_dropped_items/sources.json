@@ -1,0 +1,9 @@
+{
+  "game/entities/native/dropped_items/astraeon_dropped_items.cpp": "72952103f90eb09471dc7bd8f7c5e084513312644d7b4221d961f31409509b13",
+  "game/entities/native/dropped_items/astraeon_dropped_items.h": "f8a012aaac21465e960565cf056419111092df59f5a7aeed603c98bf626e36b0",
+  "game/entities/dropped_items/gdscript/dropped_items.gd": "845167d3e79baf3daf51a47721f0e016c7f59f0bcd73d74d354799c9a9fc4de5",
+  "game/gameplay/inventory/gdscript/inventory_store.gd": "41cbde7c3820f241b2fa98fa70d8775e393416487786f31d4ec9b24a3bf2d172",
+  "game/world/gdscript/native_world.gd": "43c588ef4c83e907b590fd63e4abea0531356be8a917de7643a2f2064139b756",
+  "test/dropped_items/gdscript/test_native_drops.gd": "0896863cbaeacf40c22f33ddcd4b86e431014d76e1d6d0bef79cf0f0732e6c85",
+  "test/dropped_items/gdscript/test_world_drops.gd": "5936a073d6a2cfae4f99dd31036b9a554cf01549e40b8879bb9c28d6ccb9338c"
+}

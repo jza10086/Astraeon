@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AstraeonItemAsset" format=3 uid="uid://dqprhcu31csp2"]
+
+[ext_resource type="Script" uid="uid://cfbupawg7sj3w" path="res://game/data/item/gdscript/item_definition.gd" id="1_fnnca"]
+[ext_resource type="Script" uid="uid://cpd5g5lj8ygew" path="res://game/data/content/gdscript/item_asset.gd" id="2_x70ue"]
+
+[sub_resource type="Resource" id="Resource_jhmsi"]
+script = ExtResource("1_fnnca")
+key = &"astraeon:axe"
+display_name = "斧"
+max_stack = 1
+creative_group = &"astraeon_tools"
+search_tags = PackedStringArray("工具", "伐木", "斧", "axe")
+tool_tags = PackedStringArray("astraeon:axe")
+mining_speed = 2.0
+
+[resource]
+script = ExtResource("2_x70ue")
+item = SubResource("Resource_jhmsi")
+icon_image = &"axe_icon"

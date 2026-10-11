@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AstraeonItemDefinition" format=3]
+[ext_resource type="Script" path="res://game/data/item/gdscript/item_definition.gd" id="script"]
+[ext_resource type="Texture2D" path="res://test/data/assets/item_reference/pickaxe.svg" id="icon"]
+[resource]
+script = ExtResource("script")
+key = &"astraeon:pickaxe"
+display_name = "镐"
+icon = ExtResource("icon")
+max_stack = 1
+creative_group = &"astraeon_tools"
+search_tags = PackedStringArray("工具", "采矿", "镐", "pickaxe")

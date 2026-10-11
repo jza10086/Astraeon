@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="AstraeonBlockAsset" format=3]
+
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="1_hy3vm"]
+[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="2_f1i3x"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="3_bmdj1"]
+[ext_resource type="Script" path="res://game/data/block/gdscript/block_state_definition.gd" id="4_nlgom"]
+[ext_resource type="Script" path="res://game/data/item/gdscript/item_definition.gd" id="5_jbahn"]
+[ext_resource type="Script" path="res://game/data/content/gdscript/block_asset.gd" id="6_gvfhc"]
+
+[sub_resource type="Resource" id="Resource_lwg06"]
+script = ExtResource("1_hy3vm")
+alpha_mode = 1
+
+[sub_resource type="Resource" id="Resource_qpv37"]
+script = ExtResource("2_f1i3x")
+default_surface = SubResource("Resource_lwg06")
+foliage_layers = true
+
+[sub_resource type="Resource" id="Resource_c0nnu"]
+script = ExtResource("3_bmdj1")
+key = &"example:leaves"
+appearance = SubResource("Resource_qpv37")
+display_name = "Leaves"
+light_opacity = 1
+load_policy = "on_demand"
+
+[sub_resource type="Resource" id="Resource_oe5jj"]
+script = ExtResource("5_jbahn")
+key = &"example:leaves_item"
+display_name = "Leaves"
+creative_group = &"example:blocks"
+search_tags = PackedStringArray()
+
+[resource]
+script = ExtResource("6_gvfhc")
+block = SubResource("Resource_c0nnu")
+item = SubResource("Resource_oe5jj")
+image_slots = Dictionary[String, StringName]({
+"surface/default": &"example_leaves_surface_default"
+})

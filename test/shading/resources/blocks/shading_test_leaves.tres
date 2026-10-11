@@ -1,19 +1,26 @@
-[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3]
-[ext_resource type="Script" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
-[ext_resource type="Script" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
-[ext_resource type="Texture2D" path="res://game/shading/blocks/assets/leaves_checker.svg" id="texture"]
+[gd_resource type="Resource" script_class="AstraeonBlockDefinition" format=3 uid="uid://i83uyb8vhbbm"]
+
+[ext_resource type="Script" uid="uid://csthdlxyi87ck" path="res://game/data/block/gdscript/block_state_definition.gd" id="5_hwkkw"]
+[ext_resource type="Script" uid="uid://1evpgqd01eff" path="res://game/shading/blocks/gdscript/block_appearance.gd" id="appearance"]
+[ext_resource type="Script" uid="uid://c4rnsdmboewgs" path="res://game/data/block/gdscript/block_definition.gd" id="definition"]
+[ext_resource type="Script" uid="uid://pchboh4gc3xs" path="res://game/shading/blocks/gdscript/block_surface.gd" id="surface"]
+[ext_resource type="Texture2D" uid="uid://f4lgnw7mdlxd" path="res://test/data/assets/appearance_reference/leaves_checker.svg" id="texture"]
+
 [sub_resource type="Resource" id="Surface"]
 script = ExtResource("surface")
 base_color = Color(0.25, 0.48, 0.2, 1)
 albedo_texture = ExtResource("texture")
 alpha_mode = 1
 double_sided = true
+
 [sub_resource type="Resource" id="Appearance"]
 script = ExtResource("appearance")
 default_surface = SubResource("Surface")
+foliage_layers = true
+
 [resource]
 script = ExtResource("definition")
-key = &"shading_test_leaves"
-display_name = "Shading test leaves"
+key = &"shading_test:leaves"
 appearance = SubResource("Appearance")
+display_name = "Shading test leaves"
+light_opacity = 1

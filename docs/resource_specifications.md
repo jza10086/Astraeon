@@ -1,6 +1,6 @@
 # 资源制作与交付规格
 
-当前契约；最后核对：2026-09-26。全项目规则见 [AGENTS](../AGENTS.md)，运行时实现见对应模块文档。
+当前契约；最后核对：2026-09-27。全项目规则见 [AGENTS](../AGENTS.md)，运行时实现见对应模块文档。
 
 ## 单位与资源边界
 
@@ -13,17 +13,22 @@
 
 2026-09-22 批准。三个材质 Resource、校验、六面/UV/法线变换及示例已实现，静态方块定义已增加 appearance 引用；正式方块的纯色不透明外观及三轴状态已接入原生世界共享图集；水通过主世界光影装配使用统一水色或动态水面。颜色贴图、裁剪透明和常量表面自发光已接入；正式世界已使用受预算约束的静态灯池及动态水面，见 [主世界光影](shading/world_shading.md)。
 
+### 内容交付
+
+制作入口为格式 2 的包工程 `.tres`：索引完整单文件 `BlockAsset`（静态逻辑、外观及可选关联物品）、独立 `ItemAsset` 与流体。原版工程为 `game/data/content/authoring/astraeon/pack.tres`。图片通过工程 `image_sources` 保存开发者指定的绝对路径或相对工程文件的路径，方块 `image_slots` 指定使用位置；源资源不直接引用 Texture2D，源图片不随游戏发布。原版源码图片存放在 `content_sources/astraeon/`，该位置是仓库选择而非 Mod 限制。交付游戏/Mod使用版本化 `.aebpack`，内容ID采用 `namespace:name`。`BlockDefinition.load_policy` 支持 preload/on_demand，默认原版预加载；不放入材质属性。游戏不合成源图片。六面颜色离线烘焙，纯色及常量ORM/自发光紧凑存储，朝向状态共享图集。制作SDK和当前支持范围见 [内容包契约](data/content_packages.md)。
+
 ### 所有权与资源结构
 
 方块属性分为三部分：静态逻辑属性（ID、特性、挖掘耗时等）、动态逻辑属性（挖掘进度、坐标、当前朝向等）与材质属性。本节只设计材质部分；前两类由 data、world、gameplay 等负责模块定义，shading 不复制权威状态。
 
-材质部分称为“方块外观定义”，覆盖六面外观、标准朝向及照明描述，由 game/shading 拥有。采用三个共享、只读的 Resource：
+材质部分称为“方块外观定义”，覆盖六面外观、标准朝向及照明描述，由 game/shading 拥有。采用以下共享、只读的 Resource：
 
 | 资源 | 职责 |
 | --- | --- |
 | BlockAppearance | 外观入口，保存默认及六面表面材质、标准朝向、可选光源描述 |
 | BlockSurface | 表面贴图、颜色、透明、光泽及自发光 |
 | BlockLightAppearance | 向周围照明的颜色、强度、范围及局部位置 |
+| BreakingTextureGroup | 挖掘裂纹的十阶段遮罩、颜色与混合强度，不保存挖掘进度 |
 
 上表为概念名；实现时共享 class_name 使用 Astraeon 前缀。类型归入 game/shading/blocks/gdscript，配套资源与着色器归入该功能的 resources/、shaders/，测试归入 test/shading；实现时按需创建，不预建空目录。静态方块定义引用外观资源；多个方块可共享外观，多个面可共享表面资源。资源引用不允许反向持有世界或玩法实例。
 
@@ -43,6 +48,8 @@
 | emission_texture | 可选自发光颜色与区域贴图，缺省为白色 |
 | double_sided | 是否显示背面，默认关闭 |
 
+完整方块文件中所有 Texture2D 字段保持空；当前颜色图通过 `image_slots` 的 `surface/default` 或 `surface/0..5` 指向包工程图片索引，编译器在私有副本上填充 `albedo_texture`。下表/字段类型描述渲染语义，不代表制作时需要 Godot 导入图片。
+
 自发光结果 = 发光贴图 × 发光颜色 × 发光倍率。发光倍率只控制表面自发光，不自动产生周围照明。颜色贴图按颜色数据处理；法线、ORM 按线性数据处理。材质 AO 与已有顶点 AO 分开，全局顶点 AO 设置仍独立生效。
 
 水体的波纹、深度吸收、反射继续使用专用水材质，不混入普通方块表面字段。材质透明度只描述视觉；逻辑透光、碰撞及游戏规则使用的光照等级由其他模块显式定义，不从 alpha_mode 自动推断。
@@ -51,18 +58,36 @@
 
 | 字段 | 含义 |
 | --- | --- |
+| texture_resolution | 每面正方形像素边长，默认及建议 32；特殊方块可设 1–1024 的整数，例如 16、64、128；六面共用该尺寸 |
 | default_surface | 六面的默认表面材质，必须提供 |
 | face_surfaces | 上、下、前、后、左、右的可选覆盖；未提供时使用默认材质 |
 | face_uv_rotations | 每面 UV 旋转，限定 0/90/180/270 度，默认 0 |
 | face_uv_mirrors | 每面 U/V 镜像，默认关闭 |
 | authoring_orientation | 素材标准朝向到规范朝向的固定旋转，默认恒等；方块首版限保持轴对齐的立方体旋转 |
 | light | 可选 BlockLightAppearance，缺省不向周围照明 |
+| breaking | BreakingTextureGroup 参数内嵌于完整方块；新建时默认 null，原版显式配置通用/木纹裂纹；null 仅关闭显示 |
+| foliage_layers | 闭合裁剪透明立方体参与树叶内部层次渲染，默认 false；仅允许 CUTOUT，不改变逻辑透光/碰撞。层叠方案采用正面绘制，覆盖表面的 double_sided；薄片植被不要启用 |
 
 方块规范方向为上 +Y、前 -Z、右 +X；后 +Z、左 -X、下 -Y。该方向约定针对方块，不改写角色模型的独立资产方向契约。局部位置以方块中心为原点，单位为米；一个标准方块各轴边界为 -0.5 到 +0.5。
 
 标准朝向是素材的固定属性；当前朝向是实例动态逻辑属性，由其他模块传入。变换顺序为素材方向修正，再应用当前放置方向。六面材质映射、贴图方向、法线、光源局部位置使用一致的变换。实现时需固定各面的 UV 切线约定并验证镜像后的法线方向。
 
 例：原木上下端面使用年轮、侧面使用树皮；横放时旋转整个外观，不额外维护一套横放贴图。
+贴图制作仍为默认表面＋按面覆盖，可共用图片，不要求六张独立文件。建议每面 32×32，特殊方块在 BlockAppearance.texture_resolution 明确指定更低或更高尺寸；该像素值不改变方块 1m 尺寸或 16³ section。编译时按最近邻将每面源图采样到 N×N，再排列为 [上][下][前][后][左][右] 的 6N×N 图集，默认 192×32。原图未修改；高分辨率输入只有配置了相应 N 才保留更多细节，低分辨率输入放大不会凭空增加细节。一个外观的六面目前共用同一 N，不能逐面指定不同图块尺寸；手工六面图集不会自动拆分。运行时生命周期和内存说明见 [方块外观接口](shading/block_appearance.md#图集编译与缓存)。
+
+### 挖掘裂纹：BreakingTextureGroup
+
+实际类型为 `AstraeonBreakingTextureGroup`，挂在 `BlockAppearance.breaking`。不同方块可以共享或选择不同组；原版包工程提供 `breaking_common`（通用分叉裂纹）和 `breaking_wood`（木材纵向劈裂）两张图片索引，原木选择后者。图片为项目原创，不使用 Minecraft 贴图。
+
+| 字段 | 制作契约 |
+| --- | --- |
+| stages_texture | 编译器临时绑定，制作文件保持空，通过 BlockAsset.image_slots["breaking"] 引用工程图片索引；十阶段水平条带，尺寸 10N×N，N 为 1–1024 整数；建议 N=32，即 320×32；从左到右阶段 0–9 |
+| tint | 裂纹颜色，默认深褐近黑；Alpha 乘入混合强度 |
+| strength | 混合强度，0–1，默认 0.9 |
+
+遮罩读取 R 通道作为线性数据：黑色不改变原材质，白色完整应用配置强度；源图 Alpha 不参与裂纹遮罩。建议后续阶段保留前一阶段裂纹并扩展。六面复用同一阶段图，使用方块规范面 UV 并随实例朝向旋转；不按六面或朝向重复生成图片。最近邻采样、无 mipmap。此图独立于六面颜色图集，不改变 `texture_resolution`。
+
+裂纹是目标方块的动态 Shader 混合，不覆盖树叶原有透明孔洞，不改变碰撞、传播光或光源强度。运行时与交互边界见 [方块外观接口](shading/block_appearance.md#挖掘裂纹)；进度由 gameplay 持有，不写回共享 Resource。
 
 ### 周围照明：BlockLightAppearance
 
@@ -108,9 +133,10 @@
 
 - 制作项目：`F:/AstraBlender/Projects/basic_voxel/`。
 - 参数依据：根目录 `README.md` 与 `exports/godot/README.md`；详细交付参数采用后者的八动作握持骨版说明。
-- 唯一当前交换资产：`exports/godot/basic_voxel.glb`，2466136 字节。
+- 第三人称交换资产：`exports/godot/basic_voxel.glb`，2466136 字节。
 - SHA-256：`b2db9553bebf48a143d37d2f80ad6594f34badb0c853a859aa695300e59e75d4`。
-- 游戏仅消费当前单文件 GLB，制作源文件与 IK 控制器不导入。
+- 第一人称来源：`F:/AstraBlender/Projects/basic_voxel_fp/exports/godot/basic_voxel_fp.glb`，849624 字节，SHA-256 `c87ba6f9e6b678e408dddeb25478fbad9faf187ea3d5475a1688115ae1d92f75`。
+- 默认交付为 `external_data/characters/basic_voxel/basic_voxel_tp.glb` 与 `basic_voxel_fp.glb`；分别原样复制上述来源。制作源文件与 IK 控制器不导入。
 - GLB 内含模型、蒙皮、材质、骨架、动画和形态键，无外部资源依赖。游戏不使用制作目录根部的旧 GLB、旧 SCN 或旧 17 骨骼构建脚本。
 - Blender 源文件留在制作项目，游戏侧不修改；制作参考 node_0、IK 控制骨、相机、灯光不进入交付。
 
@@ -177,6 +203,7 @@ Root
 - Root 为全身根骨，所有动作固定；Hips 承载局部起伏与下蹲。
 - LeftScapula、RightScapula 是正式导出骨，参与肩部形变，不得作为制作辅助骨删除。
 - LowerArm 包含手，LowerLeg 包含脚；没有独立手腕、手掌、手指、脚踝、前脚掌或脚趾骨。
+- 当前投掷起点采用对应视角骨架 Grip_R 的世界位置；第一、第三人称使用各自骨架当前姿态，不混用偏移。
 - Blender IK 求值结果烘焙到主体骨骼后导出，IK 目标与极向控制骨不导出；当前不要求运行时 IK。
 - 不假定自动兼容完整 Humanoid 骨架。外部动作重定向需另行验证，不能添加旧骨架兼容别名。
 
@@ -216,7 +243,7 @@ Root
 | HoldBlock_R | 2.000000 | 1–120 | 121 | Linear | 0 |
 | HoldBlock_L | 2.000000 | 1–120 | 121 | Linear | 0 |
 
-握持片段已导入，但尚未接入持物或上半身动画混合。Grip_R / Grip_L 为对应 LowerArm 子骨，不参与蒙皮；局部 +Z 指向承托面外、+Y 指向肘部。中心原点的 0.28 m 方块可放在挂点局部 (0, 0, 0.14) m。
+右手 HoldBlock_R 已通过右臂与右肩形态键过滤叠加到运动动作；HoldBlock_L 仅保留资源，尚未接入玩法。Grip_R / Grip_L 为对应 LowerArm 子骨，不参与蒙皮；局部 +Z 指向承托面外、+Y 指向肘部。中心原点的 0.12 m 方块可放在挂点局部 (0, 0, 0.06) m。
 
 闭合帧只表示周期终点，不额外延长一个源帧。Run 完整左右步周期参考位移 2.58 m，Sprint 为 2.80 m；Walk 是慢速步态，不能直接按 4.3 m/s 驱动。保持项目普通移动 4.3 m/s、快跑 5.6 m/s 时，分别选择 Run、Sprint；低于约 0.77 m/s 的实际速度使用 Walk，带 0.08 m/s 滞回。玩家按住 Ctrl 以 0.5141 m/s 慢走；输入规则见 [按键映射](input_mapping.md)。
 
@@ -226,7 +253,7 @@ JumpStart 的源起跳标记在第 32 帧，约 0.5167 秒，末姿势衔接 Fal
 
 ## Godot 导入基线
 
-以下采用源交付 README 的复现参数，已应用于玩家资产的 .import 配置。
+以下为源交付 README 的制作基线。当前人物全部由运行时 GLTFDocument 加载，不读取编辑器 .import；运行时实现见下文。
 
 | 参数 | 基线 |
 | --- | --- |
@@ -241,7 +268,7 @@ JumpStart 的源起跳标记在第 32 帧，约 0.5167 秒，末姿势衔接 Fal
 | Meshes Force Disable Compression | On |
 | AnimationPlayer Optimizer / Compression | 均关闭 |
 
-在高级导入中按动作表设置循环，不假设 GLB 自带循环配置。以后降低采样率或开启优化时，重新验证支撑脚、快速收腿、形态键与循环边界。
+运行时按动作表设置循环，不假设 GLB 自带循环配置。以后降低采样率或开启优化时，重新验证支撑脚、快速收腿、形态键与循环边界。
 
 交付报告记录的节点路径（相对 GLB 根节点）：
 
@@ -251,7 +278,7 @@ BasicVoxel_Rig/Skeleton3D
 BasicVoxel_Rig/Skeleton3D/Body
 ```
 
-游戏外层场景组装碰撞、移动、相机与动画，不直接修改生成的导入场景。资源归入 game/entities 对应功能的 assets/，不照搬外部 README 的示例目录或脚本。
+游戏外层场景组装碰撞、移动、相机与动画，不直接修改生成的导入场景。人物 GLB 成对放入 external_data/characters 下的人物文件夹，不保留 game/ 内置模型副本。
 
 ## 衣服、鞋子与角色变体
 
@@ -264,12 +291,31 @@ BasicVoxel_Rig/Skeleton3D/Body
 
 运动和碰撞参数属于 [实体行为](entities/character_entities.md)，不由制作规格推导。资产核对证据见 [交付验证](../test/entities/reports/basic_voxel_asset_20260926.md)。
 
+## 第一人称模型与动作
+
+FP 模型独立于完整身体，默认包含双臂：1368 个渲染顶点、1952 个三角形、1 个网格和材质，保留相同 21 根标准骨与八个肩部修正形态键。上述完整身体尺寸、脚底原点仅适用于 TP；FP 的骨架对象已有 glTF 平移 (0, -1.40, +0.06) m，不能重复应用。两种视角的标准骨静止变换与各自根变换保存在 `game/entities/common/gdscript/character_rig_standard.gd`，校验不依赖另一个可删除的人物文件。
+
+FP 必须交付 `FP_Idle`、`FP_HoldBlock_R`、`FP_HoldBlock_L`，均为 2 秒、240 samples/s，运行时线性循环。FP 使用自己的 AnimationPlayer，在空手与右手持方块之间以 0.12 秒混合；跑跳继续由 TP 六动作控制器处理，当前没有独立 FP 跑跳片段。左手片段保留但未接入操作。
+
+制作预览相机位于原点，16:9、水平 FOV 90°（垂直约 58.7155°）、near=0.01 m。Godot 将 FP 挂在相机下，外层绕 Y 旋转 180°，把模型 +Z 朝前转换到相机 -Z；保留 GLB 内部偏移。FP 不带相机、灯光或展示方块。Grip 轴与 0.12 m 方块偏移沿用上文。
+
 ## 外部人物运行时导入
 
-外部人物目录为项目根目录下的 `external_data/characters/`，由 project_paths.gd 统一解析。本阶段采用平铺 GLB 文件，无 character.json；文件名（不含扩展名）作为显示名，完整文件名构成稳定选择 ID。更名相当于新人物。只扫描目录第一层，不接受 .blend/.gltf 或额外脚本。
+人物统一位于项目根目录 `external_data/characters/`，由 project_paths.gd 解析；桌面导出后位于可执行文件旁。每个人物一个文件夹，文件夹名与两个 GLB 的前缀完全一致：
 
-交付须为自包含 GLB 2.0，贴图和缓冲区嵌入文件，单文件不超过 128 MiB。沿用本文件的 21 根标准骨名称、层级、静止变换和骨架根变换；允许附属骨。场景须有网格、单个 Skeleton3D、根节点下的 AnimationPlayer，八动作名字和时长沿用当前标准。动画和衣物形态键随 GLB 交付，不自动从素体复制。
+```text
+external_data/characters/
+└─ basic_voxel/
+   ├─ basic_voxel_tp.glb
+   └─ basic_voxel_fp.glb
+```
 
-运行时以 240 FPS、保留不可变轨道、不裁剪生成场景；启用切线和命名蒙皮，关闭网格压缩。显式设置 JumpStart 不循环，其余七动作循环；此路径不执行编辑器导入优化或动画压缩，也不读取 `.import`。当前校验不替代服装变形、脚底对齐和穿模的人工验收。
+固定后缀为 `_tp.glb`（第三人称）、`_fp.glb`（第一人称）。前缀同时作为显示名与选择 ID，一个文件夹对应一个按钮；更名时目录和两文件同步更名。两份齐全并校验通过才可选，不支持平铺旧 GLB、旧 `user/<文件名>` ID 或单视角人物。默认人物也按此规则存放，不设内置回退。
 
-按钮导入先校验，再复制临时文件并重命名发布；同名不同内容不覆盖。直接放入目录的文件在打开人物菜单时校验，失败文件保留并显示原因，不加入可选列表。更新同名 GLB 后重新打开菜单即可刷新。不修改 Blender 来源文件，也不提供任意骨架自动重定向。
+每份须为自包含 GLB 2.0，贴图与缓冲区内嵌，单文件不超过 128 MiB。需有网格、一个 Skeleton3D、根节点下的 AnimationPlayer。标准骨名称、层级、静止变换及对应视角根变换必须匹配，允许附属骨；TP 必须含八动作，FP 必须含上述三动作。动画、衣物与形态键随各自 GLB 交付，不自动复制或重定向。
+
+运行时以 240 FPS、保留不可变轨道、不裁剪生成场景；启用切线和命名蒙皮，关闭网格压缩。JumpStart 不循环，其他必需动作循环。不执行编辑器导入优化或动画压缩。校验不替代服装变形、手部构图和穿模的人工验收。
+
+可直接复制整个文件夹后重新打开人物页，或用「导入人物」选择该文件夹。按钮导入先校验，复制两文件至暂存目录，核对哈希并再次校验，再重命名整个目录发布。同名同内容复用，同名不同内容拒绝覆盖。错误显示原因并保留来源；不自动修复或迁移。不递归扫描其他层级，也不持续监听。
+
+external_data 内容按项目规则不提交 Git；发行时必须随程序提供默认人物文件夹。缺失所选人物会报告并停止相关操作，不静默替换人物。当前验收见 [成对人物与独立第一人称](../test/entities/reports/2026-09-27_paired_character_models.md)。

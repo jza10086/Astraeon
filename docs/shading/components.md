@@ -13,13 +13,13 @@
 - `gdscript/planar_reflection.gd`：平面水池反射，相机曝光独立，SSAO／体积雾分别选择，镜头后处理不继承。
 - `shaders/surface_material.gdshaderinc`：GGX 高光和湿润参数；`glass_receiver.gdshaderinc`：只调制日月直射的彩色阴影。
 
-`light_volume.gd` 等有限体素脚本只属于测试夹具，不是生产世界存储或光照后端。不得将其搬入本模块作为第二份权威体素数据。
+`light_volume.gd` 等有限体素脚本只属于测试夹具，不是生产世界存储或光照后端。不得将其搬入本模块作为第二份权威体素数据。 样板读取测试方块定义中的阻光/发光值，天空柱衰减、六邻接传播及 GPU 可采样标记与原生 section 缓存采用相同规则，详见 [透光契约](block_appearance.md#样板与正式世界的透光规则)。
 
 用法、验证状态及限制见 [独立样板说明](../../test/shading/README.md)。
 
 ## 已批准的方块材质设计
 
-方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../resource_specifications.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/block_library_builder.gd 接入不透明/裁剪方块、颜色贴图、常量自发光及三轴朝向；独立光影样板已用 shading_test 方块复用材质编译器并保留测试光照着色器，法线/ORM/发光贴图与混合透明仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
+方块外观由本模块拥有，采用 BlockAppearance、BlockSurface、BlockLightAppearance 三类共享只读资源，明确分离表面自发光与周围照明。六面贴图、标准朝向、字段及接口约定见 [方块规格](../resource_specifications.md#方块属性与材质契约)。资源结构已实现于 blocks/gdscript，示例位于 blocks/resources，静态方块定义已引用它们；原生世界已通过 blocks/gdscript/compiled_block_builder.gd 接入不透明/裁剪方块、颜色贴图、常量自发光及三轴朝向；独立光影样板已用 shading_test 方块读取离线内容包并复用共享材质并保留测试光照着色器，法线/ORM/发光贴图与混合透明仍待实现。validate() 检查配置，方向及 UV 接口只返回派生值，不修改共享模板。
 
 验证：Godot 4.7 headless 执行 `--script res://test/shading/gdscript/test_block_appearance.gd`，360 项检查通过。测试不包含图形或性能验收。
 

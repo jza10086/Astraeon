@@ -1,0 +1,75 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game/ui/pause_menu/gdscript/pause_menu.gd" id="1"]
+[ext_resource type="Theme" path="res://game/ui/resources/menu_theme.tres" id="2"]
+
+[node name="PauseMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.025, 0.035, 0.045, 0.78)
+
+[node name="Menu" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -220.0
+offset_right = 300.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Heading" type="Label" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "游戏已暂停"
+horizontal_alignment = 1
+
+[node name="Gap" type="Control" parent="Menu"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 24)
+mouse_filter = 2
+
+[node name="Resume" type="Button" parent="Menu"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(600, 72)
+text = "回到游戏"
+
+[node name="Settings" type="Button" parent="Menu"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(600, 72)
+text = "设置"
+
+[node name="Title" type="Button" parent="Menu"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(600, 72)
+text = "返回标题界面"
+
+[node name="Status" type="Label" parent="Menu"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+autowrap_mode = 2

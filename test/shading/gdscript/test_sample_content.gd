@@ -4,7 +4,7 @@ func _settings_checks() -> void:
 	_check(catalog.definitions.size() == 5, "All solid fixture definitions including air")
 	for definition: AstraeonBlockDefinition in catalog.definitions:
 		_check(String(definition.key).begins_with("shading_test_"), "Independent test namespace")
-		if definition.key != &"shading_test_air":
+		if definition.key != &"shading_test:air":
 			_check(definition.appearance.validate().is_empty(), "Valid appearance")
 func _render_checks() -> void:
 	_render = SubViewport.new()

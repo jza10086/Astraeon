@@ -45,6 +45,26 @@
 
 namespace zylann::voxel {
 
+namespace {
+String content_owner(Vector3i p) { return "section:"+String::num_int64(p.x)+":"+String::num_int64(p.y)+":"+String::num_int64(p.z); }
+}
+bool VoxelTerrain::in_content_prefetch(Vector3i section) const {
+    Vector3 d=Vector3(section.x*16+8,section.y*16+8,section.z*16+8)-_content_prefetch_center;
+    return _content_prefetch_radius>0 && d.x*d.x+d.z*d.z<=_content_prefetch_radius*_content_prefetch_radius && Math::abs(d.y)<=_content_prefetch_vertical;
+}
+void VoxelTerrain::set_content_prefetch(Vector3 center,double radius,double vertical) {
+    _content_prefetch_center=center;_content_prefetch_radius=MAX(0.0,radius);_content_prefetch_vertical=MAX(0.0,vertical);
+    for(auto it=_content_prefetched.begin();it!=_content_prefetched.end();) {
+        if(!in_content_prefetch(it->first)) {
+            if(_content_cache.is_valid())_content_cache->release("prefetch:"+content_owner(it->first));
+            it=_content_prefetched.erase(it);
+        }else ++it;
+    }
+}
+bool VoxelTerrain::content_ready(Vector3i p) const {
+    auto found=_content_demands.find(p);
+    return _content_cache.is_null() || found==_content_demands.end() || _content_cache->is_ready(found->second);
+}
 VoxelTerrain::VoxelTerrain() {
 	// Note: don't do anything heavy in the constructor.
 	// Godot may create and destroy dozens of instances of all node types on startup,
@@ -496,7 +516,11 @@ void VoxelTerrain::unview_mesh_block(Vector3i bpos, bool mesh_flag, bool collisi
             self->_deferred_unviews.erase(pos);
             auto block=self->_mesh_map.get_block(pos);
             if(!block)return;
-            if(block->mesh_viewers.get()==0)block->drop_mesh();
+            if(block->mesh_viewers.get()==0){
+                block->drop_mesh();
+                if(self->_content_cache.is_valid())self->_content_cache->release(content_owner(pos));
+                self->_content_pending.erase(pos);
+            }
             if(block->collision_viewers.get()==0)block->drop_collision();
             if(block->mesh_viewers.get()==0 && block->collision_viewers.get()==0)self->unload_mesh_block(pos);
         }
@@ -506,6 +530,8 @@ void VoxelTerrain::unview_mesh_block(Vector3i bpos, bool mesh_flag, bool collisi
 }
 
 void VoxelTerrain::unload_mesh_block(Vector3i bpos) {
+    if(_content_cache.is_valid())_content_cache->release(content_owner(bpos));
+    _content_demands.erase(bpos);_content_pending.erase(bpos);
     auto cached = _derived_meshes.find(bpos);
     if (cached != _derived_meshes.end()) cached->second.touched = ::godot::Time::get_singleton()->get_ticks_usec();
 	StdVector<Vector3i> &blocks_pending_update = _blocks_pending_update;
@@ -1277,9 +1303,14 @@ void VoxelTerrain::process() {
     _derived_maintenance_peak_usec=std::max(_derived_maintenance_peak_usec,_derived_maintenance_usec);
     VoxelEngine::get_singleton().charge_commit_usec(_derived_maintenance_usec);
     _data->set_derived_cache_bytes(_derived_bytes);
+    for(auto it=_content_pending.begin();it!=_content_pending.end();) {
+        auto block=_mesh_map.get_block(it->first);
+        if(!block){it=_content_pending.erase(it);continue;}
+        if(content_ready(it->first)){block->set_visible(block->mesh_viewers.get()>0&&_data->is_light_page_ready(it->first));it=_content_pending.erase(it);}else ++it;
+    }
     for (const auto &change : _data->take_light_visibility_changes()) {
         VoxelMeshBlockVT *block = _mesh_map.get_block(change.first);
-        if (block != nullptr) block->set_visible(block->mesh_viewers.get() > 0 && change.second);
+        if (block != nullptr) block->set_visible(block->mesh_viewers.get() > 0 && change.second && content_ready(change.first));
     }
 
 	ZN_PROFILE_SCOPE();
@@ -1898,6 +1929,17 @@ void VoxelTerrain::apply_data_block_response(VoxelEngine::BlockDataOutput &ob) {
 
 	ZN_ASSERT_RETURN(ob.voxels != nullptr);
 
+    // Incoming buffer is still private: collect one batch in native code before publication.
+    // A bounded predictive region avoids reading visuals for the full-height lighting dependency viewer.
+    if(_content_cache.is_valid()&&in_content_prefetch(block_pos)) {
+        const uint64_t start=::godot::Time::get_singleton()->get_ticks_usec();
+        const VoxelBuffer &v=*ob.voxels;Dictionary unique;::godot::PackedStringArray hashes;
+        auto add=[&](uint64_t id){if(id<uint64_t(_content_states.size())){String hash=_content_states[id];if(!hash.is_empty()&&!unique.has(hash)){unique[hash]=true;hashes.append(hash);}}};
+        if(v.is_uniform(VoxelBuffer::CHANNEL_TYPE))add(v.get_voxel(0,0,0,VoxelBuffer::CHANNEL_TYPE));
+        else {Vector3i size=v.get_size();for(int z=0;z<size.z;++z)for(int x=0;x<size.x;++x)for(int y=0;y<size.y;++y)add(v.get_voxel(x,y,z,VoxelBuffer::CHANNEL_TYPE));}
+        if(!hashes.is_empty()){_content_cache->request("prefetch:"+content_owner(block_pos),hashes);_content_prefetched[block_pos]=true;}
+        VoxelEngine::get_singleton().charge_commit_usec(::godot::Time::get_singleton()->get_ticks_usec()-start);
+    }
 	VoxelDataBlock block(ob.voxels, ob.lod_index);
 	block.set_edited(ob.type == VoxelEngine::BlockDataOutput::TYPE_LOADED);
 	// Viewers will be set only if the block doesn't already exist
@@ -2206,6 +2248,19 @@ void VoxelTerrain::apply_mesh_update(const VoxelEngine::BlockMeshOutput &ob) {
 		}
 	}
 
+    if(_content_cache.is_valid() && ob.visual_was_required) {
+        ::godot::PackedStringArray hashes;
+        for(unsigned int material_index:material_indices) {
+            Ref<Material> mat=_mesher->get_material_by_index(material_index);
+            if(mat.is_valid()&&mat->has_meta("astraeon_visual_hash")) {
+                String hash=mat->get_meta("astraeon_visual_hash");if(!hashes.has(hash))hashes.append(hash);
+            }
+        }
+        _content_cache->request(content_owner(ob.position),hashes);
+        _content_cache->release("prefetch:"+content_owner(ob.position));_content_prefetched.erase(ob.position);
+        _content_demands[ob.position]=hashes;
+        if(!content_ready(ob.position))_content_pending[ob.position]=true;
+    }
 	if (mesh.is_null() && block->has_mesh()) {
 		// No surface anymore in this block
 #ifdef VOXEL_ENABLE_INSTANCER
@@ -2275,7 +2330,7 @@ void VoxelTerrain::apply_mesh_update(const VoxelEngine::BlockMeshOutput &ob) {
 		block->set_collision_mask(_collision_mask);
 	}
 
-	block->set_visible(block->mesh_viewers.get() > 0 && _data->is_light_page_ready(ob.position));
+	block->set_visible(block->mesh_viewers.get() > 0 && _data->is_light_page_ready(ob.position) && content_ready(ob.position));
 	block->set_collision_enabled(gen_collisions);
 	block->set_parent_visible(is_visible());
 	block->set_parent_transform(get_global_transform());
@@ -2641,6 +2696,8 @@ void VoxelTerrain::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_data_block_size"), &Self::get_data_block_size);
 
 	ClassDB::bind_method(D_METHOD("get_mesh_block_size"), &Self::get_mesh_block_size);
+    ClassDB::bind_method(D_METHOD("set_content_prefetch", "center", "radius", "vertical"), &Self::set_content_prefetch);
+	ClassDB::bind_method(D_METHOD("set_content_visual_cache", "cache", "state_visuals"), &Self::set_content_visual_cache);
 	ClassDB::bind_method(D_METHOD("set_mesh_block_size", "size"), &Self::set_mesh_block_size);
 
 	ClassDB::bind_method(D_METHOD("get_statistics"), &Self::_b_get_statistics);

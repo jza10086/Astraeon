@@ -1,6 +1,7 @@
 #ifndef VOXEL_TERRAIN_H
 #define VOXEL_TERRAIN_H
 #include <deque>
+#include "astraeon/shading/content/astraeon_visual_cache.h"
 
 #include "../../constants/voxel_constants.h"
 #include "../../engine/meshing_dependency.h"
@@ -44,6 +45,17 @@ public:
 	// Maximum view distance when any terrain boundary is larger than it
 	static const unsigned int MAX_VIEW_DISTANCE_FOR_LARGE_VOLUME = 512;
 
+    void set_content_visual_cache(Ref<AstraeonVisualCache> cache, ::godot::PackedStringArray state_visuals) { _content_cache = cache; _content_states = state_visuals; }
+    void set_content_prefetch(Vector3 center, double radius, double vertical);
+    bool in_content_prefetch(Vector3i section) const;
+    ::godot::PackedStringArray _content_states;
+    Vector3 _content_prefetch_center;
+    double _content_prefetch_radius=0, _content_prefetch_vertical=0;
+    StdUnorderedMap<Vector3i,bool> _content_prefetched;
+    bool content_ready(Vector3i p) const;
+    Ref<AstraeonVisualCache> _content_cache;
+    StdUnorderedMap<Vector3i, ::godot::PackedStringArray> _content_demands;
+    StdUnorderedMap<Vector3i, bool> _content_pending;
     void apply_derived_cache_policy(int64_t bytes, double seconds);
 	VoxelTerrain();
 	~VoxelTerrain();

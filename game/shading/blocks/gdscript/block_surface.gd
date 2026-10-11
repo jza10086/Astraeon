@@ -1,3 +1,4 @@
+@tool
 class_name AstraeonBlockSurface
 extends Resource
 ## Shared authoring data. Treat as read-only after loading; no per-voxel material.

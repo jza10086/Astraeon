@@ -89,7 +89,7 @@ Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script re
 
 保留房间、水池、地底走廊、树冠等固定布局。sample_world 使用原生 VoxelTool.do_box 批量填充；light_volume 的唯一方块存储改为 VoxelBuffer，光照数组是派生结果；section_meshes 使用原生区段批量复制和 VoxelMesherBlocky，并复用 AstraeonBlockLibraryBuilder 编译材质。样板光照求解与效果面板仍为测试实现，不属于正式流式世界的光照后端。
 
-独立定义位于 resources/blocks：shading_test_air、shading_test_stone、shading_test_lamp、shading_test_wood、shading_test_leaves；水单独使用 shading_test_water 流体定义。测试方块的外观子资源各自独立，仅棋盘纹理作为只读资产复用。它们不加入正式 block_catalog，不受正式世界 ID 前缀与生成角色约束。STATE_KEYS 显式对应缓冲内 0–4 的有限测试 ID，不是生产存档 ID。
+独立定义位于 resources/blocks：shading_test_air、shading_test_stone、shading_test_lamp、shading_test_wood、shading_test_leaves；水单独使用 shading_test_water 流体定义。测试方块的外观子资源各自独立，仅棋盘纹理作为只读资产复用。它们使用 shading_test 命名空间，经内容包编译后装配样板；空气定义为 shading_test:air。STATE_KEYS 对应样板的有限测试 ID，不是生产存档 ID；不加入正式世界生成。
 
 网格先经主体材质编译器生成共享图集，再由样板专用 ShaderMaterial 消费图集和体素光照纹理，以保留风动、AO、云影等开关。灯的表面仍由局部灯夹具绘制，避免自遮挡；测试 UI 可覆盖灯颜色/强度以及水面参数，原始资源保持只读。水池继续使用专用连续水面；草、彩色标杆、玻璃与金属展示物是效果夹具网格，不是体素方块。
 
@@ -111,3 +111,17 @@ Godot_v4.7-stable_win64_console.exe --path F:/GodotProjects/Astraeon --script re
 旧全量 C++ 求解器在 native/reference/，仅编辑器构建供测试使用；生产没有旧管线回退。数据及截图生成到 tmp，最终结论另存 reports。性能测量隔离与编辑器／导入规则统一见 [AGENTS.md](../../AGENTS.md#godot-tooling-and-skills)。
 
 本轮缓存结果见 [2026-09-24 验收报告](reports/cache_20260924.md)。
+
+## 树叶层次对比
+
+打开 scenes/shading_sample.tscn，点击“创建光照样板”，观察点选“树叶 1 / 2 / 4 层”。参数位于“环境 → 植被 → 树叶层次方案”：外壳剔面、内部层叠（默认）、内部层叠＋纹理错位。主世界 F6 光影设置提供同一选项。剔面策略切换会重建网格，请等网格队列归零后评估；1 与 2 的切换不重建网格。
+
+原生网格/世界切换回归：用工具链 RunScript 执行 res://test/shading/gdscript/test_foliage_layers.gd。实际图形检查使用同一脚本并在引擎参数后追加 -- --visual；明确提供 --log-file 指向 tmp/foliage 下，避免独立测试与编辑器共享轮转日志。图形检查固定 1920×1080，临时配置和截图仅写入 tmp/foliage，不写用户设置、不加载主世界存档。先通过现有编辑器完成导入，不另开第二编辑器导入。
+
+[本次证据及限制](reports/2026-09-26_foliage_layers.md)。
+
+样板与正式世界均按方块定义计算透光：空气阻光 0、树叶 1、石块 15；树叶参与光场平滑采样。test_light_volume.gd 覆盖叶层衰减、密闭空间、移除光源与自定义阻光/发光值，详见 [透光一致性报告](reports/2026-09-27_leaf_light.md)。
+
+传播光平滑：test_light_smoothing.gd 使用实际 GPU 页与共用 shader 检查负坐标区段边界、墙体/斜角防漏光、曲线、配置及样板截图。需要图形渲染器；输出 tmp/light-smoothing；无需正式性能基准。设置入口见 [传播光参数](../../docs/shading/voxel_light_smoothing.md)。
+
+可配置方块分辨率：test_atlas_resolution.gd（可加 -- --visual）验证 32 默认及低/高/非二次幂尺寸、面图集内容与旋转，并复用树叶渲染检查。[报告](reports/2026-09-27_atlas_resolution.md)。
